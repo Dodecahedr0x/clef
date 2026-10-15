@@ -19,7 +19,11 @@ export const SENSITIVE_PROGRAMS: ReadonlySet<string> = new Set([STAKE_PROGRAM, V
 /** Programs whose instructions are never "the point" of a transaction. */
 export const PLUMBING_PROGRAMS: ReadonlySet<string> = new Set([COMPUTE_BUDGET_PROGRAM, MEMO_PROGRAM, MEMO_V4_PROGRAM]);
 
-/** Native programs: a transaction made only of these can't legitimately be depositing into another program. */
+/**
+ * Core System and SPL programs (System, Token, Token-2022, Associated Token, Compute Budget, Memo): Clef decodes
+ * them with its own curated IDLs. A transaction made only of these can't legitimately be depositing into another
+ * program.
+ */
 export const CORE_PROGRAMS: ReadonlySet<string> = new Set([
   SYSTEM_PROGRAM,
   TOKEN_PROGRAM,
@@ -40,6 +44,14 @@ export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
 ]);
 
+/**
+ * Programs Clef knows by address. Security-relevant, not just names: `isTrustedProgram` accepts a PDA derived
+ * under any of these as verified, so every addition needs review.
+ *
+ * Squads v4 is here (its PDAs are derived under its own fixed address, which is safe to accept) but not in
+ * `TRUSTED_PROGRAMS`: Clef does not know its behavior independently of the IDL it publishes, so funds moving
+ * through it still get the self-described-program treatment.
+ */
 export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
   [SYSTEM_PROGRAM]: 'System Program',
   [TOKEN_PROGRAM]: 'Token Program',
