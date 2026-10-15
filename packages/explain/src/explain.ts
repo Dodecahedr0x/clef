@@ -280,18 +280,25 @@ export async function explain(
 
   const numSignatures = tx.accounts.filter((a) => a.signer).length;
   const baseFee = 5000n * BigInt(numSignatures);
+  // v1 (SIMD-0385): the config, a protocol field, sets the priority fee (a total in lamports) and the limits.
+  // Compute budget instructions are ignored for configuration, even invalid ones, and run as no-ops.
+  if (tx.version === 1 && instructions.some((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM)) {
+    issues.push({ stage: 'decode', message: 'Compute budget instructions have no effect in a v1 transaction; its config sets the fee and limits.' });
+  }
   // A compute budget instruction Clef couldn't decode may set any price: the fee is then unknown.
   const undecodedBudget = instructions.some((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM && !(ix.name && ix.idl?.trust === 'curated'));
-  const fee = input.meta
-    ? input.meta.fee
-    : undecodedBudget
-      ? null
-      : estimateFee(
-          numSignatures,
-          toNumber(budgetArg(instructions, 'setComputeUnitLimit', 'units')),
-          toBigint(budgetArg(instructions, 'setComputeUnitPrice', 'microLamports')),
-          tx.instructions.filter((ix) => ix.programId !== COMPUTE_BUDGET_PROGRAM).length,
-        );
+  let fee: bigint | null;
+  if (input.meta) fee = input.meta.fee;
+  else if (tx.version === 1) fee = baseFee + (tx.config?.priorityFeeLamports ?? 0n);
+  else if (undecodedBudget) fee = null;
+  else {
+    fee = estimateFee(
+      numSignatures,
+      toNumber(budgetArg(instructions, 'setComputeUnitLimit', 'units')),
+      toBigint(budgetArg(instructions, 'setComputeUnitPrice', 'microLamports')),
+      tx.instructions.filter((ix) => ix.programId !== COMPUTE_BUDGET_PROGRAM).length,
+    );
+  }
 
   const tokenBalances: Record<string, TokenHolding> = {};
   const solBalances: Record<string, bigint> = {};

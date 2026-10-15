@@ -3,10 +3,10 @@ import { MemoryChainReader, type RawAccount, type TxMeta } from '@clef/rpc';
 import { getSetComputeUnitLimitInstruction, getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstruction } from '@solana-program/token';
-import { AccountRole, address, createNoopSigner, type Address, type Instruction } from '@solana/kit';
+import { AccountRole, address, createNoopSigner, type Address, type Instruction, type V1TransactionConfig } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { decodeTransaction, explain, shortAddress, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
-import { buildWire, ME, OTHER, setLookupTable, simulateWith, tokenAccountData, USDC } from './helpers';
+import { buildV1Wire, buildWire, ME, OTHER, setLookupTable, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
 
@@ -254,6 +254,58 @@ describe('explain', () => {
     const bogus: Instruction = { programAddress: address(COMPUTE_BUDGET_PROGRAM), data: new Uint8Array([99]), accounts: [] };
     const ex = await explain({ wire: buildWire([bogus, getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
     expect(ex.fee).toBeNull();
+  });
+
+  describe('v1 fees', () => {
+    const SYSTEM = address('11111111111111111111111111111111');
+    const v1Run = async (instructions: Instruction[], config: V1TransactionConfig, lost: bigint, balance = 5n * SOL) => {
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: SYSTEM, lamports: balance, data: new Uint8Array() });
+      simulateWith(reader, {}, { fee: lost });
+      return explain({ wire: buildV1Wire(instructions, { config }) }, ctx(reader));
+    };
+    const drain: Instruction = { programAddress: DRAINER, data: new Uint8Array([1]), accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }] };
+
+    it('takes the priority fee from the config, as a total in lamports', async () => {
+      const ex = await v1Run([drain], { computeUnitLimit: 200_000, priorityFeeLamports: 8_000_000n }, 13_005_000n);
+      expect(ex.tx.version).toBe(1);
+      expect(ex.fee).toBe(8_005_000n);
+      // Counted as expected spend, like a v0 priority fee.
+      expect(rules(ex)).toEqual([['unknown-program', 'warn']]);
+      // Without a priority fee the same loss is an outflow; the fee is the signature fee alone.
+      const none = await v1Run([drain], { computeUnitLimit: 200_000 }, 13_005_000n);
+      expect(none.fee).toBe(5000n);
+      expect(rules(none)).toContainEqual(['unexplained-outflow', 'danger']);
+    });
+
+    it('raises high-fee from the config priority fee', async () => {
+      const warn = await v1Run([drain], { priorityFeeLamports: 20_000_000n }, 20_005_000n);
+      expect(rules(warn)).toEqual([['unknown-program', 'warn'], ['high-fee', 'warn']]);
+      const danger = await v1Run([drain], { priorityFeeLamports: 600_000_000n }, 600_005_000n, 10n * SOL);
+      expect(rules(danger)).toContainEqual(['high-fee', 'danger']);
+      expect(danger.fee).toBe(600_005_000n);
+    });
+
+    it('ignores compute budget instructions, as the runtime does, and says so', async () => {
+      const ex = await v1Run(
+        [
+          getSetComputeUnitLimitInstruction({ units: 1_400_000 }),
+          getSetComputeUnitPriceInstruction({ microLamports: 6_000_000_000n }),
+          { programAddress: address(COMPUTE_BUDGET_PROGRAM), data: new Uint8Array([99]), accounts: [] },
+          getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n }),
+        ],
+        { computeUnitLimit: 10_000, priorityFeeLamports: 1000n },
+        6000n,
+      );
+      // Neither the price instruction nor the undecodable one changes (or hides) the fee.
+      expect(ex.fee).toBe(6000n);
+      expect(rules(ex)).not.toContainEqual(['high-fee', 'warn']);
+      expect(rules(ex)).not.toContainEqual(['high-fee', 'danger']);
+      expect(ex.issues).toContainEqual({
+        stage: 'decode',
+        message: 'Compute budget instructions have no effect in a v1 transaction; its config sets the fee and limits.',
+      });
+    });
   });
 
   it('shows raw units, never assumed decimals, for a token whose mint is unknown', async () => {
