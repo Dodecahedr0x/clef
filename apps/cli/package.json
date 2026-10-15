@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "bin": {
+    "clef": "./src/main.ts"
   },
   "dependencies": {
     "@clef/explain": "workspace:*",
