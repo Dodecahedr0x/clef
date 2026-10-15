@@ -121,6 +121,20 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   // (for "someone else's" rules): ambiguous names must never silence a danger.
   const mineOrUnknown = (a: NamedAccount | undefined) => !a || a.mine || me.has(a.address);
   const notMineOrUnknown = (a: NamedAccount | undefined) => !a || (!a.mine && !me.has(a.address));
+  /**
+   * A close that is someone else's business: a single signing key that is not yours closes an account, and
+   * nothing the instruction touches is yours (nor held by you before the transaction). Typical of bundles where
+   * several wallets co-sign: your signature authorizes nothing there. Unknown names or a multisig authority
+   * (whose signers could include you) never qualify.
+   */
+  const othersOwnClose = (ix: RiskInput['instructions'][number]) => {
+    const authority = account(ix, 'owner');
+    return (
+      !!authority?.signer &&
+      !!account(ix, 'account') &&
+      ix.accounts.every((a) => !a.mine && !me.has(a.address) && !me.has(input.tokenBalances?.[a.address]?.owner ?? ''))
+    );
+  };
 
   const unknownPrograms = new Set<string>();
   let nonce: { warning: Warning; foreignAuthority: boolean } | undefined;
@@ -162,7 +176,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       const yours = mineOrUnknown(target) || (ix.name === 'assignWithSeed' && mineOrUnknown(account(ix, 'baseAccount')));
       if (yours) warn('authority-change', 'danger', 'Reassigns ownership of your account to another program.', i, target?.address);
     }
-    if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination'))) {
+    if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination')) && !othersOwnClose(ix)) {
       // A wrapped SOL account holds its whole balance as lamports: closing it hands over all of them.
       const closed = account(ix, 'account')?.address;
       const held = closed === undefined ? undefined : input.tokenBalances?.[closed];

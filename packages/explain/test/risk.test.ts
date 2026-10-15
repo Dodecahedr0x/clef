@@ -369,6 +369,37 @@ describe('evaluateRisks', () => {
     expect(rules(input([toMe, toMyAta, assignOther], { relations: [unverified] }))).toEqual([]);
   });
 
+  it('does not flag a co-signer closing their own account to themselves', () => {
+    // Bundles where several wallets sign: someone else's key closes someone else's account. Your signature
+    // authorizes nothing here, and none of it is yours.
+    const ACC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const cosigner = (a: Address) => ({ ...named('owner', a), signer: true });
+    const theirs = ix({ name: 'closeAccount', accounts: [named('account', ACC), named('destination', OTHER), cosigner(OTHER)] });
+    expect(rules(input([theirs]))).toEqual([]);
+
+    // Still flagged: the closed account is yours (by flag, or by its pre-state holder)...
+    const yours = ix({ name: 'closeAccount', accounts: [named('account', ACC, true), named('destination', OTHER), cosigner(OTHER)] });
+    expect(rules(input([yours]))).toEqual([['close-to-third-party', 'danger']]);
+    const held = { tokenBalances: { [ACC]: { owner: ME, mint: USDC, amount: 0n } } };
+    expect(rules(input([theirs], held))).toEqual([['close-to-third-party', 'danger']]);
+    // ...you are the closing authority...
+    const byYou = ix({ name: 'closeAccount', accounts: [named('account', ACC), named('destination', OTHER), cosigner(ME)] });
+    expect(rules(input([byYou]))).toEqual([['close-to-third-party', 'danger']]);
+    // ...the authority is not a single signing key (a token multisig, whose signers follow)...
+    const multisig = ix({
+      name: 'closeAccount',
+      accounts: [named('account', ACC), named('destination', OTHER), named('owner', OTHER), { ...named(undefined, ME), signer: true }],
+    });
+    expect(rules(input([multisig]))).toEqual([['close-to-third-party', 'danger']]);
+    const unsigned = ix({ name: 'closeAccount', accounts: [named('account', ACC), named('destination', OTHER), named('owner', OTHER)] });
+    expect(rules(input([unsigned]))).toEqual([['close-to-third-party', 'danger']]);
+    // ...or the names are unknown.
+    const ambiguous = ix({
+      name: 'closeAccount', accounts: [named(undefined, ACC), named(undefined, OTHER), { ...named(undefined, OTHER), signer: true }],
+    });
+    expect(rules(input([ambiguous]))).toEqual([['close-to-third-party', 'danger']]);
+  });
+
   it('treats your wallet as yours even when the mine flag is unset', () => {
     const assign = ix({ programId: address(SYSTEM_PROGRAM), name: 'assign', accounts: [named('account', ME)] });
     expect(rules(input([assign]))).toEqual([['authority-change', 'danger']]);
