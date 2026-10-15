@@ -225,9 +225,12 @@ function describe(input: SummaryInput, meaningful: readonly ExplainedInstruction
   const [only] = recipients;
   const gain = (mint: string) => (input.balanceChanges ?? []).filter((c) => c.owner === only && c.mint === mint).reduce((t, c) => t + c.delta, 0n);
   const to = recipients.size === 1 && outflows.every((o) => gain(o.mint) * 2n >= -o.delta) ? ` to ${named(only!, input)}` : '';
-  // A rent-sized SOL gain (e.g. the rent of an account someone else funded for you) is not a receive, as in risk's
-  // `netFlows`: it still shows in the balance changes.
-  const received = mine.filter((c) => (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n)).map(asset);
+  // When nothing of yours leaves, a rent-sized SOL gain (e.g. the rent of an account someone else funded for you)
+  // is not a receive, as in risk's `netFlows`; it still shows in the balance changes. When something leaves, it
+  // may be what you get back (a small swap), and leaving it out would make the swap read like a giveaway.
+  const received = mine
+    .filter((c) => (c.mint === 'SOL' && !outflows.length ? c.delta > RENT_SLACK : c.delta > 0n))
+    .map(asset);
 
   const programs = [
     ...new Set(meaningful.filter((ix) => !TOKEN_PROGRAMS.has(ix.programId) && ix.programId !== SYSTEM_PROGRAM).map(programDisplay)),

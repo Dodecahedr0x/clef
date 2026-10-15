@@ -169,12 +169,15 @@ describe('summarize', () => {
     );
   });
 
-  it('does not call a rent-sized SOL gain a receive (it is rent of an account made for you)', () => {
+  it('does not call a rent-sized SOL gain a receive when nothing of yours leaves', () => {
     const instructions: ExplainedInstruction[] = [{ ...base, index: 0, programId: OTHER }];
     const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, symbol: 'SOL', decimals: 9, delta }];
     expect(summarize({ instructions, balanceChanges: sol(2_039_280n), me: [ME] })).toBe(`Interact with ${shortAddress(OTHER)}`);
     expect(summarize({ instructions, balanceChanges: sol(RENT_SLACK), me: [ME] })).toBe(`Interact with ${shortAddress(OTHER)}`);
     expect(summarize({ instructions, balanceChanges: sol(RENT_SLACK + 1n), me: [ME] })).toBe(`Receive 0.010000001 SOL via ${shortAddress(OTHER)}`);
+    // A swap with a small SOL output: the SOL is what comes back, so it is a receive.
+    const swap = [...sol(193_618n), { owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -1_000_000n }];
+    expect(summarize({ instructions, balanceChanges: swap, me: [ME] })).toBe(`Send 1 USDC, receive 0.000193618 SOL via ${shortAddress(OTHER)}`);
   });
 
   it('describes interactions when nothing moves', () => {

@@ -1223,7 +1223,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
     },
   ],
   "stateChanges": null,
-  "summary": "Send 4821.455814 DsjP…CSLT to F9yY…vovk via Associated Token Program, Jupiter Aggregator v6",
+  "summary": "Send 4821.455814 DsjP…CSLT to F9yY…vovk, receive 0.000193618 SOL via Associated Token Program, Jupiter Aggregator v6",
   "version": "0",
   "warnings": [],
 }
