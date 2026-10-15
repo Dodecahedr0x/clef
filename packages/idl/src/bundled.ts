@@ -44,6 +44,12 @@ const BUNDLED: { program: { publicKey: string } }[] = [
   stake,
 ];
 
+/**
+ * Programs Clef ships a curated IDL for. Security-sensitive: for these, any other IDL is ignored, so a user,
+ * metadata or on-chain IDL can never rename what Clef's rules key on.
+ */
+export const BUNDLED_PROGRAM_IDS: ReadonlySet<string> = new Set(BUNDLED.map((idl) => idl.program.publicKey));
+
 export function createBundledSource(): StaticIdlSource {
   return new StaticIdlSource('bundled', 'curated', new Map(BUNDLED.map((idl) => [idl.program.publicKey, idl])));
 }

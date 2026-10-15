@@ -22,8 +22,10 @@ import {
 } from '../src';
 import { ME, OTHER, tokenAccountData, USDC } from './helpers';
 
+/** Decoded with the curated IDL unless `over.idl` says otherwise (core rules only trust curated names). */
 const ix = (over: Partial<ExplainedInstruction>): ExplainedInstruction => ({
-  index: 0, programId: address(TOKEN_PROGRAM), accounts: [], data: new Uint8Array(), ...over,
+  index: 0, programId: address(TOKEN_PROGRAM), accounts: [], data: new Uint8Array(),
+  idl: { source: 'bundled', trust: 'curated', hash: 'h' }, ...over,
 });
 const input = (instructions: ExplainedInstruction[], over: Partial<RiskInput> = {}): RiskInput => ({
   instructions, relations: [], balanceChanges: [], issues: [], me: [ME], ...over,
@@ -39,6 +41,15 @@ describe('evaluateRisks', () => {
     const SRC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
     const limited = ix({ name: 'approve', args: { amount: 5n }, accounts: [named('source', SRC), named('delegate', OTHER)] });
     expect(rules(input([limited], { tokenBalances: { [SRC]: { owner: ME, mint: USDC, amount: 100n } } }))).toEqual([['delegation', 'warn']]);
+  });
+
+  it('ignores core instruction names that did not come from a curated IDL', () => {
+    const userIdl = { source: 'user' as const, trust: 'user' as const, hash: 'h' };
+    // A non-curated name for a core program counts as undecoded: never as a known-safe instruction.
+    expect(rules(input([ix({ name: 'approve', args: { amount: U64_MAX }, idl: userIdl })]))).toEqual([['unknown-program', 'warn']]);
+    expect(rules(input([ix({ name: 'approve', args: { amount: U64_MAX }, idl: undefined })]))).toEqual([['unknown-program', 'warn']]);
+    const stake = ix({ programId: address(STAKE_PROGRAM), name: 'deactivate', idl: userIdl });
+    expect(rules(input([stake]))).toEqual([['sensitive-program', 'danger']]);
   });
 
   it('treats near-unlimited or whole-balance delegation to someone else as danger', () => {
@@ -270,7 +281,8 @@ describe('evaluateRisks', () => {
       );
       expect(rules(input([claim(0)], { balanceChanges: [change(ME, USDC, 5n)] }))).toEqual([]);
       const core = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: authority });
-      expect(rules(input([core], { balanceChanges }))).toEqual([]);
+      // A core program never counts as self-described; a non-curated name for it counts as undecoded.
+      expect(rules(input([core], { balanceChanges }))).toEqual([['unknown-program', 'warn'], ['unexplained-outflow', 'danger']]);
     });
 
     it('flags an all-curated sweep of SOL and USDC to a wallet', () => {

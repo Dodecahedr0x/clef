@@ -1,3 +1,4 @@
+import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
 import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
@@ -59,7 +60,18 @@ const account = (ix: RiskInput['instructions'][number], name: string) => ix.acco
 const RANK = { info: 0, warn: 1, danger: 2 } as const;
 const HALF_U64 = 1n << 63n;
 
-export function evaluateRisks(input: RiskInput): Warning[] {
+/**
+ * Rules key on instruction names. For programs Clef bundles a curated IDL for, only that IDL's names count: any
+ * other name is treated as undecoded, so it can't pass for (or hide) a known instruction.
+ */
+function trustedNames(instructions: RiskInput['instructions']): RiskInput['instructions'] {
+  return instructions.map((ix) =>
+    ix.name !== undefined && BUNDLED_PROGRAM_IDS.has(ix.programId) && ix.idl?.trust !== 'curated' ? { ...ix, name: undefined } : ix,
+  );
+}
+
+export function evaluateRisks(raw: RiskInput): Warning[] {
+  const input: RiskInput = { ...raw, instructions: trustedNames(raw.instructions) };
   const me = new Set<string>(input.me);
   const warnings: Warning[] = [];
   /** `rule:account` -> the warning already raised about that account, so state rules don't repeat it. */

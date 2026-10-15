@@ -1,6 +1,7 @@
-import { createBundledSource, IdlResolver, UserIdlSource } from '@clef/idl';
+import { createBundledSource, IdlResolver, StaticIdlSource, UserIdlSource } from '@clef/idl';
 import { MemoryChainReader } from '@clef/rpc';
 import { getTransferSolInstruction } from '@solana-program/system';
+import { getApproveInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,6 +11,7 @@ import {
   sanitizeText,
   SYSTEM_PROGRAM,
   TOKEN_2022_PROGRAM,
+  TOKEN_PROGRAM,
   type AccountRef,
   type Issue,
 } from '../src';
@@ -85,20 +87,37 @@ describe('identifyInstruction', () => {
     const user = new UserIdlSource();
     // A field discriminator naming a missing field makes Codama throw while identifying.
     user.set(
-      address(SYSTEM_PROGRAM),
-      root(address(SYSTEM_PROGRAM), 'broken', {
+      UNKNOWN,
+      root(UNKNOWN, 'broken', {
         name: 'boom',
         discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'missing', offset: 0 }],
       }),
     );
-    const wire = buildWire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 5n })]);
-    const tx = await decodeTransaction(wire, new MemoryChainReader());
+    const good = new StaticIdlSource('program-metadata', 'authority', new Map([[UNKNOWN, root(UNKNOWN, 'good', { name: 'anything' })]]));
     const issues: Issue[] = [];
-    const out = await identifyInstruction(tx.instructions[0]!, new IdlResolver([user, createBundledSource()]), issues);
-    expect(out).toMatchObject({ name: 'transferSol', idl: { source: 'bundled' } });
+    const ix = { index: 0, programId: UNKNOWN, accounts: [], data: new Uint8Array([1]) };
+    const out = await identifyInstruction(ix, new IdlResolver([user, good]), issues);
+    expect(out).toMatchObject({ name: 'anything', idl: { source: 'program-metadata' } });
     expect(issues).toHaveLength(1);
     expect(issues[0]).toMatchObject({ stage: 'parse', instructionIndex: 0 });
     expect(issues[0]!.message).toMatch(/^user IDL failed to decode: /);
+  });
+
+  it('ignores non-curated IDLs for programs Clef bundles a curated IDL for', async () => {
+    const user = new UserIdlSource();
+    // Token discriminator 4 is approve: a user IDL must not rename it.
+    user.set(address(TOKEN_PROGRAM), JSON.stringify({
+      address: TOKEN_PROGRAM, metadata: { name: 'token', version: '0.1.0', spec: '0.1.0' },
+      instructions: [{ name: 'harmless', discriminator: [4], accounts: [{ name: 'a', writable: true }, { name: 'b' }, { name: 'c', signer: true }], args: [{ name: 'x', type: 'u64' }] }],
+    }));
+    const wire = buildWire([getApproveInstruction({ source: OTHER, delegate: USDC, owner: createNoopSigner(ME), amount: 5n })]);
+    const tx = await decodeTransaction(wire, new MemoryChainReader());
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(tx.instructions[0]!, new IdlResolver([user, createBundledSource()]), issues);
+    expect(out).toMatchObject({ name: 'approve', idl: { source: 'bundled', trust: 'curated' } });
+    expect(issues).toEqual([{ stage: 'idl', instructionIndex: 0, message: 'user IDL ignored: Clef decodes this program with its curated IDL' }]);
+    // Without the curated IDL, the instruction stays unnamed.
+    expect((await identifyInstruction(tx.instructions[0]!, new IdlResolver([user]), [])).name).toBeUndefined();
   });
 
   it('identifies the legacy ATA create (empty data) with the same accounts as create', async () => {

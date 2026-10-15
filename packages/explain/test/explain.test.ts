@@ -155,6 +155,20 @@ describe('explain', () => {
     expect(rules(ex)).toContainEqual(['unknown-program', 'warn']);
   });
 
+  it('does not let a user IDL rename a Token approve', async () => {
+    const reader = new MemoryChainReader();
+    tokenAccount(reader, MY_USDC, ME, 100n);
+    const user = new UserIdlSource();
+    user.set(address(TOKEN_PROGRAM), JSON.stringify({
+      address: TOKEN_PROGRAM, metadata: { name: 'token', version: '0.1.0', spec: '0.1.0' },
+      instructions: [{ name: 'harmless', discriminator: [4], accounts: [{ name: 'a', writable: true }, { name: 'b' }, { name: 'c', signer: true }], args: [{ name: 'x', type: 'u64' }] }],
+    }));
+    const wire = buildWire([getApproveInstruction({ source: MY_USDC, delegate: ATTACKER, owner: me, amount: (1n << 64n) - 1n })]);
+    const ex = await explain({ wire }, ctx(reader, { idls: new IdlResolver([user, createBundledSource()]) }));
+    expect(ex.instructions[0]).toMatchObject({ name: 'approve', idl: { trust: 'curated' } });
+    expect(rules(ex)).toContainEqual(['delegation', 'danger']);
+  });
+
   it('rates a limited top-level approve as warn, using the pre-state balance', async () => {
     const run = async (amount: bigint) => {
       const reader = new MemoryChainReader();

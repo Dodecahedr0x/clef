@@ -1,4 +1,4 @@
-import type { IdlResolver, ResolvedIdl } from '@clef/idl';
+import { BUNDLED_PROGRAM_IDS, type IdlResolver, type ResolvedIdl } from '@clef/idl';
 import type { InstructionNode } from '@codama/nodes';
 import { parseInstruction } from '@codama/dynamic-parsers';
 import { findProgramNodeFromPath, getLastNodeFromPath } from '@codama/visitors-core';
@@ -91,7 +91,12 @@ export async function identifyInstruction(
     issues.push({ stage: 'idl', instructionIndex: ix.index, message: `${e.source}: ${e.message}` });
   const unmatched: string[] = [];
 
+  const curatedOnly = BUNDLED_PROGRAM_IDS.has(ix.programId);
   for await (const idl of idls.candidates(ix.programId, onError)) {
+    if (curatedOnly && idl.trust !== 'curated') {
+      issues.push({ stage: 'idl', instructionIndex: ix.index, message: `${idl.source} IDL ignored: Clef decodes this program with its curated IDL` });
+      continue;
+    }
     try {
       const parsed = parseInstruction(idl.root, {
         programAddress: ix.programId,
