@@ -6,7 +6,7 @@ import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstru
 import { AccountRole, address, createNoopSigner, type Address, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { explain, shortAddress, CLOCK_SYSVAR, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
-import { buildWire, ME, OTHER, tokenAccountData, USDC } from './helpers';
+import { buildWire, ME, OTHER, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
 
@@ -21,19 +21,6 @@ const ctx = (reader: MemoryChainReader, over: Partial<ExplainContext> = {}): Exp
   reader, idls: new IdlResolver([createBundledSource()]), me: [ME], ...over,
 });
 const rules = (ex: { warnings: { rule: string; severity: string }[] }) => ex.warnings.map((w) => [w.rule, w.severity]);
-
-/** A simulation that returns the reader's current accounts, with `changes` applied. */
-function simulateWith(reader: MemoryChainReader, changes: Record<string, Partial<RawAccount>>) {
-  reader.simulateImpl = async (_wire, addresses) => ({
-    err: null, logs: [], unitsConsumed: 1000n,
-    postAccounts: addresses.map((a) => {
-      const before = reader.accounts.get(a);
-      const change = changes[a];
-      if (!change) return before ?? null;
-      return { address: a, owner: before?.owner ?? OTHER, lamports: before?.lamports ?? 0n, data: before?.data ?? new Uint8Array(), executable: false, ...change };
-    }),
-  });
-}
 
 const tokenAccount = (reader: MemoryChainReader, at: Address, owner: Address, amount: bigint, mint: Address = USDC) =>
   reader.setAccount({ address: at, owner: address(TOKEN_PROGRAM), data: tokenAccountData(owner, mint, amount) });
@@ -162,7 +149,8 @@ describe('explain', () => {
       ],
     };
     const ex = await explain({ wire: buildWire([drain]) }, ctx(reader));
-    expect(ex.balanceChanges).toEqual([]);
+    // Only the fee moves.
+    expect(ex.balanceChanges).toEqual([{ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -5000n }]);
     expect(rules(ex)).toContainEqual(['delegation', 'danger']);
     expect(rules(ex)).toContainEqual(['unknown-program', 'warn']);
   });
@@ -180,6 +168,8 @@ describe('explain', () => {
     expect(limited.instructions[0]!.accounts[0]).toMatchObject({ name: 'source', mine: true });
     expect(limited.instructions[0]!.amountUnit).toEqual({ symbol: 'USDC', decimals: 6 });
     expect(rules(await run(100n))).toEqual([['delegation', 'danger']]);
+    // The fee the simulation charges is not a send.
+    expect(limited.summary).not.toMatch(/Send/);
   });
 
   it('flags a sweep of SOL and USDC to a wallet, and the summary still lists the outflows', async () => {
@@ -208,7 +198,7 @@ describe('explain', () => {
     const run = async (microLamports: bigint, lost: bigint) => {
       const reader = new MemoryChainReader();
       reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 5n * SOL, data: new Uint8Array() });
-      simulateWith(reader, { [ME]: { lamports: 5n * SOL - lost } });
+      simulateWith(reader, {}, { fee: lost });
       const wire = buildWire([
         getSetComputeUnitLimitInstruction({ units: 1_000_000 }),
         getSetComputeUnitPriceInstruction({ microLamports }),

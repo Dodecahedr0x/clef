@@ -234,5 +234,5 @@ export async function explain(
   };
   const warnings = evaluateRisks(risk);
   const balanceChanges = simulated.balanceChanges;
-  return { tx, instructions, relations, balanceChanges, issues, me, warnings, summary: summarize({ instructions, balanceChanges, me, warnings }) };
+  return { tx, instructions, relations, balanceChanges, issues, me, warnings, summary: summarize({ instructions, balanceChanges, me, warnings, fee, feePayer: tx.feePayer }) };
 }

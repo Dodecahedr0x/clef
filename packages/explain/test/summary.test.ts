@@ -109,6 +109,19 @@ describe('summarize', () => {
     );
   });
 
+  it('does not count the network fee as a send', () => {
+    const instructions: ExplainedInstruction[] = [{ ...base, index: 0, programId: OTHER }];
+    const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, symbol: 'SOL', decimals: 9, delta }];
+    expect(summarize({ instructions, balanceChanges: sol(-5000n), me: [ME], fee: 5000n, feePayer: ME })).toBe(`Interact with ${shortAddress(OTHER)}`);
+    expect(summarize({ instructions, balanceChanges: sol(-1_000_005_000n), me: [ME], fee: 5000n, feePayer: ME })).toBe(
+      `Send 1 SOL via ${shortAddress(OTHER)}`,
+    );
+    // Someone else pays: your loss is all yours.
+    expect(summarize({ instructions, balanceChanges: sol(-5000n), me: [ME], fee: 5000n, feePayer: OTHER })).toBe(
+      `Send 0.000005 SOL via ${shortAddress(OTHER)}`,
+    );
+  });
+
   it('describes interactions when nothing moves', () => {
     const instructions: ExplainedInstruction[] = [{ ...base, index: 0, programId: OTHER }];
     expect(summarize({ instructions, balanceChanges: [], me: [ME] })).toBe(`Interact with ${OTHER.slice(0, 4)}\u2026${OTHER.slice(-4)}`);

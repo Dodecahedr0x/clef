@@ -4,7 +4,11 @@ import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, T
 import type { BalanceChange, ExplainedInstruction, ExplainedTransaction } from './types';
 
 export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceChanges' | 'me'> &
-  Partial<Pick<ExplainedTransaction, 'warnings'>>;
+  Partial<Pick<ExplainedTransaction, 'warnings'>> & {
+    /** The network fee and who pays it: it is not a "send", so it is taken out of the payer's SOL change. */
+    fee?: bigint;
+    feePayer?: string;
+  };
 
 /** Warnings under which a one-instruction template could read as benign: the summary states the outflows. */
 const OUTFLOW_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow']);
@@ -45,6 +49,12 @@ function template(ix: ExplainedInstruction): string | null {
   return t?.(ix) ?? null;
 }
 
+/** The payer's SOL change without the fee; a loss smaller than the fee never turns into a gain. */
+function withoutFee(c: BalanceChange, fee: bigint): BalanceChange {
+  const delta = c.delta + fee;
+  return { ...c, delta: c.delta < 0n && delta > 0n ? 0n : delta };
+}
+
 const asset = (c: BalanceChange) => `${formatUnits(c.delta < 0n ? -c.delta : c.delta, c.decimals)} ${c.symbol ?? shortAddress(c.mint)}`;
 
 /** One line describing the transaction. Never contradicts the warnings: see `OUTFLOW_RULES`. */
@@ -57,7 +67,9 @@ export function summarize(input: SummaryInput): string {
   }
 
   const me = new Set<string>(input.me);
-  const mine = (input.balanceChanges ?? []).filter((c) => me.has(c.owner));
+  const mine = (input.balanceChanges ?? [])
+    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, input.fee) : c))
+    .filter((c) => me.has(c.owner) && c.delta !== 0n);
   const sent = mine.filter((c) => c.delta < 0n).map(asset);
   const received = mine.filter((c) => c.delta > 0n).map(asset);
 

@@ -19,7 +19,7 @@ import {
   type Blockhash,
   type Instruction,
 } from '@solana/kit';
-import type { MemoryChainReader } from '@clef/rpc';
+import type { MemoryChainReader, RawAccount } from '@clef/rpc';
 import { AccountState, getTokenEncoder } from '@solana-program/token';
 
 export const ME = address('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
@@ -85,4 +85,31 @@ export function tokenAccountData(
       closeAuthority: extra.closeAuthority ? some(extra.closeAuthority) : none(),
     }),
   );
+}
+
+/**
+ * Simulates by applying `changes` (each instruction's effect) to the reader's accounts, then charging the fee to
+ * the fee payer as the runtime does: 5000 lamports per signature unless `opts.fee` says otherwise.
+ */
+export function simulateWith(
+  reader: MemoryChainReader,
+  changes: Record<string, Partial<RawAccount>>,
+  opts: { fee?: bigint } = {},
+): void {
+  reader.simulateImpl = async (wire, addresses) => {
+    const msg = getCompiledTransactionMessageDecoder().decode(getTransactionDecoder().decode(wire).messageBytes) as CompiledMessage;
+    const payer = msg.staticAccounts[0];
+    const fee = opts.fee ?? 5000n * BigInt(msg.header.numSignerAccounts);
+    return {
+      err: null, logs: [], unitsConsumed: 1000n,
+      postAccounts: addresses.map((a) => {
+        const before = reader.accounts.get(a);
+        const change = changes[a];
+        const after: RawAccount | null = change
+          ? { address: a, owner: before?.owner ?? OTHER, lamports: before?.lamports ?? 0n, data: before?.data ?? new Uint8Array(), executable: false, ...change }
+          : before ? structuredClone(before) : null;
+        return after && a === payer ? { ...after, lamports: after.lamports - fee } : after;
+      }),
+    };
+  };
 }
