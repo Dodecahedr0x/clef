@@ -373,6 +373,23 @@ describe('evaluateRisks', () => {
       expect(rules(input([deposit], { balanceChanges }))).toEqual([]);
     });
 
+    it('counts Token-2022 transferCheckedWithFee as a top-level transfer', async () => {
+      const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
+      const PDA_USDC = address('8VJxZ3tRvpHFAMrUmEfPQh4SXP8a2hDuDb6ZZnLK2gGq');
+      const decoy = ix({ programId: JUP, name: 'route', idl: authority });
+      const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(pda, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(pda, USDC, 100n)];
+      // [source, mint, destination, authority]; destination by name, else at index 2.
+      const withFee = (name: string | undefined) =>
+        ix({
+          index: 1, programId: address(TOKEN_2022_PROGRAM), name: 'transferCheckedWithFee', idl: curated,
+          accounts: [named('source', OTHER, true), named('mint', USDC), named(name, PDA_USDC), named('authority', ME)],
+        });
+      // Unknown destination owner: no off-curve exemption at all.
+      expect(rules(input([decoy, withFee('destination')], { balanceChanges }))).toEqual([['sweep', 'danger']]);
+      const tokenBalances = { [PDA_USDC]: { owner: pda, mint: USDC, amount: 0n } };
+      expect(rules(input([decoy, withFee(undefined)], { balanceChanges, tokenBalances }))).toEqual([['sweep', 'danger']]);
+    });
+
     it('treats program-owned recipients as wallets when only core programs run', async () => {
       const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
       const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });

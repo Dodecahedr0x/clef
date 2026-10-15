@@ -337,6 +337,8 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   });
 }
 
+const TOKEN_TRANSFERS: ReadonlySet<string> = new Set(['transfer', 'transferChecked', 'transferCheckedWithFee']);
+
 /**
  * Who top-level core transfers pay: SOL destinations, and the owners of token destinations (from pre-state
  * `tokenBalances` or `postTokenOwners`). `unknown` when some token destination's owner can't be resolved.
@@ -351,8 +353,8 @@ function directRecipients(input: RiskInput): { owners: Set<string>; unknown: boo
       if (destination) owners.add(destination);
       else unknown = true;
     }
-    if (isToken(ix.programId) && (ix.name === 'transfer' || ix.name === 'transferChecked')) {
-      // [source, destination, authority] / [source, mint, destination, authority].
+    if (isToken(ix.programId) && ix.name !== undefined && TOKEN_TRANSFERS.has(ix.name)) {
+      // [source, destination, authority] / [source, mint, destination, authority] (Checked and CheckedWithFee).
       const destination = account(ix, 'destination')?.address ?? ix.accounts[ix.name === 'transfer' ? 1 : 2]?.address;
       const owner = destination && (input.tokenBalances?.[destination]?.owner ?? input.postTokenOwners?.[destination]);
       if (owner) owners.add(owner);
