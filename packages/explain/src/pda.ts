@@ -2,11 +2,9 @@ import { getNodeCodecVisitor, getValueNodeVisitor } from '@codama/dynamic-codecs
 import { isNode, type PdaNode, type ProgramNode, type RootNode } from '@codama/nodes';
 import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/visitors-core';
 import { getProgramDerivedAddress, type Address } from '@solana/kit';
-import { toHex } from './hex';
 import type { IdentifiedInstruction } from './identify';
+import { displayBytes, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
-
-class Unresolvable extends Error {}
 
 type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
 const visitorsCache = new WeakMap<RootNode, Visitors>();
@@ -20,12 +18,6 @@ function visitorsFor(root: RootNode): Visitors {
     visitorsCache.set(root, v);
   }
   return v;
-}
-
-/** Printable ASCII is shown as a quoted string, anything else as hex. */
-export function displayBytes(bytes: Uint8Array): string {
-  const printable = bytes.length > 0 && bytes.every((b) => b >= 0x20 && b < 0x7f);
-  return printable ? JSON.stringify(new TextDecoder().decode(bytes)) : `0x${toHex(bytes)}`;
 }
 
 function programs(root: RootNode): ProgramNode[] {

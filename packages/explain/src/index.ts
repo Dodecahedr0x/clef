@@ -5,5 +5,6 @@ export * from './accounts';
 export * from './identify';
 export * from './text';
 export * from './hex';
+export { displayBytes } from './seeds';
 export * from './pda';
 export * from './anchor-relations';

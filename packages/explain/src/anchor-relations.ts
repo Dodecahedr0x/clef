@@ -3,10 +3,9 @@ import { parseAccountData } from '@codama/dynamic-parsers';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
-import { displayBytes } from './pda';
+import { displayBytes, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
-class Unresolvable extends Error {}
 /** Positive evidence of substitution: the account is not the program's state. */
 class Foreign extends Error {}
 
