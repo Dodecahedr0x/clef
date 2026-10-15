@@ -38,7 +38,8 @@ const MAX_CU_LIMIT = 1_400_000;
 
 /**
  * Base fee (5000 lamports per signature) plus priority fee: ceil(limit * microLamportsPerCu / 1e6). Without an
- * explicit `cuLimit`, the runtime's default applies: 200k CU per non-compute-budget instruction, capped at 1.4M.
+ * explicit `cuLimit`, the runtime's default applies: 200k CU per non-compute-budget instruction. Either is capped
+ * at 1.4M.
  */
 export function estimateFee(
   numSignatures: number,
@@ -46,7 +47,8 @@ export function estimateFee(
   microLamportsPerCu?: bigint,
   nonComputeBudgetInstructions = 0,
 ): bigint {
-  const limit = cuLimit ?? Math.min(DEFAULT_CU_PER_INSTRUCTION * nonComputeBudgetInstructions, MAX_CU_LIMIT);
+  // The runtime clamps an explicit limit too: an oversized one must not inflate the fee (and so the allowance).
+  const limit = Math.min(cuLimit ?? DEFAULT_CU_PER_INSTRUCTION * nonComputeBudgetInstructions, MAX_CU_LIMIT);
   const priority = BigInt(limit) * (microLamportsPerCu ?? 0n);
   return 5000n * BigInt(numSignatures) + (priority + 999_999n) / 1_000_000n;
 }
