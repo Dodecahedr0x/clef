@@ -5,7 +5,7 @@ import { getTransferSolInstruction } from '@solana-program/system';
 import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address, type Instruction, type V1TransactionConfig } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { decodeTransaction, explain, shortAddress, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
+import { decodeTransaction, explain, shortAddress, viewFor, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
 import { buildV1Wire, buildWire, ME, OTHER, setLookupTable, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
@@ -254,6 +254,20 @@ describe('explain', () => {
     const bogus: Instruction = { programAddress: address(COMPUTE_BUDGET_PROGRAM), data: new Uint8Array([99]), accounts: [] };
     const ex = await explain({ wire: buildWire([bogus, getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
     expect(ex.fee).toBeNull();
+  });
+
+  it('names unknown programs from the address book; the registry still wins', async () => {
+    const ROUTER = address('6VoCNEmYFdMQ5kK8RkzcH9NoBhNQf3xVWzggf3bduTAB');
+    const wire = buildWire([
+      { programAddress: ROUTER, data: new Uint8Array([1]), accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }] },
+      getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n }),
+    ]);
+    const addressBook = { [ROUTER]: 'Router', '11111111111111111111111111111111': 'Not the system program' };
+    const ex = await explain({ wire }, ctx(new MemoryChainReader(), { addressBook }));
+    expect(ex.instructions[0]!.programLabel).toBe('Router');
+    expect(ex.instructions[1]!.programLabel).toBeUndefined();
+    const v = viewFor(ex, 'intermediate');
+    expect(v.instructions.map((i) => i.program)).toEqual(['Router (address book, 6VoC\u2026uTAB)', 'System Program']);
   });
 
   describe('v1 fees', () => {

@@ -7,7 +7,7 @@ import { decodeTransaction } from './decode';
 import { identifyInstruction, type IdentifiedInstruction } from './identify';
 import { Labeler, tokenRelations } from './labels';
 import { verifyCodamaPdas } from './pda';
-import { CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, RENT_SYSVAR, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, PROGRAM_NAMES, RENT_SYSVAR, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import { estimateFee, evaluateRisks, type RiskInput, type TokenHolding } from './risk';
 import { errorDetail } from './seeds';
 import { computeStateChanges, type StateChange } from './state-changes';
@@ -267,8 +267,11 @@ export async function explain(
   const labeler = new Labeler(ctx.me, cache, ctx.addressBook, metaOwners);
   // `resolvedIdl` and `rawArgs` are for verification only: they never leave the orchestrator.
   const instructions: ExplainedInstruction[] = identified.map(({ resolvedIdl: _idl, rawArgs: _raw, ...ix }) => {
+    const book = PROGRAM_NAMES[ix.programId] || !Object.hasOwn(ctx.addressBook ?? {}, ix.programId) ? undefined : ctx.addressBook![ix.programId];
+    const programLabel = book === undefined ? '' : sanitizeText(book, 64).trim();
     const explained: ExplainedInstruction = {
       ...ix,
+      ...(programLabel && { programLabel }),
       accounts: ix.accounts.map((a) => {
         const label = labeler.label(a.address);
         return { ...a, mine: labeler.isMine(a.address), ...(label !== undefined && { label }) };

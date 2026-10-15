@@ -55,6 +55,17 @@ export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
   SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf: 'Squads v4',
 };
 
+/**
+ * Display names for programs: `KNOWN_PROGRAMS` plus programs Clef only names. Never a source of trust: unlike
+ * `KNOWN_PROGRAMS`, these don't vouch for PDA derivations (`isTrustedProgram`) or anything else.
+ */
+export const PROGRAM_NAMES: Readonly<Record<string, string>> = {
+  ...KNOWN_PROGRAMS,
+  // Verified 2026-10-15: pump-fun/pump-public-docs idl/pump.json and idl/pump_amm.json; executable on mainnet.
+  '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P': 'pump.fun',
+  pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA: 'PumpSwap',
+};
+
 export const KNOWN_MINTS: Readonly<Record<string, { symbol: string; decimals: number }>> = {
   So11111111111111111111111111111111111111112: { symbol: 'wSOL', decimals: 9 },
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: { symbol: 'USDC', decimals: 6 },

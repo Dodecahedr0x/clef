@@ -1,6 +1,8 @@
 import { address, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
+  KNOWN_PROGRAMS,
+  TRUSTED_PROGRAMS,
   formatUnits,
   programDisplay,
   shortAddress,
@@ -62,6 +64,25 @@ describe('programDisplay', () => {
     const ix = { programId: OTHER, programName: 'system', idl: { ...curated, source: 'program-metadata' as const, trust: 'authority' as const } };
     expect(programDisplay(ix)).toBe(`system (authority IDL, ${shortAddress(OTHER)})`);
     expect(programDisplay({ programId: OTHER })).toBe(shortAddress(OTHER));
+  });
+
+  it('names other programs from the address book, qualified as such, ahead of their IDL name', () => {
+    expect(programDisplay({ programId: OTHER, programLabel: 'Router' })).toBe(`Router (address book, ${shortAddress(OTHER)})`);
+    const ix = { programId: OTHER, programName: 'jupiter', programLabel: 'Router', idl: { ...curated, trust: 'authority' as const } };
+    expect(programDisplay(ix)).toBe(`Router (address book, ${shortAddress(OTHER)})`);
+    // The registry still wins.
+    expect(programDisplay({ programId: address(SYSTEM_PROGRAM), programLabel: 'Router' })).toBe('System Program');
+  });
+
+  it('names pump.fun and PumpSwap, as display labels only', () => {
+    const PUMP = address('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+    const PUMP_SWAP = address('pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA');
+    expect(programDisplay({ programId: PUMP, programLabel: 'Mine' })).toBe('pump.fun');
+    expect(programDisplay({ programId: PUMP_SWAP })).toBe('PumpSwap');
+    for (const p of [PUMP, PUMP_SWAP]) {
+      expect(TRUSTED_PROGRAMS.has(p)).toBe(false);
+      expect(Object.hasOwn(KNOWN_PROGRAMS, p)).toBe(false);
+    }
   });
 });
 

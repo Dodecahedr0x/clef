@@ -48,6 +48,8 @@ export type ExplainedInstruction = {
   index: number;
   programId: Address;
   programName?: string;
+  /** The program's name in the user's address book (their own label, trusted), unless Clef's registry names it. */
+  programLabel?: string;
   /** Undefined when no IDL could decode the instruction. */
   name?: string;
   args?: Record<string, unknown>;

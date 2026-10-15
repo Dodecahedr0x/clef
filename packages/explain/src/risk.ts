@@ -2,7 +2,7 @@ import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { formatUnits } from './format';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, NATIVE_MINTS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -242,7 +242,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   if (possibleOutflow(input, me)) {
     const selfDescribed = input.instructions.filter((ix) => ix.idl?.trust === 'authority' && !TRUSTED_PROGRAMS.has(ix.programId));
     for (const programId of new Set(selfDescribed.map((ix) => ix.programId))) {
-      const name = KNOWN_PROGRAMS[programId] ?? shortAddress(programId);
+      const name = PROGRAM_NAMES[programId] ?? shortAddress(programId);
       warn('self-described-outflow', 'warn', `${name} describes itself with its own IDL; Clef can't independently verify what it does with your funds.`);
     }
   }

@@ -1,5 +1,5 @@
 import { shortAddress } from './labels';
-import { KNOWN_PROGRAMS } from './registry';
+import { PROGRAM_NAMES } from './registry';
 import type { ExplainedInstruction } from './types';
 
 /**
@@ -17,13 +17,15 @@ export function formatUnits(amount: bigint, decimals: number | null): string {
 }
 
 /**
- * How to name a program. Known programs come from Clef's registry, never from an IDL. Any other program's IDL
- * name is the IDL describing itself, so it is qualified with the IDL's trust tier and the program's address:
- * an untrusted IDL calling itself `system` can't pass for the System Program.
+ * How to name a program. Known programs come from Clef's registry (`PROGRAM_NAMES`), never from an IDL. Next
+ * comes the user's address book, marked as such. Any other program's IDL name is the IDL describing itself, so
+ * it is qualified with the IDL's trust tier and the program's address: an untrusted IDL calling itself `system`
+ * can't pass for the System Program.
  */
-export function programDisplay(ix: Pick<ExplainedInstruction, 'programId' | 'programName' | 'idl'>): string {
-  const known = KNOWN_PROGRAMS[ix.programId];
+export function programDisplay(ix: Pick<ExplainedInstruction, 'programId' | 'programName' | 'programLabel' | 'idl'>): string {
+  const known = PROGRAM_NAMES[ix.programId];
   if (known) return known;
   const short = shortAddress(ix.programId);
+  if (ix.programLabel) return `${ix.programLabel} (address book, ${short})`;
   return ix.programName ? `${ix.programName} (${ix.idl?.trust ?? 'unknown'} IDL, ${short})` : short;
 }

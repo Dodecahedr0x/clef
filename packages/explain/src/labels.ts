@@ -1,7 +1,7 @@
 import { findAssociatedTokenPda } from '@solana-program/token';
 import type { Address } from '@solana/kit';
 import { decodeMintDecimals, decodeTokenAccount, type AccountCache } from './accounts';
-import { KNOWN_MINTS, KNOWN_PROGRAMS } from './registry';
+import { KNOWN_MINTS, PROGRAM_NAMES } from './registry';
 import type { RelationEdge } from './types';
 
 export const shortAddress = (a: string) => `${a.slice(0, 4)}\u2026${a.slice(-4)}`;
@@ -55,7 +55,7 @@ export class Labeler {
 
   label(address: Address): string | undefined {
     if (this.me.has(address)) return 'Your wallet';
-    const named = this.addressBook[address] ?? KNOWN_PROGRAMS[address];
+    const named = this.addressBook[address] ?? PROGRAM_NAMES[address];
     if (named) return named;
     if (KNOWN_MINTS[address]) return `${KNOWN_MINTS[address]!.symbol} mint`;
     const token = decodeTokenAccount(this.cache.get(address));
