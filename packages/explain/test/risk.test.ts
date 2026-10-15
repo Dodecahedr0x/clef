@@ -347,14 +347,42 @@ describe('evaluateRisks', () => {
       expect(rules(input([otc], { balanceChanges: back(200n), prices: { SOL: 150, [USDT]: 1 } }))).toEqual([['sweep', 'danger']]);
     });
 
+    it('never exempts the recipients of top-level transfers, whatever else runs', async () => {
+      const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
+      const PDA_USDC = address('8VJxZ3tRvpHFAMrUmEfPQh4SXP8a2hDuDb6ZZnLK2gGq');
+      const decoy = ix({ programId: JUP, name: 'route', idl: authority });
+      const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(pda, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(pda, USDC, 100n)];
+      const sendSol = (name: string | undefined) =>
+        ix({ index: 1, programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated, accounts: [named('source', ME, true), named(name, pda)] });
+      const sendUsdc = ix({
+        index: 2, name: 'transferChecked', idl: curated,
+        accounts: [named('source', OTHER, true), named('mint', USDC), named('destination', PDA_USDC), named('authority', ME)],
+      });
+      const tokenBalances = { [PDA_USDC]: { owner: pda, mint: USDC, amount: 0n } };
+      expect(rules(input([decoy, sendSol('destination'), sendUsdc], { balanceChanges, tokenBalances }))).toEqual([['sweep', 'danger']]);
+      // Ambiguous names: transferSol's destination is read by position.
+      expect(rules(input([decoy, sendSol(undefined), sendUsdc], { balanceChanges, tokenBalances }))).toEqual([['sweep', 'danger']]);
+      // A token destination's owner can come from post state.
+      const postTokenOwners = { [PDA_USDC]: pda };
+      expect(rules(input([decoy, sendSol('destination'), sendUsdc], { balanceChanges, postTokenOwners }))).toEqual([['sweep', 'danger']]);
+      // Unknown token destination owner: no off-curve exemption at all.
+      const sendUsdcOnly = [decoy, sendUsdc];
+      expect(rules(input(sendUsdcOnly, { balanceChanges }))).toEqual([['sweep', 'danger']]);
+      // A deposit made by the vault program itself (CPI, no top-level transfer) stays exempt.
+      const deposit = ix({ programId: DRAINER, name: 'deposit', idl: curated });
+      expect(rules(input([deposit], { balanceChanges }))).toEqual([]);
+    });
+
     it('treats program-owned recipients as wallets when only core programs run', async () => {
       const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
       const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
       const transferChecked = ix({ index: 1, name: 'transferChecked', idl: curated });
       const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(pda, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(pda, USDC, 100n)];
       expect(rules(input([transferSol, transferChecked], { balanceChanges }))).toEqual([['sweep', 'danger']]);
+      // Adding a program instruction doesn't help: these top-level transfers' recipients are never exempt.
       const deposit = ix({ index: 2, programId: DRAINER, name: 'deposit', idl: curated });
-      expect(rules(input([transferSol, transferChecked, deposit], { balanceChanges }))).toEqual([]);
+      expect(rules(input([transferSol, transferChecked, deposit], { balanceChanges }))).toEqual([['sweep', 'danger']]);
+      expect(rules(input([deposit], { balanceChanges }))).toEqual([]);
     });
 
     it('does not let an airdrop of an unknown token defuse a sweep', () => {

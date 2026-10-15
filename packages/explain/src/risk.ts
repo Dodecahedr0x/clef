@@ -18,6 +18,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   addressBook?: ReadonlySet<string>;
   /** Mints the user values (e.g. priced ones) besides `KNOWN_MINTS`: receiving them counts as an inflow. */
   valuedMints?: ReadonlySet<string>;
+  /** Post-transaction owners of token accounts created in the transaction, keyed by token account address. */
+  postTokenOwners?: Readonly<Record<string, Address>>;
   /** USD per whole unit, keyed by mint or 'SOL'. Lets the sweep rule weigh what comes back against what leaves. */
   prices?: Readonly<Record<string, number>>;
 };
@@ -275,15 +277,17 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
     (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
   );
 
-  // Program-owned (off-curve) recipients are exempt only when some non-core program runs: that program may be
-  // depositing into its own vault. With only core programs, a transfer to a PDA is just a transfer.
+  // Program-owned (off-curve) recipients are exempt only when reached through a non-core program, which may be
+  // depositing into its own vault. Recipients of top-level core transfers are never exempt: a decoy program
+  // instruction must not cover for a plain transfer to a PDA.
   const deposits = input.instructions.some((ix) => !CORE_PROGRAMS.has(ix.programId));
+  const direct = directRecipients(input);
   // Rent-sized SOL amounts (e.g. a validator tip) don't count as landing on a wallet.
   const toWallet = (c: BalanceChange) =>
     (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) &&
     !me.has(c.owner) &&
     !input.addressBook?.has(c.owner) &&
-    (!deposits || onCurve(c.owner));
+    (!deposits || direct.unknown || direct.owners.has(c.owner) || onCurve(c.owner));
   const recipient = (mint: string) => changes.find((c) => c.mint === mint && toWallet(c))?.owner;
   const allOut = outflows(input, me);
   const out = allOut.filter((c) => recipient(c.mint));
@@ -319,6 +323,31 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
     const asset = c.mint === 'SOL' ? 'SOL' : (c.symbol ?? shortAddress(c.mint));
     return ['send-entire-balance', 'warn', `Sends (almost) your entire ${asset} balance to ${shortAddress(recipient(c.mint)!)}.`];
   });
+}
+
+/**
+ * Who top-level core transfers pay: SOL destinations, and the owners of token destinations (from pre-state
+ * `tokenBalances` or `postTokenOwners`). `unknown` when some token destination's owner can't be resolved.
+ */
+function directRecipients(input: RiskInput): { owners: Set<string>; unknown: boolean } {
+  const owners = new Set<string>();
+  let unknown = false;
+  for (const ix of input.instructions) {
+    if (ix.programId === SYSTEM_PROGRAM && (ix.name === 'transferSol' || ix.name === 'transferSolWithSeed')) {
+      // By name, else by the IDL position: [source, destination] / [source, base, destination].
+      const destination = account(ix, 'destination')?.address ?? ix.accounts[ix.name === 'transferSol' ? 1 : 2]?.address;
+      if (destination) owners.add(destination);
+      else unknown = true;
+    }
+    if (isToken(ix.programId) && (ix.name === 'transfer' || ix.name === 'transferChecked')) {
+      // [source, destination, authority] / [source, mint, destination, authority].
+      const destination = account(ix, 'destination')?.address ?? ix.accounts[ix.name === 'transfer' ? 1 : 2]?.address;
+      const owner = destination && (input.tokenBalances?.[destination]?.owner ?? input.postTokenOwners?.[destination]);
+      if (owner) owners.add(owner);
+      else unknown = true;
+    }
+  }
+  return { owners, unknown };
 }
 
 /** Your outflows: any token decrease, or a SOL loss beyond the fee (if you pay it) plus `RENT_SLACK`. */
