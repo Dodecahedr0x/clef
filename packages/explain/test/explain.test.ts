@@ -206,6 +206,9 @@ describe('explain', () => {
     expect(ex.summary).toContain('2 SOL');
     expect(ex.summary).toContain('100 USDC');
     expect(ex.summary).toMatch(/^Send /);
+    // The recipient is named in the summary and in the warning.
+    expect(ex.summary).toContain(`to ${shortAddress(OTHER)}`);
+    expect(ex.warnings.find((w) => w.rule === 'sweep')!.message).toContain(shortAddress(OTHER));
   });
 
   it('counts the priority fee read from compute budget instructions as expected spend', async () => {
@@ -267,7 +270,7 @@ describe('explain', () => {
     const ex = await explain({ wire }, ctx(reader));
     expect(ex.instructions[0]!.amountUnit).toBeUndefined();
     expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: MINT, symbol: undefined, decimals: null, delta: -2_500_000n });
-    expect(ex.summary).toBe(`Send 2500000 (raw units) ${shortAddress(MINT)}`);
+    expect(ex.summary).toBe(`Send 2500000 (raw units) ${shortAddress(MINT)} to ${shortAddress(OTHER)}`);
   });
 
   it('loads the mints of token accounts created in the transaction', async () => {
@@ -315,6 +318,13 @@ describe('explain', () => {
     const wire = buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 7n * SOL })]);
     const ex = await explain({ wire }, ctx(reader, { addressBook: { [OTHER]: 'Alice' } }));
     expect(ex.summary).toBe('Send 7 SOL to Alice');
+    // A token transfer names the destination's owner wallet, not the token account.
+    const r2 = new MemoryChainReader();
+    tokenAccount(r2, MY_USDC, ME, 10_000_000n);
+    tokenAccount(r2, OTHER_USDC, OTHER, 0n);
+    simulateWith(r2, { [MY_USDC]: { data: tokenAccountData(ME, USDC, 9_000_000n) }, [OTHER_USDC]: { data: tokenAccountData(OTHER, USDC, 1_000_000n) } });
+    const send = buildWire([getTransferCheckedInstruction({ source: MY_USDC, mint: USDC, destination: OTHER_USDC, authority: me, amount: 1_000_000n, decimals: 6 })]);
+    expect((await explain({ wire: send }, ctx(r2, { addressBook: { [OTHER]: 'Alice' } }))).summary).toBe('Send 1 USDC to Alice');
     expect(ex.instructions[0]!.accounts[1]).toMatchObject({ label: 'Alice', mine: false });
   });
 });

@@ -374,6 +374,23 @@ describe('evaluateRisks', () => {
       expect(evaluateRisks(input([send], { balanceChanges: usdc, tokenBalances }))[0]!.message).toBe(
         `Sends (almost) your entire USDC balance to ${shortAddress(OTHER)}.`,
       );
+      // A label is preferred over the short address.
+      expect(evaluateRisks(input([send], { balanceChanges: usdc, tokenBalances, labels: { [OTHER]: 'Bob' } }))[0]!.message).toBe(
+        'Sends (almost) your entire USDC balance to Bob.',
+      );
+    });
+
+    it('names the recipients of a sweep', () => {
+      const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+      const drain = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const one = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
+      expect(evaluateRisks(input([drain], { balanceChanges: one }))[0]!.message).toBe(
+        `Moves several of your assets to ${shortAddress(OTHER)} without giving you comparable value back.`,
+      );
+      const two = [...one, change(ME, USDT, -5n), change(DRAINER, USDT, 5n)];
+      expect(evaluateRisks(input([drain], { balanceChanges: two, labels: { [DRAINER]: 'Eve' } }))[0]!.message).toBe(
+        `Moves several of your assets to ${shortAddress(OTHER)}, Eve without giving you comparable value back.`,
+      );
     });
 
     it('without prices, an inflow of one asset only offsets an outflow of that asset', () => {

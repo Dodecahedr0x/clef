@@ -11,30 +11,42 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
     /** The signature part of `fee`. Only `feeAllowance(fee, baseFee)` is taken out: an absurd fee stays visible. */
     baseFee?: bigint;
     feePayer?: string;
+    /** Trusted display labels by address (see `Labeler`). */
+    labels?: Readonly<Record<string, string>>;
+    /** Owner wallet of each token account (pre-state, else post-state), keyed by token account. */
+    tokenOwners?: Readonly<Record<string, string>>;
   };
 
 /** Warnings under which a one-instruction template could read as benign: the summary states the outflows. */
 const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee']);
 
-type Template = (ix: ExplainedInstruction) => string | null;
+type Context = Pick<SummaryInput, 'labels' | 'tokenOwners'>;
+type Template = (ix: ExplainedInstruction, ctx: Context) => string | null;
+type Account = ExplainedInstruction['accounts'][number];
 
-const who = (a: ExplainedInstruction['accounts'][number]) => a.label ?? shortAddress(a.address);
+const named = (address: string, ctx: Context) => ctx.labels?.[address] ?? shortAddress(address);
+const who = (a: Account) => a.label ?? shortAddress(a.address);
+/** A token account is shown as its owner wallet when the owner is known. */
+const holder = (a: Account, ctx: Context) => {
+  const owner = ctx.tokenOwners?.[a.address];
+  return owner ? named(owner, ctx) : who(a);
+};
 
 /** "Send X to D" from your account, "Transfer X from S to D" otherwise. Null if either end is unknown. */
-function move(ix: ExplainedInstruction, amount: string, source: string, destination: string): string | null {
-  const from = ix.accounts.find((a) => a.name === source);
-  const to = ix.accounts.find((a) => a.name === destination);
-  if (!from || !to) return null;
-  return from.mine ? `Send ${amount} to ${who(to)}` : `Transfer ${amount} from ${who(from)} to ${who(to)}`;
+function move(ix: ExplainedInstruction, amount: string, to: (a: Account) => string): string | null {
+  const from = ix.accounts.find((a) => a.name === 'source');
+  const dest = ix.accounts.find((a) => a.name === 'destination');
+  if (!from || !dest) return null;
+  return from.mine ? `Send ${amount} to ${to(dest)}` : `Transfer ${amount} from ${who(from)} to ${to(dest)}`;
 }
 
 const sendSol: Template = (ix) =>
-  typeof ix.args?.amount === 'bigint' ? move(ix, `${formatUnits(ix.args.amount, 9)} SOL`, 'source', 'destination') : null;
+  typeof ix.args?.amount === 'bigint' ? move(ix, `${formatUnits(ix.args.amount, 9)} SOL`, who) : null;
 
 /** Needs the amount's unit: with unknown decimals the summary falls back to the balance changes. */
-const sendToken: Template = (ix) =>
+const sendToken: Template = (ix, ctx) =>
   typeof ix.args?.amount === 'bigint' && ix.amountUnit
-    ? move(ix, `${formatUnits(ix.args.amount, ix.amountUnit.decimals)} ${ix.amountUnit.symbol}`, 'source', 'destination')
+    ? move(ix, `${formatUnits(ix.args.amount, ix.amountUnit.decimals)} ${ix.amountUnit.symbol}`, (a) => holder(a, ctx))
     : null;
 
 /** Keyed by program id and instruction name; only applied to names decoded with a curated IDL. */
@@ -46,10 +58,10 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   [`${TOKEN_2022_PROGRAM}:transferChecked`]: sendToken,
 };
 
-function template(ix: ExplainedInstruction): string | null {
+function template(ix: ExplainedInstruction, ctx: Context): string | null {
   if (!ix.name || ix.idl?.trust !== 'curated') return null;
   const t = Object.hasOwn(TEMPLATES, `${ix.programId}:${ix.name}`) ? TEMPLATES[`${ix.programId}:${ix.name}`] : undefined;
-  return t?.(ix) ?? null;
+  return t?.(ix, ctx) ?? null;
 }
 
 /** The payer's SOL change without the fee; a loss smaller than the fee never turns into a gain. */
@@ -65,7 +77,7 @@ export function summarize(input: SummaryInput): string {
   const meaningful = input.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId));
   const flagged = (input.warnings ?? []).some((w) => NO_TEMPLATE_RULES.has(w.rule));
   if (meaningful.length === 1 && !flagged) {
-    const text = template(meaningful[0]!);
+    const text = template(meaningful[0]!, input);
     if (text) return text;
   }
 
@@ -73,7 +85,15 @@ export function summarize(input: SummaryInput): string {
   const mine = (input.balanceChanges ?? [])
     .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, feeAllowance(input.fee, input.baseFee)) : c))
     .filter((c) => me.has(c.owner) && c.delta !== 0n);
-  const sent = mine.filter((c) => c.delta < 0n).map(asset);
+  const outflows = mine.filter((c) => c.delta < 0n);
+  const sent = outflows.map(asset);
+  // Everyone else who gains what you lose: named when it is a single owner.
+  const recipients = new Set(
+    (input.balanceChanges ?? [])
+      .filter((c) => c.delta > 0n && !me.has(c.owner) && outflows.some((o) => o.mint === c.mint))
+      .map((c) => c.owner),
+  );
+  const to = recipients.size === 1 ? ` to ${named([...recipients][0]!, input)}` : '';
   const received = mine.filter((c) => c.delta > 0n).map(asset);
 
   const programs = [
@@ -81,7 +101,7 @@ export function summarize(input: SummaryInput): string {
   ];
   const via = programs.length ? ` via ${programs.join(', ')}` : '';
 
-  const text = [sent.length && `send ${sent.join(', ')}`, received.length && `receive ${received.join(', ')}`]
+  const text = [sent.length && `send ${sent.join(', ')}${to}`, received.length && `receive ${received.join(', ')}`]
     .filter(Boolean)
     .join(', ');
   if (text) return `${text[0]!.toUpperCase()}${text.slice(1)}${via}`;

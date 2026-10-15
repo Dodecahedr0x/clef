@@ -220,6 +220,16 @@ export async function explain(
     simulated = await simulate(input.wire, writable, ctx, cache, labeler, issues, load);
   }
 
+  // Owner wallets of token accounts (pre-state first), and trusted labels for everyone involved.
+  const tokenOwners: Record<string, Address> = { ...simulated.postTokenOwners };
+  for (const [account, holding] of Object.entries(tokenBalances)) tokenOwners[account] = holding.owner;
+  const labels: Record<string, string> = {};
+  const involved = [...addresses, ...Object.values(tokenOwners), ...(simulated.balanceChanges ?? []).map((c) => c.owner)];
+  for (const a of new Set(involved)) {
+    const label = labeler.label(a);
+    if (label !== undefined) labels[a] = label;
+  }
+
   const me = [...ctx.me];
   const risk: RiskInput = {
     instructions,
@@ -233,6 +243,7 @@ export async function explain(
     tokenBalances,
     solBalances,
     addressBook: new Set(Object.keys(ctx.addressBook ?? {})),
+    labels,
     ...(simulated.stateChanges && { stateChanges: simulated.stateChanges }),
     ...(simulated.postTokenOwners && { postTokenOwners: simulated.postTokenOwners }),
     ...(ctx.valuedMints && { valuedMints: ctx.valuedMints }),
@@ -240,6 +251,8 @@ export async function explain(
   };
   const warnings = evaluateRisks(risk);
   const balanceChanges = simulated.balanceChanges;
-  const summary = summarize({ instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer });
+  const summary = summarize({
+    instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners,
+  });
   return { tx, instructions, relations, balanceChanges, fee, issues, me, warnings, summary };
 }

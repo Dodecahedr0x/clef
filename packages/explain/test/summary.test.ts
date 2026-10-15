@@ -1,4 +1,4 @@
-import { address } from '@solana/kit';
+import { address, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
   formatUnits,
@@ -95,6 +95,28 @@ describe('summarize', () => {
     );
   });
 
+  it('names the recipient when all outflows go to one owner', () => {
+    const instructions: ExplainedInstruction[] = [{ ...base, index: 0, programId: OTHER }];
+    const change = (owner: Address, mint: Address | 'SOL', delta: bigint) =>
+      ({ owner, mint, symbol: mint === 'SOL' ? 'SOL' : 'USDC', decimals: mint === 'SOL' ? 9 : 6, delta });
+    const oneOwner = [change(ME, 'SOL', -1_000_000_000n), change(SRC, 'SOL', 1_000_000_000n), change(ME, USDC, -5_000_000n), change(SRC, USDC, 5_000_000n)];
+    expect(summarize({ instructions, balanceChanges: oneOwner, me: [ME], labels: { [SRC]: 'Bob' } })).toBe(
+      `Send 1 SOL, 5 USDC to Bob via ${shortAddress(OTHER)}`,
+    );
+    const twoOwners = [...oneOwner.slice(0, 3), change(DST, USDC, 5_000_000n)];
+    expect(summarize({ instructions, balanceChanges: twoOwners, me: [ME] })).toBe(`Send 1 SOL, 5 USDC via ${shortAddress(OTHER)}`);
+  });
+
+  it('names the owner wallet of a token transfer destination when known', () => {
+    const ix = tokenTransfer({ symbol: 'USDC', decimals: 6 });
+    expect(summarize({ instructions: [ix], balanceChanges: null, me: [ME], tokenOwners: { [DST]: OTHER } })).toBe(
+      `Send 2.5 USDC to ${shortAddress(OTHER)}`,
+    );
+    expect(summarize({ instructions: [ix], balanceChanges: null, me: [ME], tokenOwners: { [DST]: OTHER }, labels: { [OTHER]: 'Alice' } })).toBe(
+      'Send 2.5 USDC to Alice',
+    );
+  });
+
   it('falls back to balance changes and program names', () => {
     const idl = { source: 'program-metadata' as const, trust: 'authority' as const, hash: 'h' };
     const instructions: ExplainedInstruction[] = [
@@ -141,7 +163,7 @@ describe('summarize', () => {
     ];
     const sweep: Warning[] = [{ rule: 'sweep', severity: 'danger', message: 'm' }];
     // The template would only describe the instruction; the summary must state what actually leaves.
-    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: sweep })).toBe('Send 1.5 SOL');
+    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: sweep })).toBe(`Send 1.5 SOL to ${shortAddress(OTHER)}`);
     const highFee: Warning[] = [{ rule: 'high-fee', severity: 'warn', message: 'm' }];
     expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: highFee })).not.toMatch(/Alice/);
     const unexplained: Warning[] = [{ rule: 'unexplained-outflow', severity: 'danger', message: 'm' }];

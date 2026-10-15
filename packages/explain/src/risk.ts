@@ -24,6 +24,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   valuedMints?: ReadonlySet<string>;
   /** Post-transaction owners of token accounts created in the transaction, keyed by token account address. */
   postTokenOwners?: Readonly<Record<string, Address>>;
+  /** Display labels from trusted sources (see `Labeler`), keyed by address: used to name recipients. */
+  labels?: Readonly<Record<string, string>>;
   /** USD per whole unit, keyed by mint or 'SOL'. Lets the sweep rule weigh what comes back against what leaves. */
   prices?: Readonly<Record<string, number>>;
 };
@@ -354,8 +356,10 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
 
   const sweptAssets = new Set(out.map((c) => c.mint));
   const sweep = priced ? sweptAssets.size >= 2 && !fairExchange : sweptAssets.size >= 2;
+  const name = (a: string) => input.labels?.[a] ?? shortAddress(a);
   if (sweep) {
-    return [['sweep', 'danger', 'Moves several of your assets to another address without giving you comparable value back.']];
+    const to = [...new Set(out.map((c) => recipient(c.mint)!))].map(name).join(', ');
+    return [['sweep', 'danger', `Moves several of your assets to ${to} without giving you comparable value back.`]];
   }
   if (priced ? fairExchange : inflows.length > 0) return [];
 
@@ -370,7 +374,7 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   };
   return out.filter(emptied).map((c) => {
     const asset = c.mint === 'SOL' ? 'SOL' : (c.symbol ?? shortAddress(c.mint));
-    return ['send-entire-balance', 'warn', `Sends (almost) your entire ${asset} balance to ${shortAddress(recipient(c.mint)!)}.`];
+    return ['send-entire-balance', 'warn', `Sends (almost) your entire ${asset} balance to ${name(recipient(c.mint)!)}.`];
   });
 }
 
