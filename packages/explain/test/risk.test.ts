@@ -1,6 +1,9 @@
+import type { RawAccount } from '@clef/rpc';
 import { address, getProgramDerivedAddress, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
+  balanceChangesFromSimulation,
+  computeStateChanges,
   estimateFee,
   evaluateRisks,
   BPF_UPGRADEABLE_LOADER,
@@ -17,7 +20,7 @@ import {
   type RiskInput,
   type StateChange,
 } from '../src';
-import { ME, OTHER, USDC } from './helpers';
+import { ME, OTHER, tokenAccountData, USDC } from './helpers';
 
 const ix = (over: Partial<ExplainedInstruction>): ExplainedInstruction => ({
   index: 0, programId: address(TOKEN_PROGRAM), accounts: [], data: new Uint8Array(), ...over,
@@ -31,7 +34,11 @@ const rules = (i: RiskInput) => evaluateRisks(i).map((w) => [w.rule, w.severity]
 describe('evaluateRisks', () => {
   it('flags unlimited token delegation as danger, limited as warn', () => {
     expect(rules(input([ix({ name: 'approve', args: { amount: U64_MAX } })]))).toEqual([['delegation', 'danger']]);
-    expect(rules(input([ix({ name: 'approve', args: { amount: 5n } })]))).toEqual([['delegation', 'warn']]);
+    // Without the source's balance, a limited approval may still cover all of it.
+    expect(rules(input([ix({ name: 'approve', args: { amount: 5n } })]))).toEqual([['delegation', 'danger']]);
+    const SRC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const limited = ix({ name: 'approve', args: { amount: 5n }, accounts: [named('source', SRC), named('delegate', OTHER)] });
+    expect(rules(input([limited], { tokenBalances: { [SRC]: { owner: ME, mint: USDC, amount: 100n } } }))).toEqual([['delegation', 'warn']]);
   });
 
   it('treats near-unlimited or whole-balance delegation to someone else as danger', () => {
@@ -84,10 +91,10 @@ describe('evaluateRisks', () => {
     expect(warnings.map((w) => [w.rule, w.severity])).toEqual([['durable-nonce', 'warn']]);
     expect(warnings[0]!.message).toMatch(/ Balance changes reflect current state only\.$/);
     expect(rules(input([nonce(OTHER)]))).toEqual([['durable-nonce', 'danger']]);
-    const limited = ix({ index: 1, name: 'approve', args: { amount: 5n } });
-    expect(rules(input([nonce(ME), limited]))).toEqual([
+    const unknown = ix({ index: 1, programId: OTHER });
+    expect(rules(input([nonce(ME), unknown]))).toEqual([
       ['durable-nonce', 'danger'],
-      ['delegation', 'warn'],
+      ['unknown-program', 'warn'],
     ]);
   });
 
@@ -337,5 +344,22 @@ describe('evaluateRisks', () => {
     for (const program of [STAKE_PROGRAM, VOTE_PROGRAM, BPF_UPGRADEABLE_LOADER]) {
       expect(rules(input([ix({ programId: address(program) })]))).toEqual([['sensitive-program', 'danger']]);
     }
+  });
+
+  it('catches a drainer that parks your funds in a new account it can close', () => {
+    const MY_ATA = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const PARKED = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
+    const T = address(TOKEN_PROGRAM);
+    const raw = (a: Address, data: Uint8Array): RawAccount => ({ address: a, owner: T, lamports: 2_039_280n, executable: false, data });
+    const pre = [raw(MY_ATA, tokenAccountData(ME, USDC, 100n)), null];
+    const post = [raw(MY_ATA, tokenAccountData(ME, USDC, 0n)), raw(PARKED, tokenAccountData(ME, USDC, 100n, { closeAuthority: OTHER }))];
+    const mintInfo = () => ({ symbol: 'USDC', decimals: 6 });
+    const balanceChanges = balanceChangesFromSimulation(pre, post, mintInfo).filter((c) => c.mint !== 'SOL');
+    expect(balanceChanges).toEqual([]);
+    const drainer = ix({ programId: OTHER, name: 'claim', idl: { source: 'program-metadata', trust: 'authority', hash: 'h' } });
+    expect(rules(input([drainer], { balanceChanges, stateChanges: computeStateChanges(pre, post) }))).toContainEqual([
+      'authority-change',
+      'danger',
+    ]);
   });
 });

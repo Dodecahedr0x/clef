@@ -80,7 +80,8 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       const held = source && input.tokenBalances?.[source.address];
       const amount = ix.args?.amount;
       const unlimited = typeof amount !== 'bigint' || amount >= HALF_U64;
-      const all = unlimited || (held !== undefined && amount >= held.amount);
+      // Unknown balance: assume the approval covers all of it.
+      const all = unlimited || held === undefined || amount >= held.amount;
       const danger = all && notMineOrUnknown(account(ix, 'delegate'));
       const whose = source && (source.mine || me.has(source.address) || (held && me.has(held.owner))) ? 'your' : 'a';
       const what = unlimited ? 'an UNLIMITED amount of' : all ? 'ALL' : 'some';

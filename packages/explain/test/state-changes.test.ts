@@ -40,7 +40,21 @@ describe('computeStateChanges', () => {
     expect(computeStateChanges([pre], [token(ME, USDC, 100n)])).toEqual([]);
   });
 
-  it('matches by address and ignores missing, unloaded or created accounts', () => {
+  it('matches by address; no program-owner change for created accounts', () => {
     expect(computeStateChanges([undefined, null, raw(OTHER, T)], [raw(ME, OTHER), raw(ACC, OTHER), raw(ME, ME)])).toEqual([]);
+  });
+
+  it('compares token accounts created in the transaction against an empty baseline', () => {
+    const created = token(ME, USDC, 100n, { delegate: THIRD, delegatedAmount: 100n, closeAuthority: THIRD });
+    const common = { address: ACC, holder: ME, balance: 100n };
+    const expected = [
+      { ...common, kind: 'token-delegate', before: null, after: THIRD, amount: 100n },
+      { ...common, kind: 'token-close-authority', before: null, after: THIRD },
+    ];
+    expect(computeStateChanges([null], [created])).toEqual(expected);
+    expect(computeStateChanges([undefined], [created])).toEqual(expected);
+    // Pre-existing but not (yet) a token account, e.g. funded or allocated before initialization.
+    expect(computeStateChanges([raw(ACC, T)], [created])).toEqual(expected);
+    expect(computeStateChanges([null], [token(ME, USDC, 100n)])).toEqual([]);
   });
 });
