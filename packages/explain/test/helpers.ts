@@ -6,6 +6,7 @@ import {
   createTransactionMessage,
   getAddressEncoder,
   getTransactionEncoder,
+  none,
   pipe,
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
@@ -14,6 +15,7 @@ import {
   type Instruction,
 } from '@solana/kit';
 import type { MemoryChainReader } from '@clef/rpc';
+import { AccountState, getTokenEncoder } from '@solana-program/token';
 
 export const ME = address('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
 export const OTHER = address('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU');
@@ -41,4 +43,15 @@ export function setLookupTable(reader: MemoryChainReader, table: Address, addres
   const data = new Uint8Array(56 + 32 * addresses.length);
   addresses.forEach((a, i) => data.set(getAddressEncoder().encode(a), 56 + 32 * i));
   reader.setAccount({ address: table, owner: address('AddressLookupTab1e1111111111111111111111111'), data });
+}
+
+export const USDC = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
+export function tokenAccountData(owner: Address = ME, mint: Address = USDC, amount = 10n): Uint8Array {
+  return new Uint8Array(
+    getTokenEncoder().encode({
+      mint, owner, amount, delegate: none(), state: AccountState.Initialized,
+      isNative: none(), delegatedAmount: 0n, closeAuthority: none(),
+    }),
+  );
 }
