@@ -4,3 +4,4 @@ export * from './crypto';
 export * from './hd';
 export * from './mnemonic';
 export * from './keypair';
+export * from './vault';
