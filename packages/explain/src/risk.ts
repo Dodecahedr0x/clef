@@ -229,7 +229,14 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));
   if (unexplained && possibleOutflow(input, me)) {
-    warn('unexplained-outflow', 'danger', 'Funds leave your wallet in a transaction Clef cannot fully explain.');
+    // An ordinary swap through a router Clef can't decode: priced value comes back. Only known balance changes,
+    // with a price for every asset in and out, can show that.
+    const exchange = input.balanceChanges && valueExchange(input, me);
+    if (exchange?.fairExchange && exchange.inflows.length > 0) {
+      warn('unexplained-outflow', 'warn', "Funds leave your wallet through a program Clef can't decode; you receive comparable value back.");
+    } else {
+      warn('unexplained-outflow', 'danger', 'Funds leave your wallet in a transaction Clef cannot fully explain.');
+    }
   }
 
   if (possibleOutflow(input, me)) {
@@ -346,12 +353,7 @@ const onCurve = (a: Address) => {
 function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warning['severity'], string][] {
   const changes = input.balanceChanges;
   if (!changes) return [];
-  // Only something of value counts as received: SOL beyond rent refunds, or a known or priced token. An
-  // airdrop of an unknown token is free to mint and must not defuse the rule.
-  const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
-  const inflows = changes.filter(
-    (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
-  );
+  const { inflows, allOut, priced, fairExchange } = valueExchange(input, me);
 
   // Program-owned (off-curve) recipients are exempt only when reached through a non-core program, which may be
   // depositing into its own vault. Recipients of top-level core transfers are never exempt: a decoy program
@@ -367,20 +369,10 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   // Wrapped SOL you lose arrives as plain SOL when its account is closed or unwrapped.
   const sameAsset = (c: BalanceChange, mint: string) => c.mint === mint || (c.mint === 'SOL' && NATIVE_MINTS.has(mint));
   const recipient = (mint: string) => changes.find((c) => sameAsset(c, mint) && toWallet(c))?.owner;
-  const allOut = outflows(input, me);
   const out = allOut.filter((c) => recipient(c.mint));
 
-  // With prices for everything involved, what comes back must be worth at least half of what leaves. Without
-  // them, an inflow only vouches for an exchange of one asset: it never offsets two or more other assets leaving
-  // (paying back a little of something must not defuse a sweep).
-  const usd = (c: BalanceChange) => {
-    const price = input.prices?.[c.mint];
-    return price === undefined || c.decimals === null ? undefined : (Math.abs(Number(c.delta)) / 10 ** c.decimals) * price;
-  };
-  const sum = (cs: BalanceChange[]) => cs.reduce((total, c) => total + usd(c)!, 0);
-  const priced = input.prices !== undefined && [...allOut, ...inflows].every((c) => usd(c) !== undefined);
-  const fairExchange = priced ? sum(inflows) >= sum(allOut) / 2 : undefined;
-
+  // Without prices, an inflow only vouches for an exchange of one asset: it never offsets two or more other
+  // assets leaving (paying back a little of something must not defuse a sweep).
   const sweptAssets = new Set(out.map((c) => c.mint));
   const sweep = priced ? sweptAssets.size >= 2 && !fairExchange : sweptAssets.size >= 2;
   const name = (a: string) => input.labels?.[a] ?? shortAddress(a);
@@ -403,6 +395,30 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
     const asset = c.mint === 'SOL' ? 'SOL' : (c.symbol ?? shortAddress(c.mint));
     return ['send-entire-balance', 'warn', `Sends (almost) your entire ${asset} balance to ${name(recipient(c.mint)!)}.`];
   });
+}
+
+/**
+ * What you receive against what leaves. `inflows`: only something of value counts as received: SOL beyond rent
+ * refunds, or a known or priced token (an airdrop of an unknown token is free to mint and must not count).
+ * `priced`: `prices` cover every outflow and inflow; then `fairExchange` says whether what comes back is worth
+ * at least half of what leaves (undefined otherwise).
+ */
+function valueExchange(
+  input: RiskInput,
+  me: ReadonlySet<string>,
+): { inflows: BalanceChange[]; allOut: BalanceChange[]; priced: boolean; fairExchange: boolean | undefined } {
+  const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
+  const inflows = (input.balanceChanges ?? []).filter(
+    (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
+  );
+  const allOut = outflows(input, me);
+  const usd = (c: BalanceChange) => {
+    const price = input.prices?.[c.mint];
+    return price === undefined || c.decimals === null ? undefined : (Math.abs(Number(c.delta)) / 10 ** c.decimals) * price;
+  };
+  const sum = (cs: BalanceChange[]) => cs.reduce((total, c) => total + usd(c)!, 0);
+  const priced = input.prices !== undefined && [...allOut, ...inflows].every((c) => usd(c) !== undefined);
+  return { inflows, allOut, priced, fairExchange: priced ? sum(inflows) >= sum(allOut) / 2 : undefined };
 }
 
 const TOKEN_TRANSFERS: ReadonlySet<string> = new Set(['transfer', 'transferChecked', 'transferCheckedWithFee']);

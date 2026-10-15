@@ -153,6 +153,45 @@ describe('evaluateRisks', () => {
     expect(rules(tokens)).toContainEqual(['unexplained-outflow', 'danger']);
   });
 
+  describe('unexplained outflows with prices', () => {
+    const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+    const router = ix({ programId: OTHER, idl: undefined });
+    const usdc = (delta: bigint): BalanceChange => ({ owner: ME, mint: USDC, decimals: 6, delta });
+    const usdt = (delta: bigint): BalanceChange => ({ owner: ME, mint: USDT, decimals: 6, delta });
+    const sol = (delta: bigint): BalanceChange => ({ owner: ME, mint: 'SOL', decimals: 9, delta });
+    const prices = { SOL: 150, [USDC]: 1, [USDT]: 1 };
+    const outflowRule = (i: RiskInput) => evaluateRisks(i).find((w) => w.rule === 'unexplained-outflow');
+
+    it('downgrades to warn when what comes back is worth at least half of what leaves', () => {
+      // $100 of USDC out through an undecodable router, $99 of USDT back.
+      const w = outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(99_000_000n)], prices }));
+      expect(w).toMatchObject({ severity: 'warn', message: "Funds leave your wallet through a program Clef can't decode; you receive comparable value back." });
+      // 2 SOL ($300) out, $150 back: exactly half.
+      expect(outflowRule(input([router], { balanceChanges: [sol(-2_000_000_000n), usdc(150_000_000n)], prices }))?.severity).toBe('warn');
+    });
+
+    it('stays danger for a priced drain with a dust payback', () => {
+      const w = outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(1_000_000n)], prices }));
+      expect(w).toMatchObject({ severity: 'danger', message: 'Funds leave your wallet in a transaction Clef cannot fully explain.' });
+      expect(outflowRule(input([router], { balanceChanges: [sol(-2_000_000_000n), usdc(149_000_000n)], prices }))?.severity).toBe('danger');
+    });
+
+    it('stays danger without a price for every outflow and inflow', () => {
+      const swap = [usdc(-100_000_000n), usdt(99_000_000n)];
+      expect(outflowRule(input([router], { balanceChanges: swap }))?.severity).toBe('danger');
+      expect(outflowRule(input([router], { balanceChanges: swap, prices: { [USDC]: 1 } }))?.severity).toBe('danger');
+      expect(outflowRule(input([router], { balanceChanges: swap, prices: { [USDT]: 1 } }))?.severity).toBe('danger');
+      // An unknown-decimals outflow can't be priced either.
+      expect(outflowRule(input([router], { balanceChanges: [{ ...usdc(-100_000_000n), decimals: null }, usdt(99_000_000n)], prices }))?.severity).toBe('danger');
+    });
+
+    it('stays danger when nothing comes back or the balance changes are unknown', () => {
+      expect(outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n)], prices }))?.severity).toBe('danger');
+      const unknown = input([router], { balanceChanges: null, prices, issues: [{ stage: 'simulate', message: 'Simulation failed' }] });
+      expect(outflowRule(unknown)?.severity).toBe('danger');
+    });
+  });
+
   it('treats unknown balance changes as a possible outflow', () => {
     const out = input([ix({ programId: OTHER })], {
       balanceChanges: null,
