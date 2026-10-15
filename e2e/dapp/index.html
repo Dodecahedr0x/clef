@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Clef test dApp</title>
+  </head>
+  <body>
+    <h1>Clef test dApp</h1>
+    <script>
+      // Minimal Wallet Standard app side (no dependencies).
+      const wallets = [];
+      const api = {
+        register: (...ws) => {
+          wallets.push(...ws);
+          return () => {};
+        },
+      };
+      window.addEventListener('wallet-standard:register-wallet', (e) => e.detail(api));
+      window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: api }));
+      window.clef = () => wallets.find((w) => w.name === 'Clef');
+      window.events = [];
+      window.fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+      window.toB64 = (b) => btoa(String.fromCharCode(...b));
+      window.verify = async (pub, sig, msg) =>
+        crypto.subtle.verify('Ed25519', await crypto.subtle.importKey('raw', pub, 'Ed25519', false, ['verify']), sig, msg);
+    </script>
+  </body>
+</html>

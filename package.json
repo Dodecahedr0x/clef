@@ -7,10 +7,13 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json && pnpm --filter @clef/extension typecheck",
     "clef": "tsx apps/cli/src/main.ts",
-    "build:ext": "pnpm --filter @clef/extension build"
+    "build:ext": "pnpm --filter @clef/extension build",
+    "e2e": "pnpm build:ext && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@solana-program/system": "^0.15.0",
+    "@solana/kit": "^8.5.0",
     "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
