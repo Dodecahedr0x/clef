@@ -1,12 +1,14 @@
 import { createBundledSource, IdlResolver, UserIdlSource } from '@clef/idl';
 import { MemoryChainReader, type RawAccount } from '@clef/rpc';
-import { getSetComputeUnitLimitInstruction } from '@solana-program/compute-budget';
+import { getSetComputeUnitLimitInstruction, getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address } from '@solana/kit';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { explain, shortAddress, viewFor, TOKEN_PROGRAM, type ExplainedTransaction } from '../src';
-import { buildWire, ME, OTHER, tokenAccountData } from './helpers';
+import { buildWire, ME, OTHER, simulateWith, tokenAccountData } from './helpers';
+
+const MINT_X = address('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
 
@@ -44,6 +46,35 @@ describe('viewFor', () => {
     expect(v.fee).toBe('0.000005 SOL');
     // The basic view shows the fee only when it is high.
     expect(viewFor(ex, 'basic')).not.toHaveProperty('fee');
+  });
+
+  it('expert view: strings for bigints, copies of shared arrays, and state changes', async () => {
+    const MY_TA = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const reader = new MemoryChainReader();
+    reader.setAccount({ address: MY_TA, owner: address(TOKEN_PROGRAM), data: tokenAccountData(ME, MINT_X, 100n) });
+    simulateWith(reader, { [MY_TA]: { data: tokenAccountData(ME, MINT_X, 100n, { delegate: OTHER, delegatedAmount: 100n }) } });
+    const wire = buildWire([
+      getSetComputeUnitPriceInstruction({ microLamports: 1000n }),
+      { programAddress: OTHER, data: new Uint8Array([1]), accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: MY_TA, role: AccountRole.WRITABLE }] },
+    ]);
+    const t = await explain({ wire }, { reader, idls: new IdlResolver([createBundledSource()]), me: [ME] });
+    expect(t.stateChanges).toEqual([
+      { address: MY_TA, kind: 'token-delegate', before: null, after: OTHER, amount: 100n, holder: ME, balance: 100n },
+    ]);
+    const v = viewFor(t, 'expert');
+    expect(v.computeUnitPrice).toBe('1000');
+    expect(v.stateChanges).toEqual([
+      { address: MY_TA, kind: 'token-delegate', before: null, after: OTHER, amount: '100', holder: ME, balance: '100' },
+    ]);
+    expect(v.warnings).toEqual(t.warnings);
+    expect(v.warnings).not.toBe(t.warnings);
+    expect(v.warnings[0]).not.toBe(t.warnings[0]);
+    expect(v.relations).not.toBe(t.relations);
+    expect(v.issues).not.toBe(t.issues);
+    v.warnings[0]!.severity = 'info';
+    expect(t.warnings[0]!.severity).not.toBe('info');
+    // Unknown (no successful simulation): null, not "no changes".
+    expect(viewFor({ ...t, stateChanges: null }, 'expert').stateChanges).toBeNull();
   });
 
   it('never includes verification-only fields, even if the input carries them', () => {

@@ -5,8 +5,8 @@ import { getTransferSolInstruction } from '@solana-program/system';
 import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { explain, shortAddress, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
-import { buildWire, ME, OTHER, simulateWith, tokenAccountData, USDC } from './helpers';
+import { decodeTransaction, explain, shortAddress, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
+import { buildWire, ME, OTHER, setLookupTable, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
 
@@ -401,6 +401,64 @@ describe('explain', () => {
     expect(requested).not.toContain('11111111111111111111111111111111');
     expect(requested).not.toContain(DRAINER);
     expect(requested).toContain(TOKEN_PROGRAM);
+  });
+
+  it('simulates and diffs a writable account loaded from a lookup table', async () => {
+    const TABLE = address('75hbt6uvDqjPZ9WgFtMhBnTeyHw7cinoHiz4FD2vEz2d');
+    const reader = new MemoryChainReader();
+    setLookupTable(reader, TABLE, [MY_USDC]);
+    tokenAccount(reader, MY_USDC, ME, 100_000_000n);
+    simulateWith(reader, { [MY_USDC]: { data: tokenAccountData(ME, USDC, 100_000_000n, { delegate: ATTACKER, delegatedAmount: 100_000_000n }) } });
+    const drain: Instruction = {
+      programAddress: DRAINER, data: new Uint8Array([7]),
+      accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: MY_USDC, role: AccountRole.WRITABLE }],
+    };
+    const ex = await explain({ wire: buildWire([drain], { lookupTables: { [TABLE]: [MY_USDC] } }) }, ctx(reader));
+    expect(ex.tx.accounts.find((a) => a.address === MY_USDC)).toMatchObject({ writable: true, lookupTable: TABLE });
+    expect(ex.stateChanges).toContainEqual(expect.objectContaining({ address: MY_USDC, kind: 'token-delegate', after: ATTACKER }));
+    expect(rules(ex)).toContainEqual(['delegation', 'danger']);
+  });
+
+  it('reads token balances and loaded addresses from tx meta', async () => {
+    const TABLE = address('75hbt6uvDqjPZ9WgFtMhBnTeyHw7cinoHiz4FD2vEz2d');
+    const wire = buildWire(
+      [getTransferCheckedInstruction({ source: MY_USDC, mint: USDC, destination: OTHER_USDC, authority: me, amount: 100_000_000n, decimals: 6 })],
+      { lookupTables: { [TABLE]: [OTHER_USDC] } },
+    );
+    const loadedAddresses = { writable: [OTHER_USDC], readonly: [] };
+    // The table is not on chain any more: the meta's loaded addresses are used.
+    const reader = new MemoryChainReader();
+    const tx = await decodeTransaction(wire, reader, loadedAddresses);
+    const at = (a: Address) => tx.accounts.findIndex((x) => x.address === a);
+    const balances = tx.accounts.map((a) => (a.address === ME ? 3n * SOL : 2_039_280n));
+    const meta: TxMeta = {
+      err: null, fee: 5000n,
+      preBalances: balances, postBalances: balances.map((b, i) => (i === at(ME) ? b - 5000n : b)),
+      preTokenBalances: [
+        { accountIndex: at(MY_USDC), mint: USDC, owner: ME, amount: 100_000_000n, decimals: 6 },
+        { accountIndex: at(OTHER_USDC), mint: USDC, owner: ATTACKER, amount: 0n, decimals: 6 },
+      ],
+      postTokenBalances: [
+        { accountIndex: at(MY_USDC), mint: USDC, owner: ME, amount: 0n, decimals: 6 },
+        { accountIndex: at(OTHER_USDC), mint: USDC, owner: ATTACKER, amount: 100_000_000n, decimals: 6 },
+      ],
+      loadedAddresses, logMessages: [],
+    };
+    const ex = await explain({ wire, meta }, ctx(reader));
+    expect(ex.issues).toEqual([]);
+    expect(ex.tx.accounts[at(OTHER_USDC)]).toMatchObject({ lookupTable: TABLE, writable: true });
+    expect(ex.balanceChanges).toEqual([
+      { owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -5000n },
+      { owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -100_000_000n },
+      { owner: ATTACKER, mint: USDC, symbol: 'USDC', decimals: 6, delta: 100_000_000n },
+    ]);
+    expect(ex.stateChanges).toBeNull();
+    // Pre-state token balances come from the meta: the whole balance leaves.
+    expect(ex.warnings.map((w) => [w.rule, w.message])).toEqual([
+      ['send-entire-balance', `Sends (almost) your entire USDC balance to ${shortAddress(ATTACKER)}.`],
+    ]);
+    // Ownership comes from the meta, not today's state: the source is yours, the recipient is its owner wallet.
+    expect(ex.summary).toBe(`Send 100 USDC to ${shortAddress(ATTACKER)}`);
   });
 
   it('labels with the address book and marks it as not a sweep target', async () => {

@@ -1,6 +1,7 @@
 import { formatUnits, programDisplay } from './format';
 import { toHex } from './hex';
 import { shortAddress } from './labels';
+import type { StateChange } from './state-changes';
 import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, TOKEN_PROGRAMS } from './registry';
 import type { BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge, Warning } from './types';
 
@@ -25,6 +26,9 @@ export type BasicView = {
   fee?: string;
 };
 export type IntermediateView = Omit<BasicView, 'level'> & { level: 'intermediate'; instructions: InstructionView[] };
+/** A `StateChange` with every value as a string. */
+export type StateChangeView = { address: string; kind: string; before: string | null; after: string | null; amount?: string; holder?: string; balance?: string };
+
 export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   level: 'expert';
   /** Null when it can't be estimated. */
@@ -34,9 +38,11 @@ export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   feePayer: string;
   recentBlockhash: string;
   computeUnitLimit?: number;
-  computeUnitPrice?: bigint;
+  computeUnitPrice?: string;
   relations: RelationEdge[];
   issues: Issue[];
+  /** Null when unknown (no successful simulation). */
+  stateChanges: StateChangeView[] | null;
 };
 
 const SYMBOLS: Record<RelationEdge['status'], string> = { verified: '\u2713', mismatch: '\u2717', unverified: '?' };
@@ -97,6 +103,18 @@ function changeView(c: BalanceChange): ChangeView {
   return { owner: c.owner, asset: c.symbol ?? shortAddress(c.mint), amount: c.delta > 0n ? `+${amount}` : amount };
 }
 
+function stateChangeView(c: StateChange): StateChangeView {
+  return {
+    address: c.address,
+    kind: c.kind,
+    before: c.before,
+    after: c.after,
+    ...(c.amount !== undefined && { amount: c.amount.toString() }),
+    ...(c.holder !== undefined && { holder: c.holder }),
+    ...(c.balance !== undefined && { balance: c.balance.toString() }),
+  };
+}
+
 const toNumber = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'bigint' ? Number(v) : undefined);
 const toBigint = (v: unknown) => (typeof v === 'bigint' ? v : typeof v === 'number' ? BigInt(v) : undefined);
 
@@ -107,9 +125,10 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
 export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView | IntermediateView | ExpertView {
   const me = new Set<string>(ex.me);
   const changes = ex.balanceChanges;
+  // Views get their own copies: editing a view never changes the explanation.
   const common = {
     summary: ex.summary,
-    warnings: ex.warnings,
+    warnings: ex.warnings.map((w) => ({ ...w })),
     balanceChanges: changes && (level === 'expert' ? changes : changes.filter((c) => me.has(c.owner))).map(changeView),
   };
   const fee = ex.fee === null ? null : `${formatUnits(ex.fee, 9)} SOL`;
@@ -132,9 +151,10 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     fee,
     recentBlockhash: ex.tx.recentBlockhash,
     ...(limit !== undefined && { computeUnitLimit: limit }),
-    ...(price !== undefined && { computeUnitPrice: price }),
-    relations: ex.relations,
-    issues: ex.issues,
+    ...(price !== undefined && { computeUnitPrice: price.toString() }),
+    relations: ex.relations.map((r) => ({ ...r, ...(r.seeds && { seeds: r.seeds.map((seed) => ({ ...seed })) }) })),
+    issues: ex.issues.map((i) => ({ ...i })),
+    stateChanges: ex.stateChanges && ex.stateChanges.map(stateChangeView),
     instructions: ex.instructions.map((ix) => ({
       ...instructionView(ex, ix),
       programId: ix.programId,

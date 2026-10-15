@@ -209,7 +209,13 @@ export async function explain(
     relations.push(...r.relations);
   }
 
-  const labeler = new Labeler(ctx.me, cache, ctx.addressBook);
+  // On the meta path, the meta says who held each token account at the time.
+  const metaOwners: Record<string, Address> = {};
+  for (const t of [...(input.meta?.postTokenBalances ?? []), ...(input.meta?.preTokenBalances ?? [])]) {
+    const at = addresses[t.accountIndex];
+    if (at && t.owner) metaOwners[at] = t.owner;
+  }
+  const labeler = new Labeler(ctx.me, cache, ctx.addressBook, metaOwners);
   // `resolvedIdl` and `rawArgs` are for verification only: they never leave the orchestrator.
   const instructions: ExplainedInstruction[] = identified.map(({ resolvedIdl: _idl, rawArgs: _raw, ...ix }) => {
     const explained: ExplainedInstruction = {
@@ -271,7 +277,7 @@ export async function explain(
   }
 
   // Owner wallets of token accounts (pre-state first), and trusted labels for everyone involved.
-  const tokenOwners: Record<string, Address> = { ...simulated.postTokenOwners };
+  const tokenOwners: Record<string, Address> = { ...metaOwners, ...simulated.postTokenOwners };
   for (const [account, holding] of Object.entries(tokenBalances)) tokenOwners[account] = holding.owner;
   const labels: Record<string, string> = {};
   const involved = [...addresses, ...Object.values(tokenOwners), ...(simulated.balanceChanges ?? []).map((c) => c.owner)];
@@ -317,5 +323,6 @@ export async function explain(
     const programs = [...new Set(instructions.map(programDisplay))].join(', ') || 'no programs';
     summary = `Interact with ${programs}${danger ? ` -- ${danger.message}` : ''}`;
   }
-  return { tx, instructions, relations, balanceChanges, fee, issues, me, warnings, summary };
+  const stateChanges = simulated.stateChanges ?? null;
+  return { tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary };
 }

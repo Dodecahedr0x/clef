@@ -30,17 +30,20 @@ export async function tokenRelations(addresses: readonly Address[], cache: Accou
 export class Labeler {
   private readonly me: ReadonlySet<string>;
 
+  /** `tokenOwners`: token account owners known from elsewhere (e.g. tx meta), used when the account can't be read. */
   constructor(
     me: readonly Address[],
     private readonly cache: AccountCache,
     private readonly addressBook: Readonly<Record<string, string>> = {},
+    private readonly tokenOwners: Readonly<Record<string, string>> = {},
   ) {
     this.me = new Set(me);
   }
 
   /** The user's wallets plus token accounts they own. */
   isMine(address: Address): boolean {
-    return this.me.has(address) || this.me.has(decodeTokenAccount(this.cache.get(address))?.owner ?? '');
+    const owner = decodeTokenAccount(this.cache.get(address))?.owner ?? (Object.hasOwn(this.tokenOwners, address) ? this.tokenOwners[address] : undefined);
+    return this.me.has(address) || (owner !== undefined && this.me.has(owner));
   }
 
   mintInfo(mint: Address): { symbol: string; decimals: number } | null {

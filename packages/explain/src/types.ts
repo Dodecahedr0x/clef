@@ -1,6 +1,7 @@
 import type { ChainReader } from '@clef/rpc';
 import type { IdlResolver, IdlSourceKind, TrustTier } from '@clef/idl';
 import type { Address } from '@solana/kit';
+import type { StateChange } from './state-changes';
 
 export type DetailLevel = 'basic' | 'intermediate' | 'expert';
 export type Severity = 'info' | 'warn' | 'danger';
@@ -74,6 +75,8 @@ export type ExplainedTransaction = {
   relations: RelationEdge[];
   /** Null when neither tx meta nor a successful simulation was available. */
   balanceChanges: BalanceChange[] | null;
+  /** Authority changes seen in simulated pre/post state; null without a successful simulation (e.g. tx meta). */
+  stateChanges: StateChange[] | null;
   /** Network fee in lamports: from tx meta, else estimated; null when it can't be estimated. */
   fee: bigint | null;
   me: Address[];
