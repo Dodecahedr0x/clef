@@ -32,4 +32,33 @@ describe('static IDL sources', () => {
     user.delete(VAULT);
     expect(await user.load(VAULT)).toBeNull();
   });
+
+  it('binds legacy Anchor IDLs (no address) to the requested program', async () => {
+    const user = new UserIdlSource();
+    const legacy = { version: '0.1.0', name: 'legacy', instructions: [{ name: 'doIt', accounts: [], args: [] }] };
+    user.set(VAULT, JSON.stringify(legacy));
+    const idl = await user.load(VAULT);
+    expect(idl?.root.program.publicKey).toBe(VAULT);
+    expect(idl?.root.program.instructions?.map((i) => i.name)).toEqual(['doIt']);
+  });
+
+  it('rejects an IDL that declares a different program', async () => {
+    const user = new UserIdlSource();
+    user.set(TOKEN, JSON.stringify(vault));
+    await expect(user.load(TOKEN)).rejects.toThrow(`IDL is for program ${VAULT}, not ${TOKEN}`);
+  });
+
+  it('memoizes per program and invalidates on set/delete', async () => {
+    const bundled = createBundledSource();
+    expect(bundled.load(TOKEN)).toBe(bundled.load(TOKEN));
+
+    const user = new UserIdlSource();
+    user.set(VAULT, JSON.stringify(vault));
+    const first = user.load(VAULT);
+    expect(user.load(VAULT)).toBe(first);
+    user.set(VAULT, JSON.stringify(vault));
+    expect(user.load(VAULT)).not.toBe(first);
+    user.delete(VAULT);
+    expect(await user.load(VAULT)).toBeNull();
+  });
 });

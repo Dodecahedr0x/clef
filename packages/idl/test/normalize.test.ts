@@ -21,4 +21,22 @@ describe('normalizeIdl', () => {
   it('rejects unknown formats', async () => {
     await expect(normalizeIdl({ hello: 'world' })).rejects.toThrow(/Unrecognized IDL/);
   });
+
+  it('hashes a canonical form, so formatting and key order do not matter', async () => {
+    const a = await normalizeIdl(vault);
+    const reordered = Object.fromEntries(Object.entries(vault).reverse());
+    const b = await normalizeIdl(JSON.stringify(reordered, null, 2));
+    expect(b.hash).toBe(a.hash);
+  });
+
+  it('rejects Anchor IDLs with an unsupported spec', async () => {
+    await expect(normalizeIdl({ ...vault, metadata: { ...vault.metadata, spec: '0.2.0' } })).rejects.toThrow(
+      'Unsupported Anchor IDL spec 0.2.0',
+    );
+  });
+
+  it('rejects non-object JSON with the friendly error', async () => {
+    await expect(normalizeIdl('null')).rejects.toThrow(/Unrecognized IDL format/);
+    await expect(normalizeIdl('5')).rejects.toThrow(/Unrecognized IDL format/);
+  });
 });

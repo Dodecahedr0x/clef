@@ -637,7 +637,7 @@ done
 ```bash
 mkdir -p packages/idl/idls && chmod +x packages/idl/scripts/vendor-idls.sh && packages/idl/scripts/vendor-idls.sh
 ```
-Expected: six lines, each starting `rootNode`, with program ids `11111111111111111111111111111111`, `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`, `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`, `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`, `ComputeBudget111111111111111111111111111111`, `MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`.
+Expected: six lines, each starting `rootNode`, with program ids `11111111111111111111111111111111`, `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`, `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`, `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`, `ComputeBudget111111111111111111111111111111`, `Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH` (memo v4; also aliased under MemoSq4… v3).
 
 **Step 3: Commit**
 ```bash

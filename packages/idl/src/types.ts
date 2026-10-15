@@ -6,7 +6,12 @@ import type { AnchorExtras } from './anchor-extras';
 export type TrustTier = 'curated' | 'authority' | 'user';
 export type IdlSourceKind = 'user' | 'bundled' | 'program-metadata' | 'anchor-onchain';
 
-export type NormalizedIdl = { root: RootNode; anchorExtras?: AnchorExtras; hash: string };
+export type NormalizedIdl = {
+  root: RootNode;
+  anchorExtras?: AnchorExtras;
+  /** sha256 (hex) of the parsed input IDL serialized canonically: keys sorted recursively, no whitespace. */
+  hash: string;
+};
 
 export type ResolvedIdl = NormalizedIdl & {
   programId: Address;
