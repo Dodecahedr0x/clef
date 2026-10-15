@@ -6,7 +6,8 @@ export type DetailLevel = 'basic' | 'intermediate' | 'expert';
 export type Severity = 'info' | 'warn' | 'danger';
 
 export type Issue = {
-  stage: 'decode' | 'idl' | 'parse' | 'relations' | 'simulate';
+  /** `execute`: the transaction itself failed on chain (from its meta). */
+  stage: 'decode' | 'idl' | 'parse' | 'relations' | 'simulate' | 'execute';
   message: string;
   instructionIndex?: number;
 };

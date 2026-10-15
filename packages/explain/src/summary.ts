@@ -19,8 +19,8 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
     tokenBalances?: Readonly<Record<string, { amount: bigint }>>;
   };
 
-/** Warnings under which a one-instruction template could read as benign: the summary states the outflows. */
-const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee']);
+/** Warnings under which a one-instruction template would mislead: the summary states the balance changes instead. */
+const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee', 'transaction-failed']);
 
 type Context = Pick<SummaryInput, 'labels' | 'tokenOwners' | 'tokenBalances'>;
 type Template = (ix: ExplainedInstruction, ctx: Context) => string | null;

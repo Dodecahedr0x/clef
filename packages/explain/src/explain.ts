@@ -194,6 +194,7 @@ export async function explain(
   let simulated: Simulated;
   if (input.meta) {
     const meta = input.meta;
+    if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
     const ownerOf = (a: Address) => decodeTokenAccount(cache.get(a))?.owner ?? null;
     simulated = { balanceChanges: balanceChangesFromMeta(addresses, meta, (mint) => labeler.mintInfo(mint), ownerOf) };
     // Pre-state as of the transaction, not today.

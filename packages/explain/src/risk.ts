@@ -199,6 +199,10 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
     warn('high-fee', severity, `Pays a priority fee of ${formatUnits(priority, 9)} SOL.`);
   }
 
+  if (input.issues.some((i) => i.stage === 'execute')) {
+    warn('transaction-failed', 'info', 'Transaction failed; only the fee was charged.');
+  }
+
   if (input.issues.some((i) => i.stage === 'simulate')) {
     warn('simulation-failed', 'warn', 'Simulation failed or unavailable: balance changes are unknown.');
   }

@@ -311,6 +311,20 @@ describe('explain', () => {
     expect(ex.warnings).toEqual([]);
   });
 
+  it('reports a failed transaction from its meta and does not describe it as a transfer', async () => {
+    const wire = buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL })]);
+    const meta: TxMeta = {
+      err: { InstructionError: [0, { Custom: 1 }] }, fee: 5000n,
+      preBalances: [3n * SOL, 0n, 1n], postBalances: [3n * SOL - 5000n, 0n, 1n],
+      preTokenBalances: [], postTokenBalances: [],
+      loadedAddresses: { writable: [], readonly: [] }, logMessages: [],
+    };
+    const ex = await explain({ wire, meta }, ctx(new MemoryChainReader()));
+    expect(ex.issues).toContainEqual({ stage: 'execute', message: 'Transaction failed: {"InstructionError":[0,{"Custom":1}]}' });
+    expect(ex.warnings).toEqual([{ rule: 'transaction-failed', severity: 'info', message: 'Transaction failed; only the fee was charged.' }]);
+    expect(ex.summary).not.toMatch(/^Send/);
+  });
+
   it('labels with the address book and marks it as not a sweep target', async () => {
     const reader = new MemoryChainReader();
     reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 10n * SOL, data: new Uint8Array() });
