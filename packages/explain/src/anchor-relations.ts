@@ -4,9 +4,9 @@ import { getLastNodeFromPath } from '@codama/visitors-core';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import { decodeTokenAccount, type AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
-import { isAbsent } from './idl-lookup';
+import { isAbsent, isTrustedProgram } from './idl-lookup';
 import { TOKEN_PROGRAMS } from './registry';
-import { displayBytes, errorDetail, Unresolvable } from './seeds';
+import { displayBytes, errorDetail, pdaStatus, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
 /** Positive evidence of substitution: reported as `mismatch` rather than `unverified`. */
@@ -146,17 +146,19 @@ async function verifyNestedSeeds(
       }
     }
     programAddress = seedProgram ? await resolveAddress(seedProgram) : ix.programId;
+    // A program taken from an account or argument was chosen by the transaction: see `isTrustedProgram`.
+    const pinnedAccount = seedProgram?.kind === 'account' && seedProgram.path.length === 1 ? seedProgram.path[0] : undefined;
+    const trusted = !seedProgram || seedProgram.kind === 'const' || isTrustedProgram(ix, programAddress, pinnedAccount);
     const [expected, bump] = await getProgramDerivedAddress({ programAddress, seeds: encoded });
     return {
       kind: 'pda',
       from: targetAddress,
       to: programAddress,
       label: `PDA(${info.map((s) => s.display).join(', ')})`,
-      status: expected === targetAddress ? 'verified' : 'mismatch',
+      ...pdaStatus(expected, targetAddress, programAddress, trusted),
       instructionIndex: ix.index,
       seeds: info,
       bump,
-      ...(expected !== targetAddress && { detail: `expected ${expected}` }),
     };
   } catch (e) {
     return {

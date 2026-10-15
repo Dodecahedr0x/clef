@@ -106,6 +106,41 @@ describe('verifyAnchorExtras', () => {
     });
   });
 
+  it('flags a nested-seed PDA that does not match the holder data', async () => {
+    const { edges } = await run({ mint: OTHER });
+    expect(edges.find((e) => e.kind === 'pda')).toMatchObject({ status: 'mismatch', detail: expect.stringMatching(/^expected /) });
+  });
+
+  describe('seedProgram taken from an account', () => {
+    const accounts = (pinned: boolean) => [
+      { name: 'pool' },
+      { name: 'prog', ...(pinned && { address: USDC }) },
+      {
+        name: 'p',
+        pda: { seeds: [{ kind: 'account', path: 'pool.mint', account: 'Pool' }], program: { kind: 'account', path: 'prog' } },
+      },
+    ];
+    async function edgesFor(pinned: boolean, target?: Address) {
+      const json = anchorIdl(accounts(pinned));
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: PROG, data: await poolData(json, OTHER, AUTHORITY) });
+      const [p] = await getProgramDerivedAddress({ programAddress: USDC, seeds: [getAddressEncoder().encode(OTHER)] });
+      return verifyAnchorExtras(await customIx(json, [ME, USDC, target ?? p]), new AccountCache(reader));
+    }
+
+    it('is verified when the IDL pins the program account', async () => {
+      expect(await edgesFor(true)).toEqual([expect.objectContaining({ label: 'PDA(pool.mint)', status: 'verified', to: USDC })]);
+    });
+
+    it('is unverified when the transaction chose the program', async () => {
+      expect(await edgesFor(false)).toEqual([expect.objectContaining({ status: 'unverified', detail: `derived under ${USDC}` })]);
+    });
+
+    it('stays a mismatch when the derivation fails', async () => {
+      expect(await edgesFor(false, AUTHORITY)).toEqual([expect.objectContaining({ status: 'mismatch' })]);
+    });
+  });
+
   it('never guesses an unnamed holder', async () => {
     const accounts = await vaultAddresses();
     const reader = new MemoryChainReader();

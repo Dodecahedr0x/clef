@@ -1,10 +1,10 @@
 import { getNodeCodecVisitor, getValueNodeVisitor } from '@codama/dynamic-codecs';
 import { isNode, type PdaNode, type RootNode } from '@codama/nodes';
 import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/visitors-core';
-import { getProgramDerivedAddress, type Address } from '@solana/kit';
+import { getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { IdentifiedInstruction } from './identify';
-import { instructionNodes, isAbsent, programs } from './idl-lookup';
-import { displayBytes, errorDetail, Unresolvable } from './seeds';
+import { instructionNodes, isAbsent, isTrustedProgram, programs } from './idl-lookup';
+import { displayBytes, errorDetail, pdaStatus, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
 type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
@@ -91,11 +91,22 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
       }
 
       programAddress = pdaProgramAddress;
-      if (dv.programId && isNode(dv.programId, 'accountValueNode')) {
-        if (isAbsent(ix, dv.programId.name)) throw new Unresolvable(`${dv.programId.name} not provided`);
-        const fromAccount = byName.get(dv.programId.name);
-        if (!fromAccount) throw new Unresolvable(`program account "${dv.programId.name}" is not in the instruction`);
-        programAddress = fromAccount;
+      // The deriving program can come from the transaction itself (an account or an argument).
+      let trusted = true;
+      const source = dv.programId;
+      if (isNode(source, 'accountValueNode')) {
+        if (isAbsent(ix, source.name)) throw new Unresolvable(`${source.name} not provided`);
+        programAddress = byName.get(source.name);
+        if (!programAddress) throw new Unresolvable(`program account "${source.name}" is not in the instruction`);
+        trusted = isTrustedProgram(ix, programAddress, source.name);
+      } else if (isNode(source, 'argumentValueNode')) {
+        const arg = Object.hasOwn(args, source.name) ? args[source.name] : undefined;
+        if (typeof arg !== 'string' || !isAddress(arg)) throw new Unresolvable(`program argument "${source.name}" is not an address`);
+        programAddress = arg;
+        trusted = isTrustedProgram(ix, programAddress);
+      } else if (source !== undefined) {
+        // Never fall back to the default program: a hostile IDL could use any node kind here.
+        throw new Unresolvable(`unsupported program source ${String((source as { kind?: unknown }).kind)}`);
       }
       const [expected, bump] = await getProgramDerivedAddress({ programAddress, seeds: encoded });
       edges.push({
@@ -103,11 +114,10 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         from: actual,
         to: programAddress,
         label: `PDA(${seeds.map((s) => s.display).join(', ')})`,
-        status: expected === actual ? 'verified' : 'mismatch',
+        ...pdaStatus(expected, actual, programAddress, trusted),
         instructionIndex: ix.index,
         seeds,
         bump,
-        ...(expected !== actual && { detail: `expected ${expected}` }),
       });
     } catch (e) {
       // Hostile or unusual IDLs must not abort the explanation: any failure leaves this one PDA unverified.

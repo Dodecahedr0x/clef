@@ -1,8 +1,9 @@
-import { getAddressEncoder, getProgramDerivedAddress, getU64Encoder, getUtf8Encoder } from '@solana/kit';
+import { address, getAddressEncoder, getProgramDerivedAddress, getU64Encoder, getUtf8Encoder } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
+import type { Address } from '@solana/kit';
 import { identifyInstruction, toHex, verifyCodamaPdas, type IdentifiedInstruction } from '../src';
 import { anchorIdl, customIx, PROG } from './custom-idl';
-import { ME } from './helpers';
+import { ME, USDC } from './helpers';
 import { OTHER, depositInstruction, vaultAddresses, vaultResolver } from './vault';
 
 async function identified(overrides: Partial<Awaited<ReturnType<typeof vaultAddresses>>> = {}) {
@@ -108,6 +109,39 @@ describe('verifyCodamaPdas absent optional accounts', () => {
     const ix = await customIx(json, [PROG, OTHER]);
     const edges = await verifyCodamaPdas(ix);
     expect(edges).toEqual([expect.objectContaining({ from: OTHER, status: 'unverified', detail: 'mint not provided' })]);
+  });
+});
+
+describe('verifyCodamaPdas deriving program from the instruction', () => {
+  const TOKEN = address('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  const xUnder = async (programAddress: Address) => (await getProgramDerivedAddress({ programAddress, seeds: ['x'] }))[0];
+  const argProgram = anchorIdl(
+    [{ name: 'p', pda: { seeds: [{ kind: 'const', value: [120] }], program: { kind: 'arg', path: 'prog' } } }],
+    [{ name: 'prog', type: 'pubkey' }],
+  );
+
+  it('uses a program id argument, verified only for known programs', async () => {
+    const known = await verifyCodamaPdas(await customIx(argProgram, [await xUnder(TOKEN)], { prog: TOKEN }));
+    expect(known).toEqual([expect.objectContaining({ status: 'verified', to: TOKEN })]);
+    const unknown = await verifyCodamaPdas(await customIx(argProgram, [await xUnder(OTHER)], { prog: OTHER }));
+    expect(unknown).toEqual([expect.objectContaining({ status: 'unverified', detail: `derived under ${OTHER}`, to: OTHER })]);
+  });
+
+  it('keeps a mismatch under an untrusted program', async () => {
+    const edges = await verifyCodamaPdas(await customIx(argProgram, [ME], { prog: OTHER }));
+    expect(edges).toEqual([expect.objectContaining({ status: 'mismatch' })]);
+  });
+
+  it('trusts a program account pinned to a fixed address by the IDL', async () => {
+    const accounts = (pinned: boolean) => [
+      { name: 'prog', ...(pinned && { address: USDC }) },
+      { name: 'p', pda: { seeds: [{ kind: 'const', value: [120] }], program: { kind: 'account', path: 'prog' } } },
+    ];
+    const target = await xUnder(USDC);
+    const pinned = await verifyCodamaPdas(await customIx(anchorIdl(accounts(true)), [USDC, target]));
+    expect(pinned).toEqual([expect.objectContaining({ from: target, status: 'verified', to: USDC })]);
+    const free = await verifyCodamaPdas(await customIx(anchorIdl(accounts(false)), [USDC, target]));
+    expect(free).toEqual([expect.objectContaining({ from: target, status: 'unverified', detail: `derived under ${USDC}` })]);
   });
 });
 

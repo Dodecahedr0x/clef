@@ -1,5 +1,6 @@
-import type { InstructionAccountNode, InstructionNode, ProgramNode, RootNode } from '@codama/nodes';
+import { isNode, type InstructionAccountNode, type InstructionNode, type ProgramNode, type RootNode } from '@codama/nodes';
 import type { IdentifiedInstruction } from './identify';
+import { KNOWN_PROGRAMS } from './registry';
 
 export function programs(root: RootNode): ProgramNode[] {
   return [root.program, ...(root.additionalPrograms ?? [])];
@@ -28,4 +29,16 @@ export function isAbsent(ix: IdentifiedInstruction, name: string): boolean {
   if (!nodes || !account?.isOptional) return false;
   if ((nodes.node.optionalAccountStrategy ?? 'programId') !== 'programId') return false;
   return ix.accounts.find((a) => a.name === name)?.address === ix.programId;
+}
+
+/**
+ * Whether a PDA derived under `program` (taken from an instruction account or argument, i.e. chosen by the
+ * transaction) can count as verified. Anyone can derive an address under their own program, so only accept
+ * the instruction's program, well-known programs, or the fixed address the IDL pins `accountName` to.
+ */
+export function isTrustedProgram(ix: IdentifiedInstruction, program: string, accountName?: string): boolean {
+  if (program === ix.programId || Object.hasOwn(KNOWN_PROGRAMS, program)) return true;
+  if (accountName === undefined) return false;
+  const pinned = accountNode(ix, accountName)?.defaultValue;
+  return isNode(pinned, 'publicKeyValueNode') && pinned.publicKey === program;
 }

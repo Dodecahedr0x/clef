@@ -1,4 +1,5 @@
 import { sanitizeText } from './text';
+import type { RelationEdge } from './types';
 import { toHex } from './hex';
 
 /** The relation cannot be checked from what the transaction and IDL provide: reported as `unverified`. */
@@ -13,4 +14,19 @@ export function displayBytes(bytes: Uint8Array): string {
 /** An error as an edge detail: sanitized (messages can carry IDL names) and bounded. */
 export function errorDetail(e: unknown): string {
   return sanitizeText(e instanceof Error ? e.message : String(e), 200);
+}
+
+/**
+ * Status of a re-derived PDA. A match under an untrusted program (one the transaction chose) proves nothing.
+ * `getProgramDerivedAddress` finds the canonical bump only: an account created with a non-canonical bump shows
+ * as a mismatch.
+ */
+export function pdaStatus(
+  expected: string,
+  actual: string,
+  programAddress: string,
+  trusted: boolean,
+): { status: RelationEdge['status']; detail?: string } {
+  if (expected !== actual) return { status: 'mismatch', detail: `expected ${expected}` };
+  return trusted ? { status: 'verified' } : { status: 'unverified', detail: `derived under ${programAddress}` };
 }
