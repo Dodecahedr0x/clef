@@ -141,6 +141,18 @@ describe('verifyAnchorExtras', () => {
     });
   });
 
+  it('does not trust holder state an earlier instruction may have modified', async () => {
+    const accounts = await vaultAddresses();
+    const reader = new MemoryChainReader();
+    await setPool(reader, accounts.pool, { mint: accounts.mint, authority: AUTHORITY });
+    const ix = await identifyInstruction(await depositInstruction(accounts), vaultResolver(), []);
+    const edges = await verifyAnchorExtras(ix, new AccountCache(reader), new Set([accounts.pool]));
+    expect(edges).toHaveLength(3);
+    for (const edge of edges) {
+      expect(edge).toMatchObject({ status: 'unverified', detail: 'pool may be modified by an earlier instruction' });
+    }
+  });
+
   it('never guesses an unnamed holder', async () => {
     const accounts = await vaultAddresses();
     const reader = new MemoryChainReader();

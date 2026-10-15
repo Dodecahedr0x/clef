@@ -18,8 +18,16 @@ type Decode = (name: string) => Promise<Read>;
 
 const failed = (read: Read): read is Exclude<Read, { data: unknown }> => !('data' in read);
 
-/** Checks what Codama cannot express: Anchor `has_one` relations and PDAs with nested-path seeds. Never throws. */
-export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: AccountCache): Promise<RelationEdge[]> {
+/**
+ * Checks what Codama cannot express: Anchor `has_one` relations and PDAs with nested-path seeds. Never throws.
+ * `modifiedBefore`: addresses writable in earlier instructions of the same transaction, whose current on-chain
+ * state may not be what this instruction sees.
+ */
+export async function verifyAnchorExtras(
+  ix: IdentifiedInstruction,
+  cache: AccountCache,
+  modifiedBefore?: ReadonlySet<string>,
+): Promise<RelationEdge[]> {
   const idl = ix.resolvedIdl;
   const extras = ix.name ? idl?.anchorExtras?.[ix.name] : undefined;
   if (!idl || !extras) return [];
@@ -31,6 +39,7 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
     if (isAbsent(ix, name)) return { status: 'unverified', detail: `${name} not provided` };
     const address = byName.get(name);
     if (!address) return { status: 'unverified', detail: `${name} not identified` };
+    if (modifiedBefore?.has(address)) return { status: 'unverified', detail: `${name} may be modified by an earlier instruction` };
     try {
       await cache.load([address]);
     } catch (e) {
