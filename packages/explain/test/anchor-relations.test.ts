@@ -60,4 +60,16 @@ describe('verifyAnchorExtras', () => {
       ['toPool.mint', 'verified', OTHER],
     ]);
   });
+
+  it('reports unverified instead of throwing when account reads fail', async () => {
+    const accounts = await vaultAddresses();
+    const ix = await identifyInstruction(await depositInstruction(accounts), vaultResolver(), []);
+    const reader = new MemoryChainReader();
+    reader.getAccounts = async () => {
+      throw new Error('rpc down');
+    };
+    const edges = await verifyAnchorExtras(ix, new AccountCache(reader));
+    expect(edges).toHaveLength(3);
+    for (const edge of edges) expect(edge).toMatchObject({ status: 'unverified', detail: expect.stringMatching(/rpc down/) });
+  });
 });

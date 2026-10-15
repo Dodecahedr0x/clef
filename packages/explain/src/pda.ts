@@ -3,7 +3,7 @@ import { isNode, type PdaNode, type ProgramNode, type RootNode } from '@codama/n
 import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/visitors-core';
 import { getProgramDerivedAddress, type Address } from '@solana/kit';
 import type { IdentifiedInstruction } from './identify';
-import { displayBytes, Unresolvable } from './seeds';
+import { displayBytes, errorDetail, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
 type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
@@ -32,7 +32,6 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
   const node = (program?.instructions ?? []).find((i) => i.name === ix.name);
   if (!program || !node) return [];
 
-  const { codec, value } = visitorsFor(idl.root);
   // Accounts without a name (ambiguous positions) are never guessed: they neither get edges nor serve as seeds.
   const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
   const extras = idl.anchorExtras?.[ix.name];
@@ -46,22 +45,24 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
     // Codama's default is absent or wrong for nested-path seeds: `verifyAnchorExtras` handles these.
     if (extras?.[accountNode.name]?.nestedSeeds) continue;
 
-    let pda: PdaNode | undefined;
-    let pdaProgram = program;
-    if (isNode(dv.pda, 'pdaNode')) {
-      pda = dv.pda;
-    } else {
-      const linked = dv.pda.program?.name;
-      const owner = linked ? programs(idl.root).find((p) => p.name === linked) : program;
-      if (!owner) continue;
-      pdaProgram = owner;
-      pda = (owner.pdas ?? []).find((p) => p.name === dv.pda.name);
-    }
-    if (!pda) continue;
-    const pdaProgramAddress = (pda.programId ?? pdaProgram.publicKey) as Address;
-
     const seeds: SeedInfo[] = [];
+    let programAddress: Address | undefined;
     try {
+      const { codec, value } = visitorsFor(idl.root);
+      let pda: PdaNode | undefined;
+      let pdaProgram = program;
+      if (isNode(dv.pda, 'pdaNode')) {
+        pda = dv.pda;
+      } else {
+        const linked = dv.pda.program?.name;
+        const owner = linked ? programs(idl.root).find((p) => p.name === linked) : program;
+        if (!owner) continue;
+        pdaProgram = owner;
+        pda = (owner.pdas ?? []).find((p) => p.name === dv.pda.name);
+      }
+      if (!pda) continue;
+      const pdaProgramAddress = (pda.programId ?? pdaProgram.publicKey) as Address;
+
       const encoded: Uint8Array[] = [];
       for (const seed of pda.seeds ?? []) {
         const seedCodec = visit(seed.type, codec);
@@ -91,7 +92,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         encoded.push(new Uint8Array(seedCodec.encode(resolved)));
       }
 
-      let programAddress = pdaProgramAddress;
+      programAddress = pdaProgramAddress;
       if (dv.programId && isNode(dv.programId, 'accountValueNode')) {
         const fromAccount = byName.get(dv.programId.name);
         if (!fromAccount) throw new Unresolvable(`program account "${dv.programId.name}" is not in the instruction`);
@@ -110,14 +111,14 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         ...(expected !== actual && { detail: `expected ${expected}` }),
       });
     } catch (e) {
-      if (!(e instanceof Unresolvable)) throw e;
+      // Hostile or unusual IDLs must not abort the explanation: any failure leaves this one PDA unverified.
       edges.push({
         kind: 'pda',
         from: actual,
-        to: program.publicKey as Address,
+        to: programAddress ?? (program.publicKey as Address),
         label: 'PDA',
         status: 'unverified',
-        detail: e.message,
+        detail: errorDetail(e),
         instructionIndex: ix.index,
       });
     }

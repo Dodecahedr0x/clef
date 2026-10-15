@@ -3,18 +3,19 @@ import { parseAccountData } from '@codama/dynamic-parsers';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
-import { displayBytes, Unresolvable } from './seeds';
+import { displayBytes, errorDetail, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
-/** Positive evidence of substitution: the account is not the program's state. */
+/** Positive evidence of substitution: reported as `mismatch` rather than `unverified`. */
 class Foreign extends Error {}
 
-type Holder = { data: Record<string, unknown> } | { failure: 'unreadable' | 'foreign' };
-type Decode = (name: string) => Promise<Holder>;
+/** An account's decoded fields, or why they cannot be used. */
+type Read = { data: Record<string, unknown> } | { status: 'unverified' | 'mismatch'; detail: string };
+type Decode = (name: string) => Promise<Read>;
 
-const foreign = (name: string) => `${name} is not owned by the program`;
+const failed = (read: Read): read is Exclude<Read, { data: unknown }> => !('data' in read);
 
-/** Checks what Codama cannot express: Anchor `has_one` relations and PDAs with nested-path seeds. */
+/** Checks what Codama cannot express: Anchor `has_one` relations and PDAs with nested-path seeds. Never throws. */
 export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: AccountCache): Promise<RelationEdge[]> {
   const idl = ix.resolvedIdl;
   const extras = ix.name ? idl?.anchorExtras?.[ix.name] : undefined;
@@ -22,27 +23,34 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
 
   // Accounts without a name (ambiguous positions) are never guessed.
   const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
-  const decoded = new Map<string, Holder>();
-  const decode: Decode = async (name) => {
-    const cached = decoded.get(name);
-    if (cached) return cached;
-    let holder: Holder = { failure: 'unreadable' };
+  const reads = new Map<string, Promise<Read>>();
+  const read = async (name: string): Promise<Read> => {
     const address = byName.get(name);
-    if (address) {
+    if (!address) return { status: 'unverified', detail: `could not read ${name}` };
+    try {
       await cache.load([address]);
-      const account = cache.get(address);
-      if (account && account.owner !== ix.programId) {
-        // A look-alike owned by another program could carry the same discriminator and chosen fields.
-        holder = { failure: 'foreign' };
-      } else if (account) {
-        const parsed = parseAccountData(idl.root, account.data, { programAddress: ix.programId });
-        if (parsed && parsed.data !== null && typeof parsed.data === 'object') {
-          holder = { data: parsed.data as Record<string, unknown> };
-        }
-      }
+    } catch (e) {
+      return { status: 'unverified', detail: `could not read ${name}: ${errorDetail(e)}` };
     }
-    decoded.set(name, holder);
-    return holder;
+    const account = cache.get(address);
+    if (!account) return { status: 'unverified', detail: `could not read ${name}` };
+    if (account.owner !== ix.programId) {
+      // A look-alike owned by another program could carry the same discriminator and chosen fields.
+      return { status: 'mismatch', detail: `${name} is not owned by the program` };
+    }
+    const parsed = parseAccountData(idl.root, account.data, { programAddress: ix.programId });
+    if (!parsed || parsed.data === null || typeof parsed.data !== 'object') {
+      return { status: 'unverified', detail: `could not read ${name}` };
+    }
+    return { data: parsed.data as Record<string, unknown> };
+  };
+  const decode: Decode = (name) => {
+    let pending = reads.get(name);
+    if (!pending) {
+      pending = read(name).catch((e: unknown) => ({ status: 'unverified' as const, detail: errorDetail(e) }));
+      reads.set(name, pending);
+    }
+    return pending;
   };
 
   const edges: RelationEdge[] = [];
@@ -54,21 +62,21 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
       const holderAddress = byName.get(holder) ?? targetAddress;
       const label = `${holder}.${field}`;
       const base = { kind: 'has_one' as const, from: targetAddress, to: holderAddress, label, instructionIndex: ix.index };
-      const read = await decode(holder);
-      if ('failure' in read) {
+      try {
+        const result = await decode(holder);
+        if (failed(result)) {
+          edges.push({ ...base, status: result.status, detail: result.detail });
+          continue;
+        }
+        const value = result.data[field];
         edges.push(
-          read.failure === 'foreign'
-            ? { ...base, status: 'mismatch', detail: foreign(holder) }
-            : { ...base, status: 'unverified', detail: `could not read ${holder}` },
+          value === targetAddress
+            ? { ...base, status: 'verified' }
+            : { ...base, status: 'mismatch', detail: `${label} is ${String(value)}` },
         );
-        continue;
+      } catch (e) {
+        edges.push({ ...base, status: 'unverified', detail: errorDetail(e) });
       }
-      const value = read.data[field];
-      edges.push(
-        value === targetAddress
-          ? { ...base, status: 'verified' }
-          : { ...base, status: 'mismatch', detail: `${label} is ${String(value)}` },
-      );
     }
 
     if (extra.nestedSeeds) {
@@ -97,12 +105,9 @@ async function verifyNestedSeeds(
     if (seed.kind === 'arg') value = ix.args?.[head!];
     else if (!fields.length) value = byName.get(head!);
     else {
-      const read = await decode(head!);
-      if ('failure' in read) {
-        if (read.failure === 'foreign') throw new Foreign(foreign(head!));
-        throw new Unresolvable(`could not read ${head}`);
-      }
-      value = read.data;
+      const result = await decode(head!);
+      if (failed(result)) throw result.status === 'mismatch' ? new Foreign(result.detail) : new Unresolvable(result.detail);
+      value = result.data;
     }
     for (const field of fields) value = (value as Record<string, unknown> | null | undefined)?.[field];
     if (typeof value !== 'string' || !isAddress(value)) {
@@ -111,7 +116,7 @@ async function verifyNestedSeeds(
     return value;
   };
 
-  const programId = ix.programId;
+  let programAddress: Address | undefined;
   const info: SeedInfo[] = [];
   try {
     const encoded: Uint8Array[] = [];
@@ -125,7 +130,7 @@ async function verifyNestedSeeds(
         info.push({ kind: seed.kind, display: seed.path.join('.') });
       }
     }
-    const programAddress = seedProgram ? await resolveAddress(seedProgram) : programId;
+    programAddress = seedProgram ? await resolveAddress(seedProgram) : ix.programId;
     const [expected, bump] = await getProgramDerivedAddress({ programAddress, seeds: encoded });
     return {
       kind: 'pda',
@@ -139,9 +144,14 @@ async function verifyNestedSeeds(
       ...(expected !== targetAddress && { detail: `expected ${expected}` }),
     };
   } catch (e) {
-    const base = { kind: 'pda' as const, from: targetAddress, to: programId, label: `PDA of ${target}`, instructionIndex: ix.index };
-    if (e instanceof Foreign) return { ...base, status: 'mismatch', detail: e.message };
-    if (e instanceof Unresolvable) return { ...base, status: 'unverified', detail: e.message };
-    throw e;
+    return {
+      kind: 'pda',
+      from: targetAddress,
+      to: programAddress ?? ix.programId,
+      label: `PDA of ${target}`,
+      status: e instanceof Foreign ? 'mismatch' : 'unverified',
+      detail: errorDetail(e),
+      instructionIndex: ix.index,
+    };
   }
 }

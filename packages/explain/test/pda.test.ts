@@ -1,5 +1,7 @@
+import { getProgramDerivedAddress } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { identifyInstruction, toHex, verifyCodamaPdas, type IdentifiedInstruction } from '../src';
+import { anchorIdl, customIx, PROG } from './custom-idl';
 import { OTHER, depositInstruction, vaultAddresses, vaultResolver } from './vault';
 
 async function identified(overrides: Partial<Awaited<ReturnType<typeof vaultAddresses>>> = {}) {
@@ -56,6 +58,27 @@ describe('verifyCodamaPdas', () => {
     // poolVault has no name: no edge. pool's seed account (mint) has no name: unverified.
     expect(edges).toHaveLength(1);
     expect(edges[0]).toMatchObject({ from: accounts.pool, status: 'unverified' });
+  });
+});
+
+describe('verifyCodamaPdas error isolation', () => {
+  it('turns a failing derivation into unverified and still reports other accounts', async () => {
+    const json = anchorIdl(
+      [
+        { name: 'p', pda: { seeds: [{ kind: 'arg', path: 'name' }] } },
+        { name: 'q', pda: { seeds: [{ kind: 'const', value: [113] }] } },
+      ],
+      [{ name: 'name', type: 'string' }],
+    );
+    const [p] = await getProgramDerivedAddress({ programAddress: PROG, seeds: ['short'] });
+    // 40-byte seed: over the 32-byte limit, so deriving throws.
+    const ix = await customIx(json, [p, OTHER], { name: 'x'.repeat(40) });
+    const edges = await verifyCodamaPdas(ix);
+    expect(edges.map((e) => [e.from, e.status])).toEqual([
+      [p, 'unverified'],
+      [OTHER, 'mismatch'],
+    ]);
+    expect(edges[0]!.detail).toMatch(/exceeds the maximum length/);
   });
 });
 
