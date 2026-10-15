@@ -4,3 +4,4 @@ export * from './normalize';
 export * from './static-source';
 export * from './bundled';
 export * from './anchor-onchain';
+export * from './program-metadata';
