@@ -428,18 +428,24 @@ describe('explain', () => {
       expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -50_000_000n });
     });
 
-    it('simulates no older than the slot the pre-state was read at', async () => {
+    it('simulates no older than the pre-read, and re-reads no older than the simulation', async () => {
       const reader = new MemoryChainReader();
-      const seen: unknown[] = [];
+      const sims: unknown[] = [];
+      const reads: unknown[] = [];
       Object.assign(reader, {
-        getAccountsWithSlot: async (addresses: readonly Address[]) => ({ accounts: await reader.getAccounts(addresses), slot: 42n }),
+        getAccountsWithSlot: async (addresses: readonly Address[], options?: unknown) => {
+          reads.push(options);
+          return { accounts: await reader.getAccounts(addresses), slot: 42n };
+        },
         simulate: async (wire: Uint8Array, addresses: readonly Address[], options?: unknown) => {
-          seen.push(options);
-          return reader.simulateImpl(wire, addresses);
+          sims.push(options);
+          return { ...(await reader.simulateImpl(wire, addresses)), slot: 50n };
         },
       });
       await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
-      expect(seen).toEqual([{ minContextSlot: 42n }]);
+      expect(sims).toEqual([{ minContextSlot: 42n }]);
+      // The pre-read has no constraint; the re-read after simulating is tied to the simulation's slot.
+      expect(reads).toEqual([undefined, { minContextSlot: 50n }]);
     });
   });
 

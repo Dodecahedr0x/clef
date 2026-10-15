@@ -109,11 +109,13 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
   let post: (RawAccount | null)[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
     let now: (RawAccount | null)[];
+    let simSlot: bigint | undefined;
     try {
       const minContextSlot = cache.slot;
       const sim = await ctx.reader.simulate(wire, writable, minContextSlot === undefined ? undefined : { minContextSlot });
       if (sim.err) return { failed: `Simulation failed: ${simError(sim.err)}` };
       post = sim.postAccounts;
+      simSlot = sim.slot;
     } catch (e) {
       return { failed: `Simulation unavailable: ${errorDetail(e)}` };
     }
@@ -121,7 +123,8 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
       return { failed: 'Simulation returned accounts that do not match the request' };
     }
     try {
-      now = await cache.fetch(writable);
+      // Tied to the simulation's slot, so the re-read sees at least the state that was simulated.
+      now = await cache.fetch(writable, simSlot ?? cache.slot);
     } catch (e) {
       return { failed: `Could not confirm the pre-transaction state: ${errorDetail(e)}` };
     }

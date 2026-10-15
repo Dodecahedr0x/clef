@@ -1,6 +1,6 @@
 import type { Address } from '@solana/kit';
 import { fromJson, toJson } from './serde';
-import type { ChainReader, FetchedTransaction, RawAccount, SimulateOptions, SimulationResult } from './types';
+import type { ChainReader, FetchedTransaction, RawAccount, ReadOptions, SimulateOptions, SimulationResult } from './types';
 
 export type FixtureFile = { version: 1; input?: unknown; calls: Record<string, unknown> };
 
@@ -8,7 +8,11 @@ export function callKey(method: string, args: unknown[]): string {
   return `${method}:${toJson(args)}`;
 }
 
-/** Wraps a live reader and remembers every response so it can be replayed offline. */
+/**
+ * Wraps a live reader and remembers every response so it can be replayed offline. Keys are the method and its
+ * request arguments only: freshness options (`minContextSlot`) are passed through to the live reader but left out
+ * of the key, so a replay matches whatever slots it asks for.
+ */
 export class RecordingChainReader implements ChainReader {
   readonly calls: Record<string, unknown> = {};
 
@@ -24,11 +28,19 @@ export class RecordingChainReader implements ChainReader {
     return this.record('getAccounts', [addresses], () => this.inner.getAccounts(addresses));
   }
 
+  /** Readers without slots report slot 0 (no freshness constraint). */
+  getAccountsWithSlot(addresses: readonly Address[], options?: ReadOptions) {
+    return this.record('getAccountsWithSlot', [addresses], async () =>
+      this.inner.getAccountsWithSlot
+        ? this.inner.getAccountsWithSlot(addresses, options)
+        : { accounts: await this.inner.getAccounts(addresses), slot: 0n },
+    );
+  }
+
   getTransaction(signature: string) {
     return this.record('getTransaction', [signature], () => this.inner.getTransaction(signature));
   }
 
-  /** Options (e.g. `minContextSlot`) are passed through but not part of the recorded key. */
   simulate(wire: Uint8Array, addresses: readonly Address[], options?: SimulateOptions) {
     return this.record('simulate', [wire, addresses], () => this.inner.simulate(wire, addresses, options));
   }
@@ -68,11 +80,16 @@ export class FixtureChainReader implements ChainReader {
     return this.lookup<(RawAccount | null)[]>('getAccounts', [addresses]);
   }
 
+  /** `options` are ignored: see `RecordingChainReader`. */
+  getAccountsWithSlot(addresses: readonly Address[], _options?: ReadOptions) {
+    return this.lookup<{ accounts: (RawAccount | null)[]; slot: bigint }>('getAccountsWithSlot', [addresses]);
+  }
+
   getTransaction(signature: string) {
     return this.lookup<FetchedTransaction | null>('getTransaction', [signature]);
   }
 
-  simulate(wire: Uint8Array, addresses: readonly Address[]) {
+  simulate(wire: Uint8Array, addresses: readonly Address[], _options?: SimulateOptions) {
     return this.lookup<SimulationResult>('simulate', [wire, addresses]);
   }
 }

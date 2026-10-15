@@ -28,6 +28,21 @@ describe('fixture readers', () => {
     await expect(replay.getAccounts([B])).rejects.toThrow(/fixture miss/);
   });
 
+  it('records slot-tied reads and simulations under keys without their options', async () => {
+    const mem = new MemoryChainReader();
+    mem.setAccount({ address: A, owner: B, lamports: 5n, data: new Uint8Array([1]) });
+    const rec = new RecordingChainReader(mem);
+    const read = await rec.getAccountsWithSlot([A], { minContextSlot: 7n });
+    const sim = await rec.simulate(new Uint8Array([1]), [A], { minContextSlot: 7n });
+    const replay = FixtureChainReader.fromJson(rec.toFixture());
+    // Replayed with other options (or none): same recorded answers.
+    expect(await replay.getAccountsWithSlot([A], { minContextSlot: 9n })).toEqual(read);
+    expect(await replay.getAccountsWithSlot([A])).toEqual(read);
+    expect(await replay.simulate(new Uint8Array([1]), [A])).toEqual(sim);
+    // A reader without slots reports slot 0.
+    expect(read.slot).toBe(0n);
+  });
+
   it('applies defaults only for missing lamports/executable', async () => {
     const mem = new MemoryChainReader();
     mem.setAccount({ address: A, owner: B, data: new Uint8Array(), lamports: undefined, executable: true });

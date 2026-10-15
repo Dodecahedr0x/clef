@@ -34,10 +34,13 @@ export class AccountCache {
     missing.forEach((a, i) => this.cache.set(a, accounts[i] ?? null));
   }
 
-  /** Reads `addresses` from the chain now, bypassing (and not updating) the cache. */
-  async fetch(addresses: readonly Address[]): Promise<(RawAccount | null)[]> {
+  /** Reads `addresses` from the chain now (no older than `minContextSlot`), bypassing (and not updating) the cache. */
+  async fetch(addresses: readonly Address[], minContextSlot?: bigint): Promise<(RawAccount | null)[]> {
     if (!this.reader.getAccountsWithSlot) return this.reader.getAccounts(addresses);
-    const { accounts, slot } = await this.reader.getAccountsWithSlot(addresses);
+    const { accounts, slot } = await this.reader.getAccountsWithSlot(
+      addresses,
+      ...(minContextSlot === undefined ? [] : [{ minContextSlot }]),
+    );
     if (this.maxSlot === undefined || slot > this.maxSlot) this.maxSlot = slot;
     return accounts;
   }

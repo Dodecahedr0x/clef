@@ -140,6 +140,9 @@ describe('KitChainReader (offline)', () => {
     expect(accounts).toHaveLength(250);
     expect(slot).toBe(9n);
     expect(seen).toEqual([0, 1, 2].map(() => ({ encoding: 'base64', commitment: 'confirmed' })));
+    slots.push(10n);
+    await reader.getAccountsWithSlot([addr(1)], { minContextSlot: 9n });
+    expect(seen[3]).toEqual({ encoding: 'base64', commitment: 'confirmed', minContextSlot: 9n });
   });
 
   it('simulates at confirmed commitment, no older than a given slot', async () => {
@@ -148,11 +151,11 @@ describe('KitChainReader (offline)', () => {
       fakeRpc({
         simulateTransaction: (_tx: string, config: Record<string, unknown>) => {
           seen.push(config);
-          return reply({ value: { err: null, logs: [], unitsConsumed: 1n, accounts: [null] } });
+          return reply({ context: { slot: 12n }, value: { err: null, logs: [], unitsConsumed: 1n, accounts: [null] } });
         },
       }),
     );
-    await reader.simulate(new Uint8Array([0]), [addr(1)], { minContextSlot: 9n });
+    expect((await reader.simulate(new Uint8Array([0]), [addr(1)], { minContextSlot: 9n })).slot).toBe(12n);
     await reader.simulate(new Uint8Array([0]), [addr(1)]);
     expect(seen[0]).toMatchObject({ commitment: 'confirmed', minContextSlot: 9n });
     expect(seen[1]).toMatchObject({ commitment: 'confirmed' });

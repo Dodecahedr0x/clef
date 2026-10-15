@@ -8,7 +8,7 @@ import {
   type SolanaRpcApi,
   type Signature,
 } from '@solana/kit';
-import type { ChainReader, FetchedTransaction, RawAccount, SimulateOptions, SimulationResult, TokenBalance } from './types';
+import type { ChainReader, FetchedTransaction, RawAccount, ReadOptions, SimulateOptions, SimulationResult, TokenBalance } from './types';
 
 const MAX_ACCOUNTS_PER_CALL = 100;
 
@@ -53,12 +53,18 @@ export class KitChainReader implements ChainReader {
   }
 
   /** Reads at `confirmed` commitment; `slot` is the highest context slot of the (chunked) reads. */
-  async getAccountsWithSlot(addresses: readonly Address[]): Promise<{ accounts: (RawAccount | null)[]; slot: bigint }> {
+  async getAccountsWithSlot(addresses: readonly Address[], options: ReadOptions = {}): Promise<{ accounts: (RawAccount | null)[]; slot: bigint }> {
     const accounts: (RawAccount | null)[] = [];
     let slot = 0n;
     for (let i = 0; i < addresses.length; i += MAX_ACCOUNTS_PER_CALL) {
       const chunk = addresses.slice(i, i + MAX_ACCOUNTS_PER_CALL);
-      const { context, value } = await this.rpc.getMultipleAccounts(chunk, { encoding: 'base64', commitment: 'confirmed' }).send();
+      const { context, value } = await this.rpc
+        .getMultipleAccounts(chunk, {
+          encoding: 'base64',
+          commitment: 'confirmed',
+          ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
+        })
+        .send();
       const at = context?.slot === undefined ? 0n : BigInt(context.slot);
       if (at > slot) slot = at;
       value.forEach((acc, j) => accounts.push(acc ? toRaw(chunk[j]!, acc as EncodedAccount) : null));
@@ -94,7 +100,7 @@ export class KitChainReader implements ChainReader {
 
   async simulate(wire: Uint8Array, addresses: readonly Address[], options: SimulateOptions = {}): Promise<SimulationResult> {
     const encoded = getBase64Decoder().decode(wire) as Base64EncodedWireTransaction;
-    const { value } = await this.rpc
+    const { context, value } = await this.rpc
       .simulateTransaction(encoded, {
         encoding: 'base64',
         commitment: 'confirmed',
@@ -111,6 +117,7 @@ export class KitChainReader implements ChainReader {
       postAccounts: value.accounts
         ? value.accounts.map((acc, i) => (acc ? toRaw(addresses[i]!, acc as unknown as EncodedAccount) : null))
         : addresses.map(() => null),
+      ...(context?.slot !== undefined && { slot: BigInt(context.slot) }),
     };
   }
 }
