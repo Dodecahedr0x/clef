@@ -1,17 +1,51 @@
 import { createBundledSource, IdlResolver, UserIdlSource } from '@clef/idl';
 import { MemoryChainReader } from '@clef/rpc';
 import { getTransferSolInstruction } from '@solana-program/system';
-import { address, createNoopSigner } from '@solana/kit';
+import { AccountRole, address, createNoopSigner, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { ATA_PROGRAM, decodeTransaction, identifyInstruction, type Issue } from '../src';
-import { buildWire, ME, OTHER } from './helpers';
+import {
+  ATA_PROGRAM,
+  decodeTransaction,
+  identifyInstruction,
+  sanitizeText,
+  SYSTEM_PROGRAM,
+  TOKEN_2022_PROGRAM,
+  type AccountRef,
+  type Issue,
+} from '../src';
+import { buildWire, ME, OTHER, USDC } from './helpers';
+
+const bundled = () => new IdlResolver([createBundledSource()]);
+const accounts = (n: number): AccountRef[] =>
+  Array.from({ length: n }, (_, i) => ({ address: [ME, OTHER, USDC][i % 3]!, signer: i === 0, writable: i < 2 }));
+const UNKNOWN = address('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS');
+
+/** A minimal Codama root with one instruction for `publicKey`. */
+const root = (publicKey: Address, programName: string, instruction: object) =>
+  JSON.stringify({
+    kind: 'rootNode',
+    standard: 'codama',
+    version: '1.0.0',
+    program: {
+      kind: 'programNode',
+      name: programName,
+      publicKey,
+      version: '0.0.0',
+      accounts: [],
+      instructions: [{ kind: 'instructionNode', optionalAccountStrategy: 'programId', accounts: [], arguments: [], ...instruction }],
+      definedTypes: [],
+      pdas: [],
+      errors: [],
+    },
+    additionalPrograms: [],
+  });
 
 describe('identifyInstruction', () => {
   it('names the instruction, its args and accounts from the IDL', async () => {
     const wire = buildWire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 5n })]);
     const tx = await decodeTransaction(wire, new MemoryChainReader());
     const issues: Issue[] = [];
-    const out = await identifyInstruction(tx.instructions[0]!, new IdlResolver([createBundledSource()]), issues);
+    const out = await identifyInstruction(tx.instructions[0]!, bundled(), issues);
     expect(out).toMatchObject({
       name: 'transferSol',
       programName: 'system',
@@ -22,19 +56,55 @@ describe('identifyInstruction', () => {
     expect(issues).toEqual([]);
   });
 
+  it('names extra accounts remainingN', async () => {
+    const ix = getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 5n });
+    const extra = { ...ix, accounts: [...ix.accounts, { address: USDC, role: AccountRole.READONLY }] };
+    const tx = await decodeTransaction(buildWire([extra]), new MemoryChainReader());
+    const out = await identifyInstruction(tx.instructions[0]!, bundled(), []);
+    expect(out.accounts.map((a) => a.name)).toEqual(['source', 'destination', 'remaining0']);
+  });
+
   it('falls back to a raw instruction when no IDL decodes it', async () => {
-    const unknown = address('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS');
-    const ix = { index: 0, programId: unknown, accounts: [], data: new Uint8Array([1, 2, 3]) };
-    const out = await identifyInstruction(ix, new IdlResolver([new UserIdlSource()]), []);
+    const ix = { index: 0, programId: UNKNOWN, accounts: [], data: new Uint8Array([1, 2, 3]) };
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(ix, new IdlResolver([new UserIdlSource()]), issues);
     expect(out.name).toBeUndefined();
     expect(out.data).toEqual(new Uint8Array([1, 2, 3]));
+    expect(issues).toEqual([]);
+  });
+
+  it('reports when an IDL exists but no instruction in it matches', async () => {
+    const ix = { index: 2, programId: address(SYSTEM_PROGRAM), accounts: [], data: new Uint8Array([250, 0, 0, 0]) };
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(ix, bundled(), issues);
+    expect(out.name).toBeUndefined();
+    expect(issues).toEqual([{ stage: 'parse', instructionIndex: 2, message: 'no instruction in bundled IDL matched' }]);
+  });
+
+  it('falls through to the next candidate when one fails to decode', async () => {
+    const user = new UserIdlSource();
+    // A field discriminator naming a missing field makes Codama throw while identifying.
+    user.set(
+      address(SYSTEM_PROGRAM),
+      root(address(SYSTEM_PROGRAM), 'broken', {
+        name: 'boom',
+        discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'missing', offset: 0 }],
+      }),
+    );
+    const wire = buildWire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 5n })]);
+    const tx = await decodeTransaction(wire, new MemoryChainReader());
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(tx.instructions[0]!, new IdlResolver([user, createBundledSource()]), issues);
+    expect(out).toMatchObject({ name: 'transferSol', idl: { source: 'bundled' } });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ stage: 'parse', instructionIndex: 0 });
+    expect(issues[0]!.message).toMatch(/^user IDL failed to decode: /);
   });
 
   it('identifies the legacy ATA create (empty data) with the same accounts as create', async () => {
-    const accounts = Array.from({ length: 6 }, (_, i) => ({ address: i % 2 ? ME : OTHER, signer: i === 0, writable: i < 2 }));
-    const ix = { index: 0, programId: address(ATA_PROGRAM), accounts, data: new Uint8Array() };
+    const ix = { index: 0, programId: address(ATA_PROGRAM), accounts: accounts(6), data: new Uint8Array() };
     const issues: Issue[] = [];
-    const out = await identifyInstruction(ix, new IdlResolver([createBundledSource()]), issues);
+    const out = await identifyInstruction(ix, bundled(), issues);
     expect(out.name).toBe('createLegacy');
     expect(out.args).toEqual({});
     expect(out.accounts.map((a) => a.name)).toEqual([
@@ -46,7 +116,85 @@ describe('identifyInstruction', () => {
       'tokenProgram',
     ]);
     expect(issues).toEqual([]);
-    const create = await identifyInstruction({ ...ix, data: new Uint8Array([0]) }, new IdlResolver([createBundledSource()]), []);
+    const create = await identifyInstruction({ ...ix, data: new Uint8Array([0]) }, bundled(), []);
     expect(create.name).toBe('create');
+  });
+
+  describe('omitted optional accounts', () => {
+    // Token-2022 confidentialWithdraw: token, mint, instructionsSysvar?, equalityRecord?, rangeRecord?, authority
+    // with optionalAccountStrategy "omitted" — the optional accounts sit before a required one.
+    const data = new Uint8Array(49);
+    data.set([27, 6]);
+    const withdraw = (n: number) => ({ index: 1, programId: address(TOKEN_2022_PROGRAM), accounts: accounts(n), data });
+
+    it('names every account when all are present', async () => {
+      const issues: Issue[] = [];
+      const out = await identifyInstruction(withdraw(6), bundled(), issues);
+      expect(out.name).toBe('confidentialWithdraw');
+      expect(out.accounts.map((a) => a.name)).toEqual([
+        'token',
+        'mint',
+        'instructionsSysvar',
+        'equalityRecord',
+        'rangeRecord',
+        'authority',
+      ]);
+      expect(issues).toEqual([]);
+    });
+
+    it('leaves names after the first optional account undefined when some are omitted', async () => {
+      const issues: Issue[] = [];
+      const out = await identifyInstruction(withdraw(4), bundled(), issues);
+      expect(out.name).toBe('confidentialWithdraw');
+      expect(out.accounts.map((a) => a.name)).toEqual(['token', 'mint', undefined, undefined]);
+      expect(issues).toEqual([
+        {
+          stage: 'parse',
+          instructionIndex: 1,
+          message: 'optional accounts omitted; account names after mint are ambiguous',
+        },
+      ]);
+    });
+
+    it('reports missing required accounts and keeps the names that are certain', async () => {
+      const issues: Issue[] = [];
+      const out = await identifyInstruction(withdraw(2), bundled(), issues);
+      expect(out.accounts.map((a) => a.name)).toEqual(['token', 'mint']);
+      expect(issues).toEqual([
+        { stage: 'parse', instructionIndex: 1, message: 'confidentialWithdraw expects at least 3 accounts, got 2' },
+      ]);
+    });
+  });
+
+  it('sanitizes names and string args from the IDL', async () => {
+    const ESC = '\u001b';
+    const RLO = '‮';
+    const user = new UserIdlSource();
+    user.set(
+      UNKNOWN,
+      root(UNKNOWN, `evil${ESC}[2J`, {
+        name: `pay${RLO}gnp.exe`,
+        accounts: [{ kind: 'instructionAccountNode', name: `vault${ESC}`, isWritable: false, isSigner: false }],
+        arguments: [{ kind: 'instructionArgumentNode', name: 'note', type: { kind: 'stringTypeNode', encoding: 'utf8' } }],
+      }),
+    );
+    const data = new TextEncoder().encode(`hi${ESC}[31m${RLO}there`);
+    const out = await identifyInstruction(
+      { index: 0, programId: UNKNOWN, accounts: accounts(1), data },
+      new IdlResolver([user]),
+      [],
+    );
+    expect(out.name).toBe('paygnp.exe');
+    expect(out.programName).toBe('evil[2J');
+    expect(out.accounts[0]!.name).toBe('vault');
+    expect(out.args).toEqual({ note: 'hi[31mthere' });
+  });
+});
+
+describe('sanitizeText', () => {
+  it('strips control and bidi characters, then truncates', () => {
+    expect(sanitizeText('a\u0000b\u007fc\u0085d‪e⁦f⁩g')).toBe('abcdefg');
+    expect(sanitizeText('x'.repeat(100))).toBe('x'.repeat(64));
+    expect(sanitizeText('abcdef', 3)).toBe('abc');
   });
 });
