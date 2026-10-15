@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import { sanitizeText, type DetailLevel } from '@clef/explain';
-import { isAddress, type Address } from '@solana/kit';
+import { isAddress, isSignature, type Address } from '@solana/kit';
 
 export const DEFAULT_RPC = 'https://api.mainnet-beta.solana.com';
 
@@ -10,7 +10,8 @@ export const USAGE = `Usage:
 
 Options:
   --level basic|intermediate|expert   detail level (default: intermediate)
-  --me <address>                      a wallet of yours; repeatable
+  --me <address>                      a wallet of yours; repeatable (without it, Clef
+                                      assumes you are the fee payer)
   --label <address>=<name>            name an address; repeatable
   --rpc <url>                         RPC endpoint (default: $CLEF_RPC, else ${DEFAULT_RPC})
   --record <file>                     also write the chain reads to a replayable fixture
@@ -35,6 +36,8 @@ export type CliParse = CliOptions | { usage: true; error?: string } | { error: s
 
 const LEVELS: readonly string[] = ['basic', 'intermediate', 'expert'];
 const MAX_LABEL = 64;
+/** Canonical, padded base64 of at least one byte. */
+const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)$/;
 
 /** Parses `argv` (without the node/script prefix). Never throws. */
 export function parseCli(argv: readonly string[], env: Record<string, string | undefined>): CliParse {
@@ -60,6 +63,9 @@ export function parseCli(argv: readonly string[], env: Record<string, string | u
   const [command, signature, ...extra] = positionals;
   if (command !== 'explain' || extra.length || !signature === !values.tx) return { usage: true };
   if (!LEVELS.includes(values.level)) return { usage: true, error: `unknown level: ${values.level}` };
+  // A signature is base58 of 64 bytes.
+  if (signature && !isSignature(signature)) return { usage: true, error: `not a transaction signature: ${signature}` };
+  if (values.tx !== undefined && !BASE64.test(values.tx)) return { usage: true, error: '--tx: not valid base64' };
 
   const me: Address[] = [];
   for (const m of values.me) {
