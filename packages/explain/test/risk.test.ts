@@ -404,6 +404,33 @@ describe('evaluateRisks', () => {
     expect(rules(input([ambiguous], known))).toEqual([['close-to-third-party', 'danger']]);
   });
 
+  it('does not flag a co-signer delegating their own tokens', () => {
+    const ACC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const known = { accountLamports: { [ACC]: 2_039_280n } };
+    const cosigner = (a: Address) => ({ ...named('owner', a), signer: true });
+    for (const name of ['approve', 'approveChecked']) {
+      const approve = (accounts: ReturnType<typeof named>[]) => ix({ name, args: { amount: U64_MAX }, accounts });
+      const theirs = approve([named('source', ACC), named('delegate', OTHER), cosigner(OTHER)]);
+      expect(rules(input([theirs], known))).toEqual([]);
+      // Without the source's pre-state, it could be yours: fail closed.
+      expect(rules(input([theirs]))).toEqual([['delegation', 'danger']]);
+
+      // Still flagged: the source is yours (by flag, or by its pre-state holder)...
+      expect(rules(input([approve([named('source', ACC, true), named('delegate', OTHER), cosigner(OTHER)])], known))).toEqual([['delegation', 'danger']]);
+      const held = { ...known, tokenBalances: { [ACC]: { owner: ME, mint: USDC, amount: 5n } } };
+      expect(rules(input([theirs], held))).toEqual([['delegation', 'danger']]);
+      // ...you are the owner...
+      expect(rules(input([approve([named('source', ACC), named('delegate', OTHER), cosigner(ME)])], known))).toEqual([['delegation', 'danger']]);
+      // ...the owner is a multisig or does not sign...
+      const multisig = approve([named('source', ACC), named('delegate', OTHER), named('owner', OTHER), { ...named(undefined, ME), signer: true }]);
+      expect(rules(input([multisig], known))).toEqual([['delegation', 'danger']]);
+      expect(rules(input([approve([named('source', ACC), named('delegate', OTHER), named('owner', OTHER)])], known))).toEqual([['delegation', 'danger']]);
+      // ...or the names are unknown.
+      const ambiguous = approve([named(undefined, ACC), named(undefined, OTHER), { ...named(undefined, OTHER), signer: true }]);
+      expect(rules(input([ambiguous], known))).toEqual([['delegation', 'danger']]);
+    }
+  });
+
   it('treats your wallet as yours even when the mine flag is unset', () => {
     const assign = ix({ programId: address(SYSTEM_PROGRAM), name: 'assign', accounts: [named('account', ME)] });
     expect(rules(input([assign]))).toEqual([['authority-change', 'danger']]);

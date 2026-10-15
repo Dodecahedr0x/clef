@@ -122,19 +122,19 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   const mineOrUnknown = (a: NamedAccount | undefined) => !a || a.mine || me.has(a.address);
   const notMineOrUnknown = (a: NamedAccount | undefined) => !a || (!a.mine && !me.has(a.address));
   /**
-   * A close that is someone else's business: a single signing key that is not yours closes an account, and
-   * nothing the instruction touches is yours (nor held by you before the transaction). Typical of bundles where
-   * several wallets co-sign: your signature authorizes nothing there. Unknown names, a multisig authority
-   * (whose signers could include you), or a closed account whose pre-state is unknown (it could be yours) never
-   * qualify.
+   * Someone else's business: a single signing key that is not yours (`authorityName`) acts on an account
+   * (`subjectName`), and nothing the instruction touches is yours (nor held by you before the transaction).
+   * Typical of bundles where several wallets co-sign: your signature authorizes nothing there. Unknown names, a
+   * multisig authority (whose signers could include you), or a subject whose pre-state is unknown (it could be
+   * yours) never qualify.
    */
-  const othersOwnClose = (ix: RiskInput['instructions'][number]) => {
-    const authority = account(ix, 'owner');
-    const closed = account(ix, 'account');
+  const othersBusiness = (ix: RiskInput['instructions'][number], subjectName: string, authorityName: string) => {
+    const authority = account(ix, authorityName);
+    const subject = account(ix, subjectName);
     return (
       !!authority?.signer &&
-      !!closed &&
-      Object.hasOwn(input.accountLamports ?? {}, closed.address) &&
+      !!subject &&
+      Object.hasOwn(input.accountLamports ?? {}, subject.address) &&
       ix.accounts.every((a) => !a.mine && !me.has(a.address) && !me.has(input.tokenBalances?.[a.address]?.owner ?? ''))
     );
   };
@@ -153,7 +153,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       }
       continue;
     }
-    if (isToken(ix.programId) && (ix.name === 'approve' || ix.name === 'approveChecked')) {
+    if (isToken(ix.programId) && (ix.name === 'approve' || ix.name === 'approveChecked') && !othersBusiness(ix, 'source', 'owner')) {
       const source = account(ix, 'source');
       const held = source && input.tokenBalances?.[source.address];
       const amount = ix.args?.amount;
@@ -179,7 +179,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       const yours = mineOrUnknown(target) || (ix.name === 'assignWithSeed' && mineOrUnknown(account(ix, 'baseAccount')));
       if (yours) warn('authority-change', 'danger', 'Reassigns ownership of your account to another program.', i, target?.address);
     }
-    if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination')) && !othersOwnClose(ix)) {
+    if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination')) && !othersBusiness(ix, 'account', 'owner')) {
       // A wrapped SOL account holds its whole balance as lamports: closing it hands over all of them.
       const closed = account(ix, 'account')?.address;
       const held = closed === undefined ? undefined : input.tokenBalances?.[closed];
