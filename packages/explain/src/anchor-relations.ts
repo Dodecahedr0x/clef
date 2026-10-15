@@ -1,6 +1,6 @@
 import type { AnchorSeed } from '@clef/idl';
 import { parseAccountData } from '@codama/dynamic-parsers';
-import { isNode, type RootNode } from '@codama/nodes';
+import { camelCase, isNode, type RootNode } from '@codama/nodes';
 import { getLastNodeFromPath } from '@codama/visitors-core';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import { decodeTokenAccount, type AccountCache } from './accounts';
@@ -39,7 +39,9 @@ function programTypeHasField(root: RootNode, field: string): boolean {
 /** Token-account fields only count when the holder's expected type is a token account. */
 function tokenHolderProblem(root: RootNode, holder: string, field: string | undefined, accountType?: string): string | undefined {
   if (accountType !== undefined) {
-    return TOKEN_ACCOUNT_TYPES.has(accountType) ? undefined : `${holder} is a token account, expected ${accountType}`;
+    // An IDL that defines its own `TokenAccount` (or `Account`) means that type, not the SPL layout.
+    const ownType = programs(root).some((p) => (p.accounts ?? []).some((a) => a.name === camelCase(accountType)));
+    return TOKEN_ACCOUNT_TYPES.has(accountType) && !ownType ? undefined : `${holder} is a token account, expected ${accountType}`;
   }
   if (field === undefined || programTypeHasField(root, field)) return `${holder} type unknown; token account not accepted`;
   return undefined;

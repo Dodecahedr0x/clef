@@ -122,6 +122,22 @@ describe('verifyAnchorExtras', () => {
       expect(edges).toEqual([expect.objectContaining({ status: 'unverified', detail: 'pool type unknown; token account not accepted' })]);
     });
 
+    it('rejects an SPL token account when the IDL defines its own TokenAccount type', async () => {
+      const json = anchorIdl([
+        { name: 'pool' },
+        { name: 'p', pda: { seeds: [{ kind: 'account', path: 'pool.mint', account: 'TokenAccount' }] } },
+      ]);
+      json.accounts.push({ name: 'TokenAccount', discriminator: [7, 7, 7, 7, 7, 7, 7, 7] });
+      json.types.push({ name: 'TokenAccount', type: { kind: 'struct', fields: [{ name: 'mint', type: 'pubkey' }] } } as never);
+      const [p] = await getProgramDerivedAddress({ programAddress: PROG, seeds: [getAddressEncoder().encode(USDC)] });
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: TOK, owner: TOKEN, data: tokenAccountData(OTHER, USDC) });
+      const edges = await verifyAnchorExtras(await customIx(json, [TOK, p]), new AccountCache(reader));
+      expect(edges).toEqual([
+        expect.objectContaining({ status: 'unverified', detail: 'pool is a token account, expected TokenAccount' }),
+      ]);
+    });
+
     it('leaves other foreign holders unverified', async () => {
       const json = anchorIdl([{ name: 'pool' }, { name: 'mint', relations: ['pool'] }]);
       const reader = new MemoryChainReader();
