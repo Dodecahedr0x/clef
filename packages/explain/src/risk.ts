@@ -2,7 +2,7 @@ import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { formatUnits } from './format';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, MAX_COMPUTE_UNIT_LIMIT, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -57,9 +57,8 @@ export function feeAllowance(fee: bigint | undefined, baseFee = 0n): bigint {
   return fee < baseFee + PRIORITY_FEE_LIMIT ? fee : baseFee + PRIORITY_FEE_LIMIT;
 }
 
-/** The runtime's default compute limit per instruction, and the transaction-wide maximum. */
+/** The runtime's default compute limit per instruction (legacy and v0). */
 const DEFAULT_CU_PER_INSTRUCTION = 200_000;
-const MAX_CU_LIMIT = 1_400_000;
 
 /**
  * Base fee (5000 lamports per signature) plus priority fee: ceil(limit * microLamportsPerCu / 1e6). Without an
@@ -73,7 +72,7 @@ export function estimateFee(
   nonComputeBudgetInstructions = 0,
 ): bigint {
   // The runtime clamps an explicit limit too: an oversized one must not inflate the fee (and so the allowance).
-  const limit = Math.min(cuLimit ?? DEFAULT_CU_PER_INSTRUCTION * nonComputeBudgetInstructions, MAX_CU_LIMIT);
+  const limit = Math.min(cuLimit ?? DEFAULT_CU_PER_INSTRUCTION * nonComputeBudgetInstructions, MAX_COMPUTE_UNIT_LIMIT);
   const priority = BigInt(limit) * (microLamportsPerCu ?? 0n);
   return 5000n * BigInt(numSignatures) + (priority + 999_999n) / 1_000_000n;
 }

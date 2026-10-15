@@ -78,4 +78,7 @@ export const NATIVE_MINTS: ReadonlySet<string> = new Set([
   '9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP',
 ]);
 
+/** The runtime's maximum compute unit limit: a larger requested limit is clamped to it. */
+export const MAX_COMPUTE_UNIT_LIMIT = 1_400_000;
+
 export const U64_MAX = (1n << 64n) - 1n;

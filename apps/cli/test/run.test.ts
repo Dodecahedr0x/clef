@@ -12,6 +12,7 @@ import {
   getBase64Decoder,
   getTransactionEncoder,
   pipe,
+  setTransactionMessageConfig,
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
@@ -113,6 +114,34 @@ describe('run', () => {
     expect(await run(['explain', SIG], {}, h.deps)).toBe(1);
     expect(h.stderr()).toContain('boom]0;pwned[2Jfake prompt$');
     expect(h.stderr()).not.toMatch(new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u202e]'));
+  });
+
+  it('explains a v1 wire end to end (simulated)', async () => {
+    const message = pipe(
+      createTransactionMessage({ version: 1 }),
+      (m) => setTransactionMessageFeePayer(ME, m),
+      (m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k' as Blockhash, lastValidBlockHeight: 0n }, m),
+      (m) => appendTransactionMessageInstructions([transferSol(SOL / 100n)], m),
+      (m) => setTransactionMessageConfig({ computeUnitLimit: 1000, priorityFeeLamports: 20_000_000n }, m),
+    );
+    const v1 = new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
+    const reader = new MemoryChainReader();
+    reader.setAccount({ address: ME, owner: SYSTEM, lamports: 10n * SOL, data: new Uint8Array() });
+    reader.simulateImpl = async (_wire, addresses) => ({
+      err: null, logs: [], unitsConsumed: 150n,
+      postAccounts: addresses.map((a) => ({
+        address: a, owner: SYSTEM, executable: false, data: new Uint8Array(),
+        lamports: a === ME ? 10n * SOL - SOL / 100n - 20_005_000n : SOL / 100n,
+      })),
+    });
+    const h = harness(reader);
+    expect(await run(['explain', '--tx', getBase64Decoder().decode(v1), '--me', ME, '--level', 'expert'], {}, h.deps)).toBe(0);
+    const out = h.stdout();
+    expect(out).toContain('Send 0.01 SOL');
+    expect(out).toContain('Warning: Pays a priority fee of 0.02 SOL.');
+    expect(out).toContain('Network fee: 0.020005 SOL');
+    expect(out).toContain('Version: 1\n');
+    expect(out).toContain('Compute unit limit: 1000\nPriority fee: 20000000 lamports\nLoaded accounts data size limit: 0 (not set)');
   });
 
   describe('without --me', () => {

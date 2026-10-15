@@ -11,6 +11,8 @@ export type InstructionView = { index: number; program: string; name: string; tr
 export type ExpertAccountView = AccountView & { signer: boolean; writable: boolean; lookupTable?: string };
 export type ExpertInstructionView = Omit<InstructionView, 'accounts'> & {
   programId: string;
+  /** A compute budget instruction in a v1 transaction: the runtime ignores it for configuration (a no-op). */
+  noEffect?: true;
   idl?: { source: string; trust: string; hash: string };
   dataHex: string;
   accounts: ExpertAccountView[];
@@ -42,8 +44,10 @@ export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   computeUnitPrice?: string;
   /** v1 only, from the transaction config: the total priority fee in lamports. */
   priorityFeeLamports?: string;
-  /** v1 only, from the transaction config. */
+  /** v1 only, from the transaction config (0 when not set). */
   loadedAccountsDataSizeLimit?: number;
+  /** v1 only: limits the config leaves unset, which the runtime takes as 0 (shown as 0). */
+  notSet?: ('computeUnitLimit' | 'loadedAccountsDataSizeLimit')[];
   /** v1 only, from the transaction config. */
   heapSize?: number;
   relations: RelationEdge[];
@@ -150,8 +154,9 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
   const config = ex.tx.version === 1 ? (ex.tx.config ?? {}) : undefined;
   const budget = (name: string) =>
     ex.instructions.find((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM && ix.name === name && ix.idl?.trust === 'curated')?.args;
-  const limit = config ? config.computeUnitLimit : toNumber(budget('setComputeUnitLimit')?.units);
+  const limit = config ? (config.computeUnitLimit ?? 0) : toNumber(budget('setComputeUnitLimit')?.units);
   const price = config ? undefined : toBigint(budget('setComputeUnitPrice')?.microLamports);
+  const notSet = config ? (['computeUnitLimit', 'loadedAccountsDataSizeLimit'] as const).filter((k) => config[k] === undefined) : [];
   return {
     level,
     ...common,
@@ -162,7 +167,8 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     ...(limit !== undefined && { computeUnitLimit: limit }),
     ...(price !== undefined && { computeUnitPrice: price.toString() }),
     ...(config?.priorityFeeLamports !== undefined && { priorityFeeLamports: config.priorityFeeLamports.toString() }),
-    ...(config?.loadedAccountsDataSizeLimit !== undefined && { loadedAccountsDataSizeLimit: config.loadedAccountsDataSizeLimit }),
+    ...(config && { loadedAccountsDataSizeLimit: config.loadedAccountsDataSizeLimit ?? 0 }),
+    ...(notSet.length && { notSet: [...notSet] }),
     ...(config?.heapSize !== undefined && { heapSize: config.heapSize }),
     relations: ex.relations.map((r) => ({ ...r, ...(r.seeds && { seeds: r.seeds.map((seed) => ({ ...seed })) }) })),
     issues: ex.issues.map((i) => ({ ...i })),
@@ -170,6 +176,7 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     instructions: ex.instructions.map((ix) => ({
       ...instructionView(ex, ix),
       programId: ix.programId,
+      ...(config && ix.programId === COMPUTE_BUDGET_PROGRAM && { noEffect: true as const }),
       ...(ix.idl && { idl: { source: ix.idl.source, trust: ix.idl.trust, hash: ix.idl.hash } }),
       dataHex: toHex(ix.data),
       accounts: accountViews(ex, ix).map((a, i) => {

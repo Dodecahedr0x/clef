@@ -1,4 +1,4 @@
-import { sanitizeText, type BasicView, type ExpertView, type IntermediateView, type Severity, type Warning } from '@clef/explain';
+import { MAX_COMPUTE_UNIT_LIMIT, sanitizeText, type BasicView, type ExpertView, type IntermediateView, type Severity, type Warning } from '@clef/explain';
 
 export type AnyView = BasicView | IntermediateView | ExpertView;
 
@@ -55,18 +55,28 @@ export function renderView(view: AnyView, note?: string): string {
 
   if (view.level === 'expert') {
     lines.push(`Version: ${clean(view.version)}`, `Fee payer: ${clean(view.feePayer)}`, `Blockhash: ${clean(view.recentBlockhash)}`);
-    if (view.computeUnitLimit !== undefined) lines.push(`Compute unit limit: ${clean(view.computeUnitLimit)}`);
+    const notSet = (field: NonNullable<ExpertView['notSet']>[number]) => view.notSet?.includes(field) ?? false;
+    if (view.computeUnitLimit !== undefined) {
+      const limit = view.computeUnitLimit;
+      const note = notSet('computeUnitLimit') ? ' (not set)' : limit > MAX_COMPUTE_UNIT_LIMIT ? ` (clamped to ${MAX_COMPUTE_UNIT_LIMIT} by the runtime)` : '';
+      lines.push(`Compute unit limit: ${clean(limit)}${note}`);
+    }
     if (view.computeUnitPrice !== undefined) lines.push(`Compute unit price: ${clean(view.computeUnitPrice)} micro-lamports`);
     if (view.priorityFeeLamports !== undefined) lines.push(`Priority fee: ${clean(view.priorityFeeLamports)} lamports`);
-    if (view.loadedAccountsDataSizeLimit !== undefined) lines.push(`Loaded accounts data size limit: ${clean(view.loadedAccountsDataSizeLimit)} bytes`);
+    if (view.loadedAccountsDataSizeLimit !== undefined) {
+      const size = clean(view.loadedAccountsDataSizeLimit);
+      lines.push(`Loaded accounts data size limit: ${notSet('loadedAccountsDataSizeLimit') ? `${size} (not set)` : `${size} bytes`}`);
+    }
     if (view.heapSize !== undefined) lines.push(`Heap size: ${clean(view.heapSize)} bytes`);
     lines.push('');
   }
 
   for (const ix of view.instructions) {
-    lines.push(`#${ix.index + 1} ${clean(ix.program)} - ${clean(ix.name)}${ix.trust ? ` [${clean(ix.trust)}]` : ''}`);
+    const noEffect = 'noEffect' in ix && ix.noEffect === true;
+    const ignored = noEffect ? ' (ignored in v1: configuration comes from the transaction header)' : '';
+    lines.push(`#${ix.index + 1} ${clean(ix.program)} - ${clean(ix.name)}${ix.trust ? ` [${clean(ix.trust)}]` : ''}${ignored}`);
     if ('programId' in ix) lines.push(`    program id: ${clean(ix.programId)}`);
-    for (const [k, v] of Object.entries(ix.args)) lines.push(`    ${clean(k)}: ${clean(v)}`);
+    for (const [k, v] of Object.entries(ix.args)) lines.push(`    ${clean(k)}: ${clean(v)}${noEffect ? ' (no effect)' : ''}`);
     for (const a of ix.accounts) {
       const flags = 'signer' in a ? ` ${a.signer ? 's' : '-'}${a.writable ? 'w' : '-'}${a.lookupTable ? ` (ALT ${clean(a.lookupTable)})` : ''}` : '';
       const badges = a.badges.length ? `  ${a.badges.map(clean).join('  ')}` : '';

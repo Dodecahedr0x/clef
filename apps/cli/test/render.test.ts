@@ -108,6 +108,28 @@ describe('renderView', () => {
     expect(out).not.toContain('Compute unit price');
   });
 
+  it('marks unset v1 limits and limits the runtime clamps', () => {
+    const { computeUnitPrice: _price, ...rest } = expert;
+    const unset = renderView({ ...rest, version: '1', computeUnitLimit: 0, loadedAccountsDataSizeLimit: 0, notSet: ['computeUnitLimit', 'loadedAccountsDataSizeLimit'] });
+    expect(unset).toContain('Compute unit limit: 0 (not set)\nLoaded accounts data size limit: 0 (not set)');
+    expect(renderView({ ...rest, version: '1', computeUnitLimit: 2_000_000 })).toContain('Compute unit limit: 2000000 (clamped to 1400000 by the runtime)');
+    expect(renderView({ ...expert, computeUnitLimit: 1_400_000 })).toContain('Compute unit limit: 1400000\n');
+  });
+
+  it('marks v1 compute budget instructions as ignored, and their args as having no effect', () => {
+    const budget = {
+      index: 1, program: 'Compute Budget', programId: 'ComputeBudget111111111111111111111111111111', name: 'setComputeUnitPrice', trust: 'curated',
+      args: { microLamports: '7092' }, accounts: [], dataHex: '03', noEffect: true as const,
+    };
+    const out = renderView({ ...expert, version: '1', instructions: [...expert.instructions, budget] });
+    expect(out).toContain('#2 Compute Budget - setComputeUnitPrice [curated] (ignored in v1: configuration comes from the transaction header)');
+    expect(out).toContain('    microLamports: 7092 (no effect)');
+    expect(out).not.toContain('    microLamports: 7092\n');
+    // Other instructions are untouched.
+    expect(out).toContain('#1 System Program - transferSol [curated]\n');
+    expect(out).toContain('    amount: 1.5 SOL\n');
+  });
+
   it('says when an expert fee or state changes are unknown', () => {
     const out = renderView({ ...expert, fee: null, stateChanges: null });
     expect(out).toContain('Network fee: unknown');

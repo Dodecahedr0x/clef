@@ -90,16 +90,27 @@ describe('viewFor', () => {
     const v = viewFor(t, 'expert');
     expect(v).toMatchObject({ version: '1', computeUnitLimit: 300_000, priorityFeeLamports: '1000', loadedAccountsDataSizeLimit: 65_536, heapSize: 65_536, fee: '0.000006 SOL' });
     expect(v).not.toHaveProperty('computeUnitPrice');
-    // Unset fields are absent.
+    expect(v).not.toHaveProperty('notSet');
+    // Compute budget instructions are marked as having no effect; nothing else is.
+    expect(v.instructions.map((i) => i.noEffect)).toEqual([true, true, undefined]);
+    expect(viewFor(ex, 'expert').instructions.every((i) => i.noEffect === undefined)).toBe(true);
+    // Unset limits are 0 (the runtime's value) and marked as not set; other unset fields are absent.
     const bare = await explain(
       { wire: buildV1Wire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 1n })], { config: { computeUnitLimit: 5 } }) },
       { reader: new MemoryChainReader(), idls: new IdlResolver([createBundledSource()]), me: [ME] },
     );
     const bv = viewFor(bare, 'expert');
     expect(bv.computeUnitLimit).toBe(5);
-    for (const k of ['priorityFeeLamports', 'loadedAccountsDataSizeLimit', 'heapSize', 'computeUnitPrice']) expect(bv).not.toHaveProperty(k);
+    expect(bv.loadedAccountsDataSizeLimit).toBe(0);
+    expect(bv.notSet).toEqual(['loadedAccountsDataSizeLimit']);
+    for (const k of ['priorityFeeLamports', 'heapSize', 'computeUnitPrice']) expect(bv).not.toHaveProperty(k);
+    const empty = await explain(
+      { wire: buildV1Wire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 1n })]) },
+      { reader: new MemoryChainReader(), idls: new IdlResolver([createBundledSource()]), me: [ME] },
+    );
+    expect(viewFor(empty, 'expert')).toMatchObject({ computeUnitLimit: 0, loadedAccountsDataSizeLimit: 0, notSet: ['computeUnitLimit', 'loadedAccountsDataSizeLimit'] });
     // Legacy and v0 never carry v1-only fields.
-    for (const k of ['priorityFeeLamports', 'loadedAccountsDataSizeLimit', 'heapSize']) expect(viewFor(ex, 'expert')).not.toHaveProperty(k);
+    for (const k of ['priorityFeeLamports', 'loadedAccountsDataSizeLimit', 'heapSize', 'notSet']) expect(viewFor(ex, 'expert')).not.toHaveProperty(k);
   });
 
   it('never includes verification-only fields, even if the input carries them', () => {
