@@ -3,7 +3,7 @@ import { MemoryChainReader } from '@clef/rpc';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { address, createNoopSigner } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { decodeTransaction, identifyInstruction, type Issue } from '../src';
+import { ATA_PROGRAM, decodeTransaction, identifyInstruction, type Issue } from '../src';
 import { buildWire, ME, OTHER } from './helpers';
 
 describe('identifyInstruction', () => {
@@ -28,5 +28,25 @@ describe('identifyInstruction', () => {
     const out = await identifyInstruction(ix, new IdlResolver([new UserIdlSource()]), []);
     expect(out.name).toBeUndefined();
     expect(out.data).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('identifies the legacy ATA create (empty data) with the same accounts as create', async () => {
+    const accounts = Array.from({ length: 6 }, (_, i) => ({ address: i % 2 ? ME : OTHER, signer: i === 0, writable: i < 2 }));
+    const ix = { index: 0, programId: address(ATA_PROGRAM), accounts, data: new Uint8Array() };
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(ix, new IdlResolver([createBundledSource()]), issues);
+    expect(out.name).toBe('createLegacy');
+    expect(out.args).toEqual({});
+    expect(out.accounts.map((a) => a.name)).toEqual([
+      'funder',
+      'associatedTokenAccount',
+      'wallet',
+      'mint',
+      'systemProgram',
+      'tokenProgram',
+    ]);
+    expect(issues).toEqual([]);
+    const create = await identifyInstruction({ ...ix, data: new Uint8Array([0]) }, new IdlResolver([createBundledSource()]), []);
+    expect(create.name).toBe('create');
   });
 });
