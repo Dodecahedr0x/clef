@@ -127,19 +127,29 @@ describe('identifyInstruction', () => {
     data.set([27, 6]);
     const withdraw = (n: number) => ({ index: 1, programId: address(TOKEN_2022_PROGRAM), accounts: accounts(n), data });
 
-    it('names every account when all are present', async () => {
+    const ambiguousAfterMint = {
+      stage: 'parse',
+      instructionIndex: 1,
+      message: 'optional accounts omitted; account names after mint are ambiguous',
+    };
+
+    // confidentialWithdraw also declares remaining (multisig signer) accounts, so even 6 accounts cannot be
+    // told apart from "token, mint, multisig authority + 3 signers" — the safe answer is "ambiguous".
+    it('treats a full-length account list as ambiguous when remaining accounts are declared', async () => {
       const issues: Issue[] = [];
       const out = await identifyInstruction(withdraw(6), bundled(), issues);
       expect(out.name).toBe('confidentialWithdraw');
-      expect(out.accounts.map((a) => a.name)).toEqual([
-        'token',
-        'mint',
-        'instructionsSysvar',
-        'equalityRecord',
-        'rangeRecord',
-        'authority',
-      ]);
-      expect(issues).toEqual([]);
+      expect(out.accounts.map((a) => a.name)).toEqual(['token', 'mint', undefined, undefined, undefined, undefined]);
+      expect(issues).toEqual([ambiguousAfterMint]);
+    });
+
+    it('does not name a multisig authority and its signers as optional accounts', async () => {
+      // token, mint, multisig authority, 3 signers — all three optional accounts omitted.
+      const multisig = { ...withdraw(6), accounts: accounts(6).map((a, i) => ({ ...a, signer: i >= 3, writable: i === 0 })) };
+      const issues: Issue[] = [];
+      const out = await identifyInstruction(multisig, bundled(), issues);
+      expect(out.accounts.map((a) => a.name)).toEqual(['token', 'mint', undefined, undefined, undefined, undefined]);
+      expect(issues).toEqual([ambiguousAfterMint]);
     });
 
     it('leaves names after the first optional account undefined when some are omitted', async () => {
@@ -147,13 +157,7 @@ describe('identifyInstruction', () => {
       const out = await identifyInstruction(withdraw(4), bundled(), issues);
       expect(out.name).toBe('confidentialWithdraw');
       expect(out.accounts.map((a) => a.name)).toEqual(['token', 'mint', undefined, undefined]);
-      expect(issues).toEqual([
-        {
-          stage: 'parse',
-          instructionIndex: 1,
-          message: 'optional accounts omitted; account names after mint are ambiguous',
-        },
-      ]);
+      expect(issues).toEqual([ambiguousAfterMint]);
     });
 
     it('reports missing required accounts and keeps the names that are certain', async () => {
@@ -168,17 +172,32 @@ describe('identifyInstruction', () => {
 
   it('sanitizes names and string args from the IDL', async () => {
     const ESC = '\u001b';
-    const RLO = '‮';
+    const RLO = '\u202e';
+    const u8 = { kind: 'numberTypeNode', format: 'u8', endian: 'le' };
     const user = new UserIdlSource();
     user.set(
       UNKNOWN,
       root(UNKNOWN, `evil${ESC}[2J`, {
         name: `pay${RLO}gnp.exe`,
         accounts: [{ kind: 'instructionAccountNode', name: `vault${ESC}`, isWritable: false, isSigner: false }],
-        arguments: [{ kind: 'instructionArgumentNode', name: 'note', type: { kind: 'stringTypeNode', encoding: 'utf8' } }],
+        arguments: [
+          // Map args decode to plain objects whose keys come from the instruction data, not the IDL.
+          {
+            kind: 'instructionArgumentNode',
+            name: 'tags',
+            type: {
+              kind: 'mapTypeNode',
+              key: { kind: 'sizePrefixTypeNode', type: { kind: 'stringTypeNode', encoding: 'utf8' }, prefix: u8 },
+              value: u8,
+              count: { kind: 'fixedCountNode', value: 1 },
+            },
+          },
+          { kind: 'instructionArgumentNode', name: `note${ESC}`, type: { kind: 'stringTypeNode', encoding: 'utf8' } },
+        ],
       }),
     );
-    const data = new TextEncoder().encode(`hi${ESC}[31m${RLO}there`);
+    const key = new TextEncoder().encode(`k${ESC}${RLO}ey`);
+    const data = new Uint8Array([key.length, ...key, 7, ...new TextEncoder().encode(`hi${ESC}[31m${RLO}there`)]);
     const out = await identifyInstruction(
       { index: 0, programId: UNKNOWN, accounts: accounts(1), data },
       new IdlResolver([user]),
@@ -187,13 +206,16 @@ describe('identifyInstruction', () => {
     expect(out.name).toBe('paygnp.exe');
     expect(out.programName).toBe('evil[2J');
     expect(out.accounts[0]!.name).toBe('vault');
-    expect(out.args).toEqual({ note: 'hi[31mthere' });
+    expect(out.args).toEqual({ tags: { key: 7 }, note: 'hi[31mthere' });
   });
 });
 
 describe('sanitizeText', () => {
   it('strips control and bidi characters, then truncates', () => {
-    expect(sanitizeText('a\u0000b\u007fc\u0085d‪e⁦f⁩g')).toBe('abcdefg');
+    expect(sanitizeText('a\u0000b\u007fc\u0085d\u202ae\u2066f\u2069g')).toBe('abcdefg');
+    // zero-width characters and LRM/RLM, the Arabic letter mark, line/paragraph separators
+    expect(sanitizeText('a\u200bb\u200cc\u200dd\u200ee\u200ff\u061cg\u2028h\u2029i')).toBe('abcdefghi');
+    expect(sanitizeText('\u202d\u202e\u2067\u2068ok')).toBe('ok');
     expect(sanitizeText('x'.repeat(100))).toBe('x'.repeat(64));
     expect(sanitizeText('abcdef', 3)).toBe('abc');
   });

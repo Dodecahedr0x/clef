@@ -22,16 +22,17 @@ function sanitizeArgs(value: unknown): unknown {
   if (value !== null && typeof value === 'object') {
     const proto = Object.getPrototypeOf(value);
     if (proto === Object.prototype || proto === null) {
-      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitizeArgs(v)]));
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [sanitizeText(k), sanitizeArgs(v)]));
     }
   }
   return value;
 }
 
 /**
- * Account names by position. With the "omitted" strategy, a missing optional account shifts every later one,
- * so when an optional account precedes a required one and some are missing, names from the first optional
- * account on cannot be known.
+ * Account names by position. With the "omitted" strategy, a missing optional account shifts every later one.
+ * So when an optional account precedes a required one, names from the first optional account on cannot be
+ * known if accounts are missing, or if trailing remaining accounts (e.g. multisig signers) could be filling
+ * the gap.
  */
 function accountNames(node: InstructionNode, count: number, ixIndex: number, issues: Issue[]): (string | undefined)[] {
   const declared = (node.accounts ?? []).map((a) => ({ name: sanitizeText(a.name), optional: !!a.isOptional }));
@@ -49,9 +50,10 @@ function accountNames(node: InstructionNode, count: number, ixIndex: number, iss
   }
 
   const firstOptional = declared.findIndex((a) => a.optional);
+  const hasRemaining = (node.remainingAccounts ?? []).length > 0;
   const ambiguous =
     node.optionalAccountStrategy === 'omitted' &&
-    count < declared.length &&
+    (count < declared.length || hasRemaining) &&
     firstOptional >= 0 &&
     declared.slice(firstOptional).some((a) => !a.optional) &&
     count > firstOptional;
