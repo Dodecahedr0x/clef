@@ -30,7 +30,10 @@ export async function tokenRelations(addresses: readonly Address[], cache: Accou
 export class Labeler {
   private readonly me: ReadonlySet<string>;
 
-  /** `tokenOwners`: token account owners known from elsewhere (e.g. tx meta), used when the account can't be read. */
+  /**
+   * `tokenOwners`: token account owners as of the transaction (from its meta). They take precedence over the
+   * current on-chain owner: a landed transaction is explained as it was, not as the accounts are today.
+   */
   constructor(
     me: readonly Address[],
     private readonly cache: AccountCache,
@@ -42,8 +45,12 @@ export class Labeler {
 
   /** The user's wallets plus token accounts they own. */
   isMine(address: Address): boolean {
-    const owner = decodeTokenAccount(this.cache.get(address))?.owner ?? (Object.hasOwn(this.tokenOwners, address) ? this.tokenOwners[address] : undefined);
+    const owner = this.knownOwner(address) ?? decodeTokenAccount(this.cache.get(address))?.owner;
     return this.me.has(address) || (owner !== undefined && this.me.has(owner));
+  }
+
+  private knownOwner(address: Address): string | undefined {
+    return Object.hasOwn(this.tokenOwners, address) ? this.tokenOwners[address] : undefined;
   }
 
   mintInfo(mint: Address): { symbol: string; decimals: number } | null {
@@ -62,7 +69,8 @@ export class Labeler {
     const token = decodeTokenAccount(this.cache.get(address));
     if (token) {
       const symbol = this.mintInfo(token.mint)?.symbol ?? shortAddress(token.mint);
-      const whose = this.me.has(token.owner) ? 'Your' : `${this.addressBook[token.owner] ?? shortAddress(token.owner)}'s`;
+      const owner = this.knownOwner(address) ?? token.owner;
+      const whose = this.me.has(owner) ? 'Your' : `${(Object.hasOwn(this.addressBook, owner) ? this.addressBook[owner] : undefined) ?? shortAddress(owner)}'s`;
       return `${whose} ${symbol} token account`;
     }
     return undefined;

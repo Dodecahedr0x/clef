@@ -36,6 +36,16 @@ describe('token relations and labels', () => {
     expect(labeler.mintInfo(USDC)).toEqual({ symbol: 'USDC', decimals: 6 });
   });
 
+  it('prefers token owners known from the transaction (meta) over the current on-chain owner', () => {
+    // The account changed hands since the transaction: at the time, OTHER held it.
+    const asOfTx = new Labeler([ME], cache, { [OTHER]: 'Alice' }, { [myAta]: OTHER });
+    expect(asOfTx.isMine(myAta)).toBe(false);
+    expect(asOfTx.label(myAta)).toBe("Alice's USDC token account");
+    const mineThen = new Labeler([OTHER], cache, {}, { [myAta]: OTHER });
+    expect(mineThen.isMine(myAta)).toBe(true);
+    expect(mineThen.label(myAta)).toBe('Your USDC token account');
+  });
+
   it('names programs registry first, then from the address book', () => {
     const PUMP = address('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
     const ROUTER = address('6VoCNEmYFdMQ5kK8RkzcH9NoBhNQf3xVWzggf3bduTAB');
