@@ -1,9 +1,9 @@
 import { MemoryChainReader } from '@clef/rpc';
-import type { Address } from '@solana/kit';
+import { address, getAddressEncoder, getProgramDerivedAddress, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { AccountCache, identifyInstruction, verifyAnchorExtras } from '../src';
 import { anchorIdl, customIx, poolData, PROG } from './custom-idl';
-import { ME, USDC } from './helpers';
+import { ME, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, OTHER, VAULT, depositInstruction, setPool, vaultAddresses, vaultResolver } from './vault';
 
 async function run(poolFields: Partial<{ mint: Address; authority: Address }> = {}, owner: Address = VAULT) {
@@ -71,6 +71,39 @@ describe('verifyAnchorExtras', () => {
     const edges = await verifyAnchorExtras(ix, new AccountCache(reader));
     expect(edges).toHaveLength(3);
     for (const edge of edges) expect(edge).toMatchObject({ status: 'unverified', detail: expect.stringMatching(/rpc down/) });
+  });
+
+  describe('holders owned by another program', () => {
+    const TOKEN = address('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    const TOK = address('3dsp7ma1RzvD2XUuPmazs5qLRXAc7N1QR2B5AsZZsZp4');
+
+    it('reads has_one fields from an SPL token account', async () => {
+      const json = anchorIdl([{ name: 'tok' }, { name: 'owner', relations: ['tok'] }]);
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: TOK, owner: TOKEN, data: tokenAccountData(OTHER, USDC) });
+      const edges = await verifyAnchorExtras(await customIx(json, [TOK, OTHER]), new AccountCache(reader));
+      expect(edges.map((e) => [e.label, e.status])).toEqual([['tok.owner', 'verified']]);
+    });
+
+    it('resolves nested seeds through an SPL token account', async () => {
+      const json = anchorIdl([
+        { name: 'tok' },
+        { name: 'p', pda: { seeds: [{ kind: 'const', value: [120] }, { kind: 'account', path: 'tok.mint', account: 'TokenAccount' }] } },
+      ]);
+      const [p] = await getProgramDerivedAddress({ programAddress: PROG, seeds: ['x', getAddressEncoder().encode(USDC)] });
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: TOK, owner: TOKEN, data: tokenAccountData(OTHER, USDC) });
+      const edges = await verifyAnchorExtras(await customIx(json, [TOK, p]), new AccountCache(reader));
+      expect(edges.map((e) => [e.label, e.status])).toEqual([['PDA("x", tok.mint)', 'verified']]);
+    });
+
+    it('leaves other foreign holders unverified', async () => {
+      const json = anchorIdl([{ name: 'pool' }, { name: 'mint', relations: ['pool'] }]);
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: OTHER, data: new Uint8Array(40) });
+      const edges = await verifyAnchorExtras(await customIx(json, [ME, USDC]), new AccountCache(reader));
+      expect(edges).toEqual([expect.objectContaining({ status: 'unverified', detail: `pool is owned by ${OTHER}` })]);
+    });
   });
 
   it('never guesses an unnamed holder', async () => {

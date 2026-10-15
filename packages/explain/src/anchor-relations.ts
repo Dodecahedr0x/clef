@@ -1,9 +1,11 @@
 import type { AnchorSeed } from '@clef/idl';
 import { parseAccountData } from '@codama/dynamic-parsers';
+import { getLastNodeFromPath } from '@codama/visitors-core';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
-import type { AccountCache } from './accounts';
+import { decodeTokenAccount, type AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
 import { isAbsent } from './idl-lookup';
+import { TOKEN_PROGRAMS } from './registry';
 import { displayBytes, errorDetail, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
@@ -37,8 +39,15 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
     const account = cache.get(address);
     if (!account) return { status: 'unverified', detail: `could not read ${name}` };
     if (account.owner !== ix.programId) {
-      // A look-alike owned by another program could carry the same discriminator and chosen fields.
-      return { status: 'mismatch', detail: `${name} is not owned by the program` };
+      // Data that parses as one of this program's accounts, but under another owner, is a look-alike.
+      const lookalike = parseAccountData(idl.root, account.data);
+      if (lookalike && (getLastNodeFromPath(lookalike.path).discriminators ?? []).length > 0) {
+        return { status: 'mismatch', detail: `${name} is not owned by the program` };
+      }
+      // Anchor programs commonly constrain SPL token accounts (`has_one = owner`, seeds on `tok.mint`).
+      const token = TOKEN_PROGRAMS.has(account.owner) ? decodeTokenAccount(account) : null;
+      if (token) return { data: { owner: token.owner, mint: token.mint, delegate: token.delegate } };
+      return { status: 'unverified', detail: `${name} is owned by ${account.owner}` };
     }
     const parsed = parseAccountData(idl.root, account.data, { programAddress: ix.programId });
     if (!parsed || parsed.data === null || typeof parsed.data !== 'object') {
