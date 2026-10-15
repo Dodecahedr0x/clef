@@ -1,6 +1,6 @@
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
-import { KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -109,6 +109,15 @@ export function evaluateRisks(input: RiskInput): Warning[] {
         warn('authority-change', 'danger', 'Hands control of a durable nonce account to someone else.', i);
       }
     }
+    if (ix.programId === STAKE_PROGRAM) {
+      const next = newStakeAuthority(ix);
+      if (next !== null && (next === undefined || !me.has(next))) {
+        warn('authority-change', 'danger', 'Hands control of a stake account to someone else.', i);
+      }
+      if (ix.name === 'setLockup' || ix.name === 'setLockupChecked') {
+        warn('stake-lockup', 'warn', 'Changes the lockup (and possibly the lockup custodian) of a stake account.', i);
+      }
+    }
     if (ix.programId === SYSTEM_PROGRAM && ix.name === 'advanceNonceAccount' && i === 0) {
       warn('durable-nonce', 'warn', 'Uses a durable nonce: this signature never expires and can be submitted later. Balance changes reflect current state only.', i);
       nonce = { warning: warnings[warnings.length - 1]!, foreignAuthority: notMineOrUnknown(account(ix, 'nonceAuthority')) };
@@ -162,6 +171,29 @@ export function evaluateRisks(input: RiskInput): Warning[] {
     nonce.warning.severity = 'danger';
   }
   return warnings;
+}
+
+/**
+ * The new authority set by a stake `authorize*` instruction: an address, undefined if it can't be read, null for
+ * other instructions. The Checked variants take it as an account. The vendored IDL names only the modern account
+ * layout; the legacy layout (still accepted, and sent by most clients) has the Clock sysvar before the
+ * authorities, shifting every later name. So those are read by position, the way the program does.
+ */
+function newStakeAuthority(ix: RiskInput['instructions'][number]): string | null | undefined {
+  const at = (n: number) => ix.accounts[n]?.address;
+  const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  switch (ix.name) {
+    case 'authorize':
+      return str(ix.args?.arg0);
+    case 'authorizeWithSeed':
+      return str(ix.args?.newAuthorizedPubkey);
+    case 'authorizeChecked':
+      return at(1) === CLOCK_SYSVAR ? at(3) : at(2);
+    case 'authorizeCheckedWithSeed':
+      return at(2) === CLOCK_SYSVAR ? at(3) : at(2);
+    default:
+      return null;
+  }
 }
 
 /**
