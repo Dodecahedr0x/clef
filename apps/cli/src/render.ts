@@ -25,10 +25,12 @@ function ordered(warnings: readonly Warning[]): Warning[] {
   return [...warnings].sort((a, b) => (RANK[a.severity] ?? 3) - (RANK[b.severity] ?? 3));
 }
 
-export function renderView(view: AnyView): string {
+/** `note` (e.g. how the user's wallets were chosen) goes right after the DANGER banner, never above it. */
+export function renderView(view: AnyView, note?: string): string {
   const lines: string[] = [];
   const dangers = view.warnings.filter((w) => w.severity === 'danger').length;
   if (dangers) lines.push(`!!! DANGER: ${dangers} serious problem${dangers === 1 ? '' : 's'} found. Do not sign unless you are certain. !!!`, '');
+  if (note) lines.push(clean(note), '');
 
   lines.push(clean(view.summary), '');
   for (const w of ordered(view.warnings)) lines.push(`${PREFIX[w.severity] ?? 'Note'}: ${clean(w.message)}`);

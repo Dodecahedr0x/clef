@@ -127,8 +127,17 @@ describe('run', () => {
         expect(out).toContain('-5.000005 SOL');
         expect(out).not.toContain('Balance changes for your wallets: none');
         expect(out.indexOf('No --me given')).toBeLessThan(out.indexOf('Balance changes'));
+        // The DANGER banner always comes first: nothing is printed above it.
+        expect(out.split('\n')[0]).toMatch(/^!!! DANGER/);
+        expect(out.indexOf('!!! DANGER')).toBeLessThan(out.indexOf('No --me given'));
       });
     }
+
+    it('puts the note first when there is no danger', async () => {
+      const h = harness(safeReader());
+      expect(await run(['explain', SIG], {}, h.deps)).toBe(0);
+      expect(h.stdout().split('\n')[0]).toMatch(/^Note: No --me given/);
+    });
 
     it('takes the fee payer from a --tx wire as well', async () => {
       const reader = new MemoryChainReader();

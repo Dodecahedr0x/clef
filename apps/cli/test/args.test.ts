@@ -52,5 +52,6 @@ describe('parseCli', () => {
     expect(USAGE).toMatch(/^  0  explained, no danger$/m);
     expect(USAGE).toContain('$CLEF_RPC');
     expect(USAGE).toContain('assumes you are the fee payer');
+    expect(USAGE).toContain('For sponsored/gasless transactions the fee payer is not you: pass --me.');
   });
 });

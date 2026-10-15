@@ -16,6 +16,8 @@ Options:
   --rpc <url>                         RPC endpoint (default: $CLEF_RPC, else ${DEFAULT_RPC})
   --record <file>                     also write the chain reads to a replayable fixture
 
+For sponsored/gasless transactions the fee payer is not you: pass --me.
+
 Exit codes:
   0  explained, no danger
   1  error (network, undecodable transaction, ...)

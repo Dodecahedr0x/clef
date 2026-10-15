@@ -81,7 +81,7 @@ export async function run(argv: readonly string[], env: Record<string, string | 
       { reader, idls: createDefaultResolver(reader, new UserIdlSource()), me, addressBook: opts.labels },
     );
     const view = viewFor(ex, opts.level);
-    deps.out(note ? `${note}\n\n${renderView(view)}` : renderView(view));
+    deps.out(renderView(view, note));
     code = hasDanger(view) ? 3 : 0;
   } catch (e) {
     deps.err(message(e));
