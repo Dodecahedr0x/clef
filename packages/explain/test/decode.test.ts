@@ -297,6 +297,13 @@ describe('decodeTransaction', () => {
       }
     });
 
+    it('rejects a v1 message in a legacy (signatures-first) envelope', async () => {
+      const wire = buildV1Wire([transfer()], { config: { priorityFeeLamports: 1n } });
+      const message = wire.slice(0, wire.length - 64);
+      const signaturesFirst = new Uint8Array([1, ...new Uint8Array(64), ...message]);
+      await expect(decode(signaturesFirst)).rejects.toThrow('malformed transaction: v1 message in a legacy envelope');
+    });
+
     it('rejects a v1 wire over 4096 bytes', async () => {
       const big = { ...memo, data: new Uint8Array(3700) };
       await expect(decode(buildV1Wire([transfer(), big]))).resolves.toMatchObject({ version: 1 });

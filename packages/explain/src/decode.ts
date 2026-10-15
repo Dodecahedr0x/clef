@@ -169,6 +169,8 @@ export function flattenV1(msg: Omit<V1CompiledTransactionMessage, 'version'>): {
 export async function decodeTransaction(wire: Uint8Array, reader: ChainReader, loaded?: Loaded): Promise<DecodedTransaction> {
   const tx = getTransactionDecoder().decode(wire);
   if (tx.messageBytes[0] === V1_VERSION_BYTE) {
+    // v1 puts the message first and the signatures last; kit also decodes a v1 message after a signature count.
+    if (wire[0] !== V1_VERSION_BYTE) throw malformed('v1 message in a legacy envelope');
     if (wire.length > V1_MAX_WIRE_BYTES) throw malformed(`${wire.length} bytes exceeds the v1 limit of ${V1_MAX_WIRE_BYTES}`);
     // Checked before kit decodes the message: kit skips unknown bits, so value words padded in for them would be
     // read as instruction headers, and it reports a lone priority fee bit with its own error.
