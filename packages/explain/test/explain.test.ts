@@ -325,6 +325,84 @@ describe('explain', () => {
     expect(ex.summary).not.toMatch(/^Send/);
   });
 
+  describe('state changing between the pre-read and the simulation', () => {
+    /** A USDC send of your whole balance; `gifts` lamports land in your wallet during each of the first simulations. */
+    async function sendAll(gifts: bigint[]) {
+      const reader = new MemoryChainReader();
+      const SYS = address('11111111111111111111111111111111');
+      reader.setAccount({ address: ME, owner: SYS, lamports: SOL, data: new Uint8Array() });
+      tokenAccount(reader, MY_USDC, ME, 100_000_000n);
+      tokenAccount(reader, OTHER_USDC, ATTACKER, 0n);
+      let calls = 0;
+      reader.simulateImpl = async (_wire, addresses) => {
+        const gift = gifts[calls++] ?? 0n;
+        const wallet = reader.accounts.get(ME)!;
+        // Someone else's transaction lands meanwhile: the chain (and so the simulation) now includes the gift.
+        if (gift) reader.setAccount({ ...wallet, lamports: wallet.lamports + gift });
+        return {
+          err: null, logs: [], unitsConsumed: 1n,
+          postAccounts: addresses.map((a) => {
+            const now = reader.accounts.get(a) ?? null;
+            if (a === ME) return { ...now!, lamports: now!.lamports - 5000n };
+            if (a === MY_USDC) return { ...now!, data: tokenAccountData(ME, USDC, 0n) };
+            if (a === OTHER_USDC) return { ...now!, data: tokenAccountData(ATTACKER, USDC, 100_000_000n) };
+            return now;
+          }),
+        };
+      };
+      const wire = buildWire([getTransferCheckedInstruction({ source: MY_USDC, mint: USDC, destination: OTHER_USDC, authority: me, amount: 100_000_000n, decimals: 6 })]);
+      return { ex: await explain({ wire }, ctx(reader)), calls: () => calls };
+    }
+
+    it('re-reads and simulates again once, so a concurrent gift cannot offset an outflow', async () => {
+      const { ex, calls } = await sendAll([11_000_000n]);
+      expect(calls()).toBe(2);
+      expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -5000n });
+      expect(rules(ex)).toEqual([['send-entire-balance', 'warn']]);
+    });
+
+    it('gives up when the state keeps changing, counting it as a failed simulation', async () => {
+      const { ex, calls } = await sendAll([11_000_000n, 11_000_000n]);
+      expect(calls()).toBe(2);
+      expect(ex.balanceChanges).toBeNull();
+      expect(ex.issues).toContainEqual({ stage: 'simulate', message: 'state changed during simulation' });
+      expect(rules(ex)).toContainEqual(['simulation-failed', 'warn']);
+    });
+
+    it('simulates no older than the slot the pre-state was read at', async () => {
+      const reader = new MemoryChainReader();
+      const seen: unknown[] = [];
+      Object.assign(reader, {
+        getAccountsWithSlot: async (addresses: readonly Address[]) => ({ accounts: await reader.getAccounts(addresses), slot: 42n }),
+        simulate: async (wire: Uint8Array, addresses: readonly Address[], options?: unknown) => {
+          seen.push(options);
+          return reader.simulateImpl(wire, addresses);
+        },
+      });
+      await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
+      expect(seen).toEqual([{ minContextSlot: 42n }]);
+    });
+  });
+
+  it('does not read program accounts that appear only as programs', async () => {
+    const reader = new MemoryChainReader();
+    const requested: string[] = [];
+    const getAccounts = reader.getAccounts.bind(reader);
+    reader.getAccounts = async (addresses) => {
+      requested.push(...addresses);
+      return getAccounts(addresses);
+    };
+    const drain: Instruction = {
+      programAddress: DRAINER, data: new Uint8Array([1]),
+      // The Token program is passed as an account here (for a CPI): that one is read.
+      accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: address(TOKEN_PROGRAM), role: AccountRole.READONLY }],
+    };
+    await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n }), drain]) }, ctx(reader));
+    expect(requested).not.toContain('11111111111111111111111111111111');
+    expect(requested).not.toContain(DRAINER);
+    expect(requested).toContain(TOKEN_PROGRAM);
+  });
+
   it('labels with the address book and marks it as not a sweep target', async () => {
     const reader = new MemoryChainReader();
     reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 10n * SOL, data: new Uint8Array() });

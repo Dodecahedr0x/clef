@@ -161,7 +161,8 @@ function template(ix: ExplainedInstruction, ctx: Context): { text: string; expre
 /** A warning message as a summary suffix: lowercase start, no final period, bounded. */
 function shorten(message: string): string {
   const trimmed = message.replace(/\.$/, '');
-  const lowered = /^[A-Z][a-z]/.test(trimmed) ? `${trimmed[0]!.toLowerCase()}${trimmed.slice(1)}` : trimmed;
+  // Lowercase a sentence start, but not a name ("Clef ...").
+  const lowered = /^[A-Z][a-z]/.test(trimmed) && !/^Clef\b/.test(trimmed) ? `${trimmed[0]!.toLowerCase()}${trimmed.slice(1)}` : trimmed;
   const chars = Array.from(lowered);
   return chars.length > 100 ? `${chars.slice(0, 99).join('')}\u2026` : lowered;
 }

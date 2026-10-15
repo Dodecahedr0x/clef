@@ -18,14 +18,33 @@ const TOKEN_STATE_OFFSET = 108;
 /** Memoized, batched account reads shared by all pipeline stages. */
 export class AccountCache {
   private readonly cache = new Map<string, RawAccount | null>();
+  private maxSlot: bigint | undefined;
 
   constructor(private readonly reader: ChainReader) {}
+
+  /** The highest slot any read was served at, when the reader reports slots. */
+  get slot(): bigint | undefined {
+    return this.maxSlot;
+  }
 
   async load(addresses: readonly Address[]): Promise<void> {
     const missing = [...new Set(addresses)].filter((a) => !this.cache.has(a));
     if (!missing.length) return;
-    const accounts = await this.reader.getAccounts(missing);
+    const accounts = await this.fetch(missing);
     missing.forEach((a, i) => this.cache.set(a, accounts[i] ?? null));
+  }
+
+  /** Reads `addresses` from the chain now, bypassing (and not updating) the cache. */
+  async fetch(addresses: readonly Address[]): Promise<(RawAccount | null)[]> {
+    if (!this.reader.getAccountsWithSlot) return this.reader.getAccounts(addresses);
+    const { accounts, slot } = await this.reader.getAccountsWithSlot(addresses);
+    if (this.maxSlot === undefined || slot > this.maxSlot) this.maxSlot = slot;
+    return accounts;
+  }
+
+  /** Replaces cached state, e.g. with a fresher read. */
+  set(address: Address, account: RawAccount | null): void {
+    this.cache.set(address, account);
   }
 
   /** `null` when the account does not exist; `undefined` when it was never loaded. */

@@ -13,7 +13,8 @@ import { errorDetail } from './seeds';
 import { computeStateChanges, type StateChange } from './state-changes';
 import { summarize } from './summary';
 import { sanitizeText } from './text';
-import type { DecodedInstruction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge } from './types';
+import { programDisplay } from './format';
+import type { DecodedInstruction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge, Warning } from './types';
 
 type Unit = NonNullable<ExplainedInstruction['amountUnit']>;
 
@@ -56,40 +57,61 @@ const simError = (err: unknown) =>
   sanitizeText(JSON.stringify(err, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)) ?? String(err), 200);
 
 type Simulated = { balanceChanges: ExplainedTransaction['balanceChanges']; stateChanges?: StateChange[]; postTokenOwners?: Record<string, Address> };
+/** A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. */
+type SimRun = { pre: (RawAccount | null)[]; post: (RawAccount | null)[] } | { failed: string };
+
+const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameAccount = (a: RawAccount | null, b: RawAccount | null) =>
+  a === b || (!!a && !!b && a.lamports === b.lamports && a.owner === b.owner && sameBytes(a.data, b.data));
 
 /**
- * Simulates and diffs pre/post state of every writable account (only those can change, by top-level or CPI
- * instructions alike). The same index-aligned lists feed balance changes and state changes.
+ * Simulates against the cached pre-state of every writable account (only those can change, by top-level or CPI
+ * instructions alike), then re-reads them: if the chain moved meanwhile, pre and post would describe different
+ * states (a concurrent gift could offset a drain). Then it retries once from the fresh read, else gives up.
  */
-async function simulate(
-  wire: Uint8Array,
+async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx: ExplainContext, cache: AccountCache): Promise<SimRun> {
+  const loaded = writable.map((a) => cache.get(a));
+  if (loaded.some((a) => a === undefined)) return { failed: 'Simulation skipped: pre-transaction state unavailable' };
+  let pre = loaded as (RawAccount | null)[];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let post: (RawAccount | null)[];
+    let now: (RawAccount | null)[];
+    try {
+      const minContextSlot = cache.slot;
+      const sim = await ctx.reader.simulate(wire, writable, minContextSlot === undefined ? undefined : { minContextSlot });
+      if (sim.err) return { failed: `Simulation failed: ${simError(sim.err)}` };
+      post = sim.postAccounts;
+    } catch (e) {
+      return { failed: `Simulation unavailable: ${errorDetail(e)}` };
+    }
+    if (post.length !== writable.length || post.some((a, i) => a !== null && a.address !== writable[i])) {
+      return { failed: 'Simulation returned accounts that do not match the request' };
+    }
+    try {
+      now = await cache.fetch(writable);
+    } catch (e) {
+      return { failed: `Could not confirm the pre-transaction state: ${errorDetail(e)}` };
+    }
+    if (now.length === writable.length && now.every((a, i) => sameAccount(a ?? null, pre[i]!))) return { pre, post };
+    pre = writable.map((a, i) => now[i] ?? null);
+    pre.forEach((a, i) => cache.set(writable[i]!, a));
+  }
+  return { failed: 'state changed during simulation' };
+}
+
+/** Balance and state changes from a simulation run, the same index-aligned lists feeding both. */
+async function fromSimulation(
+  run: SimRun,
   writable: readonly Address[],
-  ctx: ExplainContext,
-  cache: AccountCache,
   labeler: Labeler,
   issues: Issue[],
   load: (addresses: readonly Address[], what: string) => Promise<void>,
 ): Promise<Simulated> {
-  const failed = (message: string): Simulated => {
-    issues.push({ stage: 'simulate', message });
+  if ('failed' in run) {
+    issues.push({ stage: 'simulate', message: run.failed });
     return { balanceChanges: null };
-  };
-  const loaded = writable.map((a) => cache.get(a));
-  if (loaded.some((a) => a === undefined)) return failed('Simulation skipped: pre-transaction state unavailable');
-  const pre = loaded as (RawAccount | null)[];
-
-  let post: (RawAccount | null)[];
-  try {
-    const sim = await ctx.reader.simulate(wire, writable);
-    if (sim.err) return failed(`Simulation failed: ${simError(sim.err)}`);
-    post = sim.postAccounts;
-  } catch (e) {
-    return failed(`Simulation unavailable: ${errorDetail(e)}`);
   }
-  if (post.length !== writable.length || post.some((a, i) => a !== null && a.address !== writable[i])) {
-    return failed('Simulation returned accounts that do not match the request');
-  }
-
+  const { pre, post } = run;
   // Accounts created in the transaction may hold mints not seen before: their decimals are needed too.
   const postTokens = post.map((a) => (a ? decodeTokenAccount(a) : null));
   await load(postTokens.flatMap((t) => (t ? [t.mint] : [])), 'mints');
@@ -114,9 +136,35 @@ function writtenBefore(instructions: readonly DecodedInstruction[]): ReadonlySet
   });
 }
 
+/** Identifies one instruction and verifies its relations. Never throws: failures become issues. */
+async function identifyAndVerify(
+  dix: DecodedInstruction,
+  ctx: ExplainContext,
+  cache: AccountCache,
+  modifiedBefore: ReadonlySet<string>,
+): Promise<{ ix: IdentifiedInstruction; relations: RelationEdge[]; issues: Issue[] }> {
+  const issues: Issue[] = [];
+  let ix: IdentifiedInstruction;
+  try {
+    ix = omitLegacyStakeNames(await identifyInstruction(dix, ctx.idls, issues), issues);
+  } catch (e) {
+    issues.push({ stage: 'idl', instructionIndex: dix.index, message: errorDetail(e) });
+    ix = { ...dix, accounts: dix.accounts.map((a) => ({ ...a, mine: false })) };
+  }
+  const relations: RelationEdge[] = [];
+  try {
+    relations.push(...(await verifyCodamaPdas(ix)), ...(await verifyAnchorExtras(ix, cache, modifiedBefore)));
+  } catch (e) {
+    issues.push({ stage: 'relations', instructionIndex: dix.index, message: errorDetail(e) });
+  }
+  return { ix, relations, issues };
+}
+
+const INTERNAL_ERROR: Warning = { rule: 'internal-error', severity: 'danger', message: 'Clef could not finish its safety checks.' };
+
 /**
- * Explains a transaction. Never throws for partial failures: those land in `issues`.
- * Throws only if the wire bytes cannot be decoded at all.
+ * Explains a transaction. Never throws for partial failures: those land in `issues` (and a failure of the
+ * safety checks themselves becomes a danger). Throws only if the wire bytes cannot be decoded at all.
  */
 export async function explain(
   input: { wire: Uint8Array; meta?: TxMeta | null },
@@ -134,7 +182,14 @@ export async function explain(
       issues.push({ stage: 'decode', message: `Could not load ${what}: ${errorDetail(e)}` });
     }
   };
-  await load([...addresses, ...ctx.me], 'accounts');
+  // Program accounts are never read (no rule needs them): skip those that appear only as programs.
+  const used = new Set(tx.instructions.flatMap((ix) => ix.accounts.map((a) => a.address)));
+  const programOnly = new Set(tx.instructions.map((ix) => ix.programId).filter((p) => !used.has(p)));
+  await load([...addresses.filter((a) => !programOnly.has(a)), ...ctx.me], 'accounts');
+
+  // Simulation starts right after the pre-read, while instructions are identified.
+  const writable = tx.accounts.filter((a) => a.writable).map((a) => a.address);
+  const simulation = input.meta ? undefined : runSimulation(input.wire, writable, ctx, cache);
 
   const relations: RelationEdge[] = [];
   try {
@@ -145,19 +200,13 @@ export async function explain(
   // Mints referenced by token accounts are needed for symbols/decimals.
   await load(relations.filter((r) => r.kind === 'token-mint').map((r) => r.to), 'mints');
 
+  // Instructions (and so the IDLs of distinct programs) are resolved in parallel; results keep their order.
   const modified = writtenBefore(tx.instructions);
-  const identified: IdentifiedInstruction[] = [];
-  for (const dix of tx.instructions) {
-    let ix: IdentifiedInstruction;
-    try {
-      ix = omitLegacyStakeNames(await identifyInstruction(dix, ctx.idls, issues), issues);
-    } catch (e) {
-      issues.push({ stage: 'idl', instructionIndex: dix.index, message: errorDetail(e) });
-      ix = { ...dix, accounts: dix.accounts.map((a) => ({ ...a, mine: false })) };
-    }
-    identified.push(ix);
-    // Neither throws: failures become `unverified` edges.
-    relations.push(...(await verifyCodamaPdas(ix)), ...(await verifyAnchorExtras(ix, cache, modified[dix.index])));
+  const results = await Promise.all(tx.instructions.map((dix) => identifyAndVerify(dix, ctx, cache, modified[dix.index]!)));
+  const identified = results.map((r) => r.ix);
+  for (const r of results) {
+    issues.push(...r.issues);
+    relations.push(...r.relations);
   }
 
   const labeler = new Labeler(ctx.me, cache, ctx.addressBook);
@@ -192,7 +241,18 @@ export async function explain(
   const tokenBalances: Record<string, TokenHolding> = {};
   const solBalances: Record<string, bigint> = {};
   let simulated: Simulated;
-  if (input.meta) {
+  if (!input.meta) {
+    simulated = await fromSimulation(await simulation!, writable, labeler, issues, load);
+    // Read after the simulation: a retry may have refreshed the pre-state.
+    for (const a of addresses) {
+      const token = decodeTokenAccount(cache.get(a));
+      if (token) tokenBalances[a] = { owner: token.owner, mint: token.mint, amount: token.amount };
+    }
+    for (const wallet of ctx.me) {
+      const account = cache.get(wallet);
+      if (account !== undefined) solBalances[wallet] = account?.lamports ?? 0n;
+    }
+  } else {
     const meta = input.meta;
     if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
     const ownerOf = (a: Address) => decodeTokenAccount(cache.get(a))?.owner ?? null;
@@ -208,17 +268,6 @@ export async function explain(
       const lamports = i >= 0 ? meta.preBalances[i] : undefined;
       if (lamports !== undefined) solBalances[wallet] = lamports;
     }
-  } else {
-    for (const a of addresses) {
-      const token = decodeTokenAccount(cache.get(a));
-      if (token) tokenBalances[a] = { owner: token.owner, mint: token.mint, amount: token.amount };
-    }
-    for (const wallet of ctx.me) {
-      const account = cache.get(wallet);
-      if (account !== undefined) solBalances[wallet] = account?.lamports ?? 0n;
-    }
-    const writable = tx.accounts.filter((a) => a.writable).map((a) => a.address);
-    simulated = await simulate(input.wire, writable, ctx, cache, labeler, issues, load);
   }
 
   // Owner wallets of token accounts (pre-state first), and trusted labels for everyone involved.
@@ -250,10 +299,23 @@ export async function explain(
     ...(ctx.valuedMints && { valuedMints: ctx.valuedMints }),
     ...(ctx.prices && { prices: ctx.prices }),
   };
-  const warnings = evaluateRisks(risk);
+  let warnings: Warning[];
+  try {
+    warnings = evaluateRisks(risk);
+  } catch {
+    // Fail closed: a rule that crashed may have been the one that mattered.
+    warnings = [{ ...INTERNAL_ERROR }];
+  }
   const balanceChanges = simulated.balanceChanges;
-  const summary = summarize({
-    instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances,
-  });
+  let summary: string;
+  try {
+    summary = summarize({
+      instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances,
+    });
+  } catch {
+    const danger = warnings.find((w) => w.severity === 'danger');
+    const programs = [...new Set(instructions.map(programDisplay))].join(', ') || 'no programs';
+    summary = `Interact with ${programs}${danger ? ` -- ${danger.message}` : ''}`;
+  }
   return { tx, instructions, relations, balanceChanges, fee, issues, me, warnings, summary };
 }
