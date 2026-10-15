@@ -429,10 +429,14 @@ function netFlows(input: RiskInput, me: ReadonlySet<string>, counts: (mint: stri
   };
 }
 
-/** USD value of a net change, undefined without a price or decimals. */
+/**
+ * USD value of a net change, undefined without a usable price or decimals. A price that isn't a finite positive
+ * number (0, negative, Infinity, NaN) counts as missing: it could make a drain look free or a payback look rich.
+ */
 function usdValue(input: RiskInput, n: NetChange): number | undefined {
   const price = input.prices?.[n.mint];
-  return price === undefined || n.decimals === null ? undefined : (Math.abs(Number(n.delta)) / 10 ** n.decimals) * price;
+  if (price === undefined || !Number.isFinite(price) || price <= 0 || n.decimals === null) return undefined;
+  return (Math.abs(Number(n.delta)) / 10 ** n.decimals) * price;
 }
 const isPriced = (input: RiskInput, ns: NetChange[]) => input.prices !== undefined && ns.every((n) => usdValue(input, n) !== undefined);
 const usdTotal = (input: RiskInput, ns: NetChange[]) => ns.reduce((total, n) => total + usdValue(input, n)!, 0);

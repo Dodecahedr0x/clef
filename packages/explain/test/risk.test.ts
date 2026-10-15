@@ -214,6 +214,16 @@ describe('evaluateRisks', () => {
       expect(outflowRule(input([router], { balanceChanges: sponsored, prices }))?.severity).toBe('danger');
     });
 
+    for (const bad of [0, -1, Infinity, NaN]) {
+      it(`treats a price of ${bad} as missing`, () => {
+        const SCAM_OUT = tok(SCAM, -5_000_000_000n);
+        // A worthless-priced outflow can't make a small payback look comparable.
+        expect(outflowRule(input([router], { balanceChanges: [SCAM_OUT, sol(20_000_000n)], prices: { SOL: 150, [SCAM]: bad } }))?.severity).toBe('danger');
+        // Nor can an absurdly priced inflow.
+        expect(outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), sol(20_000_000n)], prices: { SOL: bad, [USDC]: 1 } }))?.severity).toBe('danger');
+      });
+    }
+
     it('stays danger without a price for every outflow and inflow', () => {
       const swap = [usdc(-100_000_000n), usdt(99_000_000n)];
       expect(outflowRule(input([router], { balanceChanges: swap }))?.severity).toBe('danger');
@@ -551,6 +561,19 @@ describe('evaluateRisks', () => {
       // The same payback from nowhere else defuses it.
       expect(rules(input([otc], { balanceChanges: [...twoOut, change(ME, 'SOL', 2n * SOL)], prices }))).toEqual([]);
     });
+
+    for (const bad of [0, -1, Infinity, NaN]) {
+      it(`sweep treats a price of ${bad} as missing`, () => {
+        const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+        const otc = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+        const twoOut = [change(ME, USDC, -100_000_000n), change(OTHER, USDC, 100_000_000n), change(ME, USDT, -100_000_000n), change(OTHER, USDT, 100_000_000n)];
+        // A bad price on an outflow (worth "nothing") or on the inflow (worth "everything") must not defuse it.
+        const cheapOut = { SOL: 150, [USDC]: bad, [USDT]: bad };
+        expect(rules(input([otc], { balanceChanges: [...twoOut, change(ME, 'SOL', SOL / 10n)], prices: cheapOut }))).toEqual([['sweep', 'danger']]);
+        const richIn = { SOL: bad, [USDC]: 1, [USDT]: 1 };
+        expect(rules(input([otc], { balanceChanges: [...twoOut, change(ME, 'SOL', SOL / 10n)], prices: richIn }))).toEqual([['sweep', 'danger']]);
+      });
+    }
 
     it('never exempts the recipients of top-level transfers, whatever else runs', async () => {
       const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
