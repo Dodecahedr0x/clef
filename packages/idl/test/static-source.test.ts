@@ -13,6 +13,14 @@ describe('static IDL sources', () => {
     expect(idl?.root.program.name).toBe('token');
   });
 
+  it('bundled source serves the stake IDL as curated', async () => {
+    const STAKE = address('Stake11111111111111111111111111111111111111');
+    const idl = await createBundledSource().load(STAKE);
+    expect(idl).toMatchObject({ programId: STAKE, source: 'bundled', trust: 'curated' });
+    expect(idl?.root.program.name).toBe('stake');
+    expect(idl?.root.program.instructions?.map((ix) => ix.name)).toContain('authorizeChecked');
+  });
+
   it('bundled source returns null for unknown programs', async () => {
     expect(await createBundledSource().load(VAULT)).toBeNull();
   });

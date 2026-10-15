@@ -10,6 +10,7 @@ token-2022 7a23d8c3042d59b54aa7150f9dd6b5b3bd0c5e1a
 associated-token-account 06b93de62562a86eb0a5da8164a40fd06fbd4f74
 compute-budget b68894cf2ca3664db1f9530061c63033a461ac33
 memo eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2
+stake 104e173c358eebf25bb6d3af4138eb5f56c50587
 "
 {
   echo "# Vendored IDL sources"
