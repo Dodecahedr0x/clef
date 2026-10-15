@@ -1,6 +1,6 @@
 import { BUNDLED_PROGRAM_IDS, type IdlResolver, type ResolvedIdl } from '@clef/idl';
 import type { InstructionNode } from '@codama/nodes';
-import { parseInstruction } from '@codama/dynamic-parsers';
+import { identifyInstructionData, parseInstruction } from '@codama/dynamic-parsers';
 import { findProgramNodeFromPath, getLastNodeFromPath } from '@codama/visitors-core';
 import { AccountRole } from '@solana/kit';
 import { sanitizeText } from './text';
@@ -104,7 +104,14 @@ export async function identifyInstruction(
         data: ix.data,
       });
       if (!parsed) {
-        unmatched.push(idl.source);
+        // A discriminator match whose data fails to decode (e.g. a client omitting trailing args) is not "no match".
+        const path = identifyInstructionData(idl.root, ix.data, { programAddress: ix.programId });
+        if (path) {
+          const name = sanitizeText(getLastNodeFromPath(path).name);
+          issues.push({ stage: 'parse', instructionIndex: ix.index, message: `${name} matched but its data did not decode (${ix.data.length} bytes)` });
+        } else {
+          unmatched.push(idl.source);
+        }
         continue;
       }
       const node = getLastNodeFromPath(parsed.path);

@@ -83,6 +83,15 @@ describe('identifyInstruction', () => {
     expect(issues).toEqual([{ stage: 'parse', instructionIndex: 2, message: 'no instruction in bundled IDL matched' }]);
   });
 
+  it('says which instruction matched when its data is too short to decode', async () => {
+    // transferSol's discriminator with a truncated u64 amount.
+    const ix = { index: 1, programId: address(SYSTEM_PROGRAM), accounts: accounts(2), data: new Uint8Array([2, 0, 0, 0, 5]) };
+    const issues: Issue[] = [];
+    const out = await identifyInstruction(ix, bundled(), issues);
+    expect(out.name).toBeUndefined();
+    expect(issues).toEqual([{ stage: 'parse', instructionIndex: 1, message: 'transferSol matched but its data did not decode (5 bytes)' }]);
+  });
+
   it('falls through to the next candidate when one fails to decode', async () => {
     const user = new UserIdlSource();
     // A field discriminator naming a missing field makes Codama throw while identifying.
