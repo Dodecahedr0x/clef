@@ -1,0 +1,32 @@
+export const SYSTEM_PROGRAM = '11111111111111111111111111111111';
+export const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+export const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+export const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
+export const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
+export const MEMO_PROGRAM = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+export const MEMO_V4_PROGRAM = 'Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH';
+
+export const TOKEN_PROGRAMS: ReadonlySet<string> = new Set([TOKEN_PROGRAM, TOKEN_2022_PROGRAM]);
+
+/** Programs whose instructions are never "the point" of a transaction. */
+export const PLUMBING_PROGRAMS: ReadonlySet<string> = new Set([COMPUTE_BUDGET_PROGRAM, MEMO_PROGRAM, MEMO_V4_PROGRAM]);
+
+export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
+  [SYSTEM_PROGRAM]: 'System Program',
+  [TOKEN_PROGRAM]: 'Token Program',
+  [TOKEN_2022_PROGRAM]: 'Token-2022 Program',
+  [ATA_PROGRAM]: 'Associated Token Program',
+  [COMPUTE_BUDGET_PROGRAM]: 'Compute Budget',
+  [MEMO_PROGRAM]: 'Memo Program',
+  [MEMO_V4_PROGRAM]: 'Memo Program',
+  JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4: 'Jupiter Aggregator v6',
+  SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf: 'Squads v4',
+};
+
+export const KNOWN_MINTS: Readonly<Record<string, { symbol: string; decimals: number }>> = {
+  So11111111111111111111111111111111111111112: { symbol: 'wSOL', decimals: 9 },
+  EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: { symbol: 'USDC', decimals: 6 },
+  Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: { symbol: 'USDT', decimals: 6 },
+};
+
+export const U64_MAX = (1n << 64n) - 1n;
