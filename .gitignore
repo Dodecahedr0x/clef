@@ -3,3 +3,4 @@ node_modules/
 dist/
 .output/
 .wxt/
+.DS_Store
