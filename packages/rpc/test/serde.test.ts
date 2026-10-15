@@ -7,6 +7,12 @@ describe('serde', () => {
     expect(fromJson(toJson(value))).toEqual(value);
   });
 
+  it('escapes user objects that look like markers', () => {
+    for (const value of [{ x: { $bigint: '12' } }, { $bytes: 'AA==' }, { y: { $obj: { $bigint: '1' } } }, { z: { $obj: 5n } }]) {
+      expect(fromJson(toJson(value))).toEqual(value);
+    }
+  });
+
   it('is deterministic for identical input', () => {
     expect(toJson({ x: [1n] })).toBe(toJson({ x: [1n] }));
   });

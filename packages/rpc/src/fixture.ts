@@ -16,7 +16,7 @@ export class RecordingChainReader implements ChainReader {
 
   private async record<T>(method: string, args: unknown[], run: () => Promise<T>): Promise<T> {
     const result = await run();
-    this.calls[callKey(method, args)] = result;
+    this.calls[callKey(method, args)] = structuredClone(result);
     return result;
   }
 
@@ -43,7 +43,12 @@ export class FixtureChainReader implements ChainReader {
   constructor(private readonly fixture: FixtureFile) {}
 
   static fromJson(text: string): FixtureChainReader {
-    return new FixtureChainReader(fromJson(text) as FixtureFile);
+    const file = fromJson(text) as Partial<FixtureFile> | null;
+    if (file?.version !== 1) throw new Error(`unsupported fixture version: ${String(file?.version)}`);
+    if (!file.calls || typeof file.calls !== 'object' || Array.isArray(file.calls)) {
+      throw new Error('invalid fixture: `calls` must be an object');
+    }
+    return new FixtureChainReader(file as FixtureFile);
   }
 
   get input(): unknown {
@@ -52,10 +57,10 @@ export class FixtureChainReader implements ChainReader {
 
   private lookup<T>(method: string, args: unknown[]): Promise<T> {
     const key = callKey(method, args);
-    if (!(key in this.fixture.calls)) {
+    if (!Object.hasOwn(this.fixture.calls, key)) {
       return Promise.reject(new Error(`fixture miss: ${key.slice(0, 200)}`));
     }
-    return Promise.resolve(this.fixture.calls[key] as T);
+    return Promise.resolve(structuredClone(this.fixture.calls[key]) as T);
   }
 
   getAccounts(addresses: readonly Address[]) {

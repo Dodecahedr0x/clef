@@ -4,6 +4,8 @@ import {
   getBase64Encoder,
   type Address,
   type Base64EncodedWireTransaction,
+  type Rpc,
+  type SolanaRpcApi,
   type Signature,
 } from '@solana/kit';
 import type { ChainReader, FetchedTransaction, RawAccount, SimulationResult, TokenBalance } from './types';
@@ -40,10 +42,10 @@ function toTokenBalance(t: RpcTokenBalance): TokenBalance {
 }
 
 export class KitChainReader implements ChainReader {
-  private readonly rpc: ReturnType<typeof createSolanaRpc>;
+  private readonly rpc: Rpc<SolanaRpcApi>;
 
-  constructor(url: string) {
-    this.rpc = createSolanaRpc(url);
+  constructor(urlOrRpc: string | Rpc<SolanaRpcApi>) {
+    this.rpc = typeof urlOrRpc === 'string' ? createSolanaRpc(urlOrRpc) : urlOrRpc;
   }
 
   async getAccounts(addresses: readonly Address[]): Promise<(RawAccount | null)[]> {
@@ -96,9 +98,9 @@ export class KitChainReader implements ChainReader {
       err: value.err,
       logs: [...(value.logs ?? [])],
       unitsConsumed: value.unitsConsumed ?? null,
-      postAccounts: (value.accounts ?? []).map((acc, i) =>
-        acc ? toRaw(addresses[i]!, acc as unknown as EncodedAccount) : null,
-      ),
+      postAccounts: value.accounts
+        ? value.accounts.map((acc, i) => (acc ? toRaw(addresses[i]!, acc as unknown as EncodedAccount) : null))
+        : addresses.map(() => null),
     };
   }
 }

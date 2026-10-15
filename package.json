@@ -13,5 +13,10 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.9.3"
+    }
   }
 }

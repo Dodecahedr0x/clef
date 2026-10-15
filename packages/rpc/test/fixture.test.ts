@@ -27,4 +27,32 @@ describe('fixture readers', () => {
     expect(replay.input).toEqual({ note: 'test' });
     await expect(replay.getAccounts([B])).rejects.toThrow(/fixture miss/);
   });
+
+  it('applies defaults only for missing lamports/executable', async () => {
+    const mem = new MemoryChainReader();
+    mem.setAccount({ address: A, owner: B, data: new Uint8Array(), lamports: undefined, executable: true });
+    const [a] = await mem.getAccounts([A]);
+    expect(a?.lamports).toBe(1_000_000n);
+    expect(a?.executable).toBe(true);
+  });
+
+  it('hands out copies, never shared objects', async () => {
+    const mem = new MemoryChainReader();
+    mem.setAccount({ address: A, owner: B, data: new Uint8Array([1]) });
+    const rec = new RecordingChainReader(mem);
+    (await rec.getAccounts([A]))[0]!.data[0] = 99;
+    expect((await mem.getAccounts([A]))[0]!.data).toEqual(new Uint8Array([1]));
+
+    const replay = FixtureChainReader.fromJson(rec.toFixture());
+    (await replay.getAccounts([A]))[0]!.data[0] = 77;
+    expect((await replay.getAccounts([A]))[0]!.data).toEqual(new Uint8Array([1]));
+  });
+
+  it('rejects malformed fixtures', async () => {
+    expect(() => FixtureChainReader.fromJson('{"version":2,"calls":{}}')).toThrow(/version/);
+    expect(() => FixtureChainReader.fromJson('{"version":1}')).toThrow(/calls/);
+    expect(() => FixtureChainReader.fromJson('null')).toThrow(/version/);
+    const replay = FixtureChainReader.fromJson('{"version":1,"calls":{}}');
+    await expect(replay.getTransaction('x')).rejects.toThrow(/fixture miss/);
+  });
 });

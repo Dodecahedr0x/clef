@@ -18,15 +18,19 @@ export class MemoryChainReader implements ChainReader {
   });
 
   setAccount(input: AccountInput): void {
-    this.accounts.set(input.address, { lamports: 1_000_000n, executable: false, ...input });
+    this.accounts.set(input.address, {
+      ...input,
+      lamports: input.lamports ?? 1_000_000n,
+      executable: input.executable ?? false,
+    });
   }
 
   async getAccounts(addresses: readonly Address[]): Promise<(RawAccount | null)[]> {
-    return addresses.map((a) => this.accounts.get(a) ?? null);
+    return addresses.map((a) => structuredClone(this.accounts.get(a) ?? null));
   }
 
   async getTransaction(signature: string): Promise<FetchedTransaction | null> {
-    return this.transactions.get(signature) ?? null;
+    return structuredClone(this.transactions.get(signature) ?? null);
   }
 
   simulate(wire: Uint8Array, addresses: readonly Address[]): Promise<SimulationResult> {

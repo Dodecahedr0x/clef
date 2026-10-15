@@ -38,7 +38,11 @@ export type SimulationResult = {
   err: unknown;
   logs: string[];
   unitsConsumed: bigint | null;
-  /** Post-simulation state, same order as the `addresses` passed to `simulate`. */
+  /**
+   * Post-simulation state, same order as the `addresses` passed to `simulate`.
+   * Always the same length as `addresses`. Entries are null when the account does not exist;
+   * when `err` is set, the entries carry no meaning.
+   */
   postAccounts: (RawAccount | null)[];
 };
 
