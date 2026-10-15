@@ -3,3 +3,4 @@ export * from './serde';
 export * from './memory';
 export * from './fixture';
 export * from './kit';
+export * from './sender';

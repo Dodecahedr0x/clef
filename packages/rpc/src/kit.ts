@@ -8,6 +8,7 @@ import {
   type SolanaRpcApi,
   type Signature,
 } from '@solana/kit';
+import type { SendOptions, TransactionSender } from './sender';
 import type { ChainReader, FetchedTransaction, RawAccount, ReadOptions, SimulateOptions, SimulationResult, TokenBalance } from './types';
 
 const MAX_ACCOUNTS_PER_CALL = 100;
@@ -41,7 +42,7 @@ function toTokenBalance(t: RpcTokenBalance): TokenBalance {
   };
 }
 
-export class KitChainReader implements ChainReader {
+export class KitChainReader implements ChainReader, TransactionSender {
   private readonly rpc: Rpc<SolanaRpcApi>;
 
   constructor(urlOrRpc: string | Rpc<SolanaRpcApi>) {
@@ -119,5 +120,18 @@ export class KitChainReader implements ChainReader {
         : addresses.map(() => null),
       ...(context?.slot !== undefined && { slot: BigInt(context.slot) }),
     };
+  }
+
+  async send(wire: Uint8Array, options: SendOptions = {}): Promise<string> {
+    const encoded = getBase64Decoder().decode(wire) as Base64EncodedWireTransaction;
+    return this.rpc
+      .sendTransaction(encoded, {
+        encoding: 'base64',
+        preflightCommitment: 'confirmed',
+        skipPreflight: options.skipPreflight ?? false,
+        ...(options.maxRetries !== undefined && { maxRetries: BigInt(options.maxRetries) }),
+        ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
+      })
+      .send();
   }
 }
