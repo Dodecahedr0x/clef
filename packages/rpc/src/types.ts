@@ -41,7 +41,8 @@ export type SimulationResult = {
   /**
    * Post-simulation state, same order as the `addresses` passed to `simulate`.
    * Always the same length as `addresses`. Entries are null when the account does not exist;
-   * when `err` is set, the entries carry no meaning.
+   * when `err` is set, the entries carry no meaning. The fee payer's lamports are assumed to already have the
+   * transaction fee deducted (as the runtime does): the explain engine allows for the fee when judging outflows.
    */
   postAccounts: (RawAccount | null)[];
 };

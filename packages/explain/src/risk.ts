@@ -1,5 +1,6 @@
 import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
+import { formatUnits } from './format';
 import { shortAddress } from './labels';
 import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
@@ -10,6 +11,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   stateChanges?: StateChange[];
   /** Expected network fee in lamports (see `estimateFee`), paid by `feePayer`. */
   fee?: bigint;
+  /** The signature part of `fee` (5000 lamports per signature); the rest is priority fee. Default 0. */
+  baseFee?: bigint;
   feePayer?: Address;
   /** Pre-transaction state of token accounts the transaction touches, keyed by token account address. */
   tokenBalances?: Readonly<Record<string, TokenHolding>>;
@@ -32,6 +35,18 @@ export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
  * accounts (an ATA costs ~0.002 SOL) that ordinary transactions create, and that rent stays recoverable.
  */
 export const RENT_SLACK = 10_000_000n;
+
+/**
+ * Priority fees above this (0.01 SOL) raise `high-fee`, and only this much of a priority fee is allowed for
+ * when judging outflows: an absurd fee is itself a loss, not an excuse for one.
+ */
+export const PRIORITY_FEE_LIMIT = 10_000_000n;
+
+/** How much of `fee` counts as expected spend: the base fee plus at most `PRIORITY_FEE_LIMIT` of priority fee. */
+export function feeAllowance(fee: bigint | undefined, baseFee = 0n): bigint {
+  if (fee === undefined) return 0n;
+  return fee < baseFee + PRIORITY_FEE_LIMIT ? fee : baseFee + PRIORITY_FEE_LIMIT;
+}
 
 /** The runtime's default compute limit per instruction, and the transaction-wide maximum. */
 const DEFAULT_CU_PER_INSTRUCTION = 200_000;
@@ -171,6 +186,14 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
     if (r.status === 'mismatch') {
       warn('relation-mismatch', 'danger', `Account ${r.from} does not match its expected ${r.label}${r.detail ? ` (${r.detail})` : ''}.`, r.instructionIndex);
     }
+  }
+
+  const priority = input.fee !== undefined ? input.fee - (input.baseFee ?? 0n) : 0n;
+  if (input.feePayer !== undefined && me.has(input.feePayer) && priority > PRIORITY_FEE_LIMIT) {
+    const balance = input.solBalances?.[input.feePayer];
+    // More than 5% of what the payer holds.
+    const severity = balance !== undefined && priority * 20n > balance ? 'danger' : 'warn';
+    warn('high-fee', severity, `Pays a priority fee of ${formatUnits(priority, 9)} SOL.`);
   }
 
   if (input.issues.some((i) => i.stage === 'simulate')) {
@@ -378,9 +401,9 @@ function directRecipients(input: RiskInput): { owners: Set<string>; unknown: boo
   return { owners, unknown };
 }
 
-/** Your outflows: any token decrease, or a SOL loss beyond the fee (if you pay it) plus `RENT_SLACK`. */
+/** Your outflows: any token decrease, or a SOL loss beyond the allowed fee (if you pay it) plus `RENT_SLACK`. */
 function outflows(input: RiskInput, me: ReadonlySet<string>): BalanceChange[] {
-  const allowance = (owner: string) => (owner === input.feePayer ? (input.fee ?? 0n) : 0n) + RENT_SLACK;
+  const allowance = (owner: string) => (owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
   return (input.balanceChanges ?? []).filter(
     (c) => me.has(c.owner) && (c.mint === 'SOL' ? -c.delta > allowance(c.owner) : c.delta < 0n),
   );

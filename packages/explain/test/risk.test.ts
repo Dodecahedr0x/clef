@@ -146,6 +146,45 @@ describe('evaluateRisks', () => {
     expect(rules(out)).toContainEqual(['unexplained-outflow', 'danger']);
   });
 
+  describe('high fees', () => {
+    const SOL = 1_000_000_000n;
+    const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, decimals: 9, delta }];
+    const unknown = [ix({ programId: OTHER })];
+    const curatedOnly = [ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol' })];
+
+    it('warns when the priority fee exceeds 0.01 SOL, danger beyond 5% of the payer balance', () => {
+      const base = { feePayer: ME, baseFee: 5000n, balanceChanges: [] };
+      const fee = (priority: bigint) => 5000n + priority;
+      expect(rules(input(curatedOnly, { ...base, fee: fee(10_000_000n) }))).toEqual([]);
+      expect(rules(input(curatedOnly, { ...base, fee: fee(10_000_001n) }))).toEqual([['high-fee', 'warn']]);
+      expect(rules(input(curatedOnly, { ...base, fee: fee(10_000_001n), solBalances: { [ME]: 10n * SOL } }))).toEqual([['high-fee', 'warn']]);
+      expect(rules(input(curatedOnly, { ...base, fee: fee(500_000_001n), solBalances: { [ME]: 10n * SOL } }))).toEqual([['high-fee', 'danger']]);
+      expect(evaluateRisks(input(curatedOnly, { ...base, fee: fee(500_000_001n) }))[0]!.message).toBe('Pays a priority fee of 0.500000001 SOL.');
+      // Someone else pays: not your loss.
+      expect(rules(input(curatedOnly, { ...base, feePayer: OTHER, fee: fee(SOL) }))).toEqual([]);
+    });
+
+    it('flags the 1.4M CU x 6e12 microLamport case', () => {
+      // 1.4M CU x 6e12 microLamports = 8400 SOL; 6e9 microLamports = 8.4 SOL.
+      for (const [price, expected] of [[6_000_000_000_000n, 8_400_000_005_000n], [6_000_000_000n, 8_400_005_000n]] as const) {
+        const fee = estimateFee(1, 1_400_000, price);
+        expect(fee).toBe(expected);
+        const out = input(curatedOnly, { fee, baseFee: 5000n, feePayer: ME, solBalances: { [ME]: 10n * SOL }, balanceChanges: sol(-fee - SOL / 1000n) });
+        expect(rules(out)).toContainEqual(['high-fee', 'danger']);
+      }
+    });
+
+    it('caps the fee that counts toward the outflow allowance at 0.01 SOL plus the base fee', () => {
+      const fee = 5000n + SOL;
+      // A 1 SOL priority fee no longer hides a 0.9 SOL outflow from an unexplained program.
+      const out = input(unknown, { fee, baseFee: 5000n, feePayer: ME, balanceChanges: sol(-fee - 900_000_000n) });
+      expect(rules(out)).toContainEqual(['unexplained-outflow', 'danger']);
+      // Within the cap the fee is still allowed for.
+      const small = 5000n + 10_000_000n;
+      expect(rules(input(unknown, { fee: small, baseFee: 5000n, feePayer: ME, balanceChanges: sol(-small) }))).toEqual([['unknown-program', 'warn']]);
+    });
+  });
+
   it('does not count the fee or a little rent as an outflow', () => {
     const fee = estimateFee(1, 200_000, 50_000n);
     const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, decimals: 9, delta }];

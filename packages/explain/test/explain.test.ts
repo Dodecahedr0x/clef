@@ -5,7 +5,7 @@ import { getTransferSolInstruction } from '@solana-program/system';
 import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { explain, shortAddress, CLOCK_SYSVAR, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
+import { explain, shortAddress, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
 import { buildWire, ME, OTHER, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
@@ -220,10 +220,38 @@ describe('explain', () => {
       ]);
       return rules(await explain({ wire }, ctx(reader)));
     };
-    // 1M CU at 20k microLamports = 0.02 SOL priority fee + 5000 base: not an outflow.
-    expect(await run(20_000_000n, 20_005_000n)).toEqual([['unknown-program', 'warn']]);
+    // 1M CU at 8e6 microLamports = 0.008 SOL priority fee + 5000 base, plus 0.005 SOL of rent: not an outflow.
+    expect(await run(8_000_000n, 13_005_000n)).toEqual([['unknown-program', 'warn']]);
     // The same loss without the priority fee is beyond the rent slack.
-    expect(await run(0n, 20_005_000n)).toContainEqual(['unexplained-outflow', 'danger']);
+    expect(await run(0n, 13_005_000n)).toContainEqual(['unexplained-outflow', 'danger']);
+    // A priority fee above 0.01 SOL is flagged, and only 0.01 SOL of it is allowed for.
+    expect(await run(20_000_000n, 20_005_000n)).toEqual([['unknown-program', 'warn'], ['high-fee', 'warn']]);
+    expect(await run(20_000_000n, 30_005_001n)).toContainEqual(['unexplained-outflow', 'danger']);
+  });
+
+  it('flags an absurd priority fee, and never summarizes it as a plain transfer', async () => {
+    const reader = new MemoryChainReader();
+    reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 10n * SOL, data: new Uint8Array() });
+    const fee = 8_400_005_000n; // 1.4M CU x 6e9 microLamports + 5000
+    simulateWith(reader, { [ME]: { lamports: 10n * SOL - SOL / 1000n }, [OTHER]: { lamports: SOL / 1000n, owner: address('11111111111111111111111111111111') } }, { fee });
+    const wire = buildWire([
+      getSetComputeUnitLimitInstruction({ units: 1_400_000 }),
+      getSetComputeUnitPriceInstruction({ microLamports: 6_000_000_000n }),
+      getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL / 1000n }),
+    ]);
+    const ex = await explain({ wire }, ctx(reader));
+    expect(ex.fee).toBe(fee);
+    expect(rules(ex)).toContainEqual(['high-fee', 'danger']);
+    expect(ex.summary).not.toBe(`Send 0.001 SOL to ${shortAddress(OTHER)}`);
+    // Only the base fee and 0.01 SOL of priority fee are taken out of what you send.
+    expect(ex.summary).toMatch(/^Send 8\.391 SOL/);
+  });
+
+  it('leaves the fee unknown when a compute budget instruction cannot be decoded', async () => {
+    const reader = new MemoryChainReader();
+    const bogus: Instruction = { programAddress: address(COMPUTE_BUDGET_PROGRAM), data: new Uint8Array([99]), accounts: [] };
+    const ex = await explain({ wire: buildWire([bogus, getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
+    expect(ex.fee).toBeNull();
   });
 
   it('shows raw units, never assumed decimals, for a token whose mint is unknown', async () => {

@@ -73,6 +73,8 @@ export type ExplainedTransaction = {
   relations: RelationEdge[];
   /** Null when neither tx meta nor a successful simulation was available. */
   balanceChanges: BalanceChange[] | null;
+  /** Network fee in lamports: from tx meta, else estimated; null when it can't be estimated. */
+  fee: bigint | null;
   me: Address[];
   summary: string;
   warnings: Warning[];

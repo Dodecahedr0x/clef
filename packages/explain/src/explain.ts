@@ -175,14 +175,19 @@ export async function explain(
   });
 
   const numSignatures = tx.accounts.filter((a) => a.signer).length;
+  const baseFee = 5000n * BigInt(numSignatures);
+  // A compute budget instruction Clef couldn't decode may set any price: the fee is then unknown.
+  const undecodedBudget = instructions.some((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM && !(ix.name && ix.idl?.trust === 'curated'));
   const fee = input.meta
     ? input.meta.fee
-    : estimateFee(
-        numSignatures,
-        toNumber(budgetArg(instructions, 'setComputeUnitLimit', 'units')),
-        toBigint(budgetArg(instructions, 'setComputeUnitPrice', 'microLamports')),
-        tx.instructions.filter((ix) => ix.programId !== COMPUTE_BUDGET_PROGRAM).length,
-      );
+    : undecodedBudget
+      ? null
+      : estimateFee(
+          numSignatures,
+          toNumber(budgetArg(instructions, 'setComputeUnitLimit', 'units')),
+          toBigint(budgetArg(instructions, 'setComputeUnitPrice', 'microLamports')),
+          tx.instructions.filter((ix) => ix.programId !== COMPUTE_BUDGET_PROGRAM).length,
+        );
 
   const tokenBalances: Record<string, TokenHolding> = {};
   const solBalances: Record<string, bigint> = {};
@@ -222,7 +227,8 @@ export async function explain(
     balanceChanges: simulated.balanceChanges,
     issues,
     me,
-    fee,
+    ...(fee !== null && { fee }),
+    baseFee,
     feePayer: tx.feePayer,
     tokenBalances,
     solBalances,
@@ -234,5 +240,6 @@ export async function explain(
   };
   const warnings = evaluateRisks(risk);
   const balanceChanges = simulated.balanceChanges;
-  return { tx, instructions, relations, balanceChanges, issues, me, warnings, summary: summarize({ instructions, balanceChanges, me, warnings, fee, feePayer: tx.feePayer }) };
+  const summary = summarize({ instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer });
+  return { tx, instructions, relations, balanceChanges, fee, issues, me, warnings, summary };
 }

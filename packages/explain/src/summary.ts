@@ -1,5 +1,6 @@
 import { formatUnits, programDisplay } from './format';
 import { shortAddress } from './labels';
+import { feeAllowance } from './risk';
 import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import type { BalanceChange, ExplainedInstruction, ExplainedTransaction } from './types';
 
@@ -7,11 +8,13 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
   Partial<Pick<ExplainedTransaction, 'warnings'>> & {
     /** The network fee and who pays it: it is not a "send", so it is taken out of the payer's SOL change. */
     fee?: bigint;
+    /** The signature part of `fee`. Only `feeAllowance(fee, baseFee)` is taken out: an absurd fee stays visible. */
+    baseFee?: bigint;
     feePayer?: string;
   };
 
 /** Warnings under which a one-instruction template could read as benign: the summary states the outflows. */
-const OUTFLOW_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow']);
+const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee']);
 
 type Template = (ix: ExplainedInstruction) => string | null;
 
@@ -57,10 +60,10 @@ function withoutFee(c: BalanceChange, fee: bigint): BalanceChange {
 
 const asset = (c: BalanceChange) => `${formatUnits(c.delta < 0n ? -c.delta : c.delta, c.decimals)} ${c.symbol ?? shortAddress(c.mint)}`;
 
-/** One line describing the transaction. Never contradicts the warnings: see `OUTFLOW_RULES`. */
+/** One line describing the transaction. Never contradicts the warnings: see `NO_TEMPLATE_RULES`. */
 export function summarize(input: SummaryInput): string {
   const meaningful = input.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId));
-  const flagged = (input.warnings ?? []).some((w) => OUTFLOW_RULES.has(w.rule));
+  const flagged = (input.warnings ?? []).some((w) => NO_TEMPLATE_RULES.has(w.rule));
   if (meaningful.length === 1 && !flagged) {
     const text = template(meaningful[0]!);
     if (text) return text;
@@ -68,7 +71,7 @@ export function summarize(input: SummaryInput): string {
 
   const me = new Set<string>(input.me);
   const mine = (input.balanceChanges ?? [])
-    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, input.fee) : c))
+    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, feeAllowance(input.fee, input.baseFee)) : c))
     .filter((c) => me.has(c.owner) && c.delta !== 0n);
   const sent = mine.filter((c) => c.delta < 0n).map(asset);
   const received = mine.filter((c) => c.delta > 0n).map(asset);

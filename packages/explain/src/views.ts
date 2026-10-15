@@ -16,10 +16,19 @@ export type ExpertInstructionView = Omit<InstructionView, 'accounts'> & {
 };
 
 /** `balanceChanges` is null when they are unknown (no meta, failed simulation): never shown as "nothing moves". */
-export type BasicView = { level: 'basic'; summary: string; balanceChanges: ChangeView[] | null; warnings: Warning[] };
+export type BasicView = {
+  level: 'basic';
+  summary: string;
+  balanceChanges: ChangeView[] | null;
+  warnings: Warning[];
+  /** Only when the `high-fee` warning fires. */
+  fee?: string;
+};
 export type IntermediateView = Omit<BasicView, 'level'> & { level: 'intermediate'; instructions: InstructionView[] };
-export type ExpertView = Omit<BasicView, 'level'> & {
+export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   level: 'expert';
+  /** Null when it can't be estimated. */
+  fee: string | null;
   instructions: ExpertInstructionView[];
   version: string;
   feePayer: string;
@@ -103,9 +112,11 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     warnings: ex.warnings,
     balanceChanges: changes && (level === 'expert' ? changes : changes.filter((c) => me.has(c.owner))).map(changeView),
   };
-  if (level === 'basic') return { level, ...common };
+  const fee = ex.fee === null ? null : `${formatUnits(ex.fee, 9)} SOL`;
+  const highFee = fee !== null && ex.warnings.some((w) => w.rule === 'high-fee') ? { fee } : {};
+  if (level === 'basic') return { level, ...common, ...highFee };
   if (level === 'intermediate') {
-    return { level, ...common, instructions: ex.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId)).map((ix) => instructionView(ex, ix)) };
+    return { level, ...common, ...highFee, instructions: ex.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId)).map((ix) => instructionView(ex, ix)) };
   }
 
   // Compute budget values only from the curated IDL, as the fee estimate does.
@@ -118,6 +129,7 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     ...common,
     version: String(ex.tx.version),
     feePayer: ex.tx.feePayer,
+    fee,
     recentBlockhash: ex.tx.recentBlockhash,
     ...(limit !== undefined && { computeUnitLimit: limit }),
     ...(price !== undefined && { computeUnitPrice: price }),

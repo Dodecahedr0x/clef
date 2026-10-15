@@ -41,6 +41,9 @@ describe('viewFor', () => {
     expect(v.instructions[1]!.dataHex).toMatch(/^[0-9a-f]+$/);
     expect(v.instructions[1]!.accounts[0]).toMatchObject({ signer: true, writable: true });
     expect(v.feePayer).toBe(ME);
+    expect(v.fee).toBe('0.000005 SOL');
+    // The basic view shows the fee only when it is high.
+    expect(viewFor(ex, 'basic')).not.toHaveProperty('fee');
   });
 
   it('never includes verification-only fields, even if the input carries them', () => {
