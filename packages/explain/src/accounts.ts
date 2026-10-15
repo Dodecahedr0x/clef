@@ -34,7 +34,14 @@ export class AccountCache {
   }
 }
 
-export type TokenAccountInfo = { mint: Address; owner: Address; amount: bigint; delegate: Address | null };
+export type TokenAccountInfo = {
+  mint: Address;
+  owner: Address;
+  amount: bigint;
+  delegate: Address | null;
+  delegatedAmount: bigint;
+  closeAuthority: Address | null;
+};
 
 /** Which layout `account` holds, judged by owner, size and (Token-2022) account type byte. */
 function layout(account: RawAccount): 'mint' | 'token' | null {
@@ -61,7 +68,14 @@ export function decodeTokenAccount(account: RawAccount | null | undefined): Toke
   if (!account || layout(account) !== 'token' || account.data[TOKEN_STATE_OFFSET] === 0) return null;
   try {
     const t = getTokenDecoder().decode(account.data.subarray(0, TOKEN_ACCOUNT_SIZE));
-    return { mint: t.mint, owner: t.owner, amount: t.amount, delegate: t.delegate.__option === 'Some' ? t.delegate.value : null };
+    return {
+      mint: t.mint,
+      owner: t.owner,
+      amount: t.amount,
+      delegate: t.delegate.__option === 'Some' ? t.delegate.value : null,
+      delegatedAmount: t.delegatedAmount,
+      closeAuthority: t.closeAuthority.__option === 'Some' ? t.closeAuthority.value : null,
+    };
   } catch {
     return null;
   }

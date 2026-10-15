@@ -12,6 +12,7 @@ import {
   getTransactionEncoder,
   none,
   pipe,
+  some,
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
@@ -71,11 +72,17 @@ export function rewire(wire: Uint8Array, mutate: (m: CompiledMessage) => Compile
 
 export const USDC = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
-export function tokenAccountData(owner: Address = ME, mint: Address = USDC, amount = 10n): Uint8Array {
+export function tokenAccountData(
+  owner: Address = ME,
+  mint: Address = USDC,
+  amount = 10n,
+  extra: { delegate?: Address; delegatedAmount?: bigint; closeAuthority?: Address } = {},
+): Uint8Array {
   return new Uint8Array(
     getTokenEncoder().encode({
-      mint, owner, amount, delegate: none(), state: AccountState.Initialized,
-      isNative: none(), delegatedAmount: 0n, closeAuthority: none(),
+      mint, owner, amount, delegate: extra.delegate ? some(extra.delegate) : none(), state: AccountState.Initialized,
+      isNative: none(), delegatedAmount: extra.delegatedAmount ?? 0n,
+      closeAuthority: extra.closeAuthority ? some(extra.closeAuthority) : none(),
     }),
   );
 }

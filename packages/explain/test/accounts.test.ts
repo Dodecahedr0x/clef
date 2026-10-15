@@ -34,7 +34,12 @@ const multisig = (typeByte: number) => {
 
 describe('account helpers', () => {
   it('decodes token accounts and mint decimals', () => {
-    expect(decodeTokenAccount(raw(tokenAccountData()))).toEqual({ mint: USDC, owner: ME, amount: 10n, delegate: null });
+    expect(decodeTokenAccount(raw(tokenAccountData()))).toEqual({
+      mint: USDC, owner: ME, amount: 10n, delegate: null, delegatedAmount: 0n, closeAuthority: null,
+    });
+    expect(decodeTokenAccount(raw(tokenAccountData(ME, USDC, 10n, { delegate: OTHER, delegatedAmount: 7n, closeAuthority: OTHER })))).toEqual({
+      mint: USDC, owner: ME, amount: 10n, delegate: OTHER, delegatedAmount: 7n, closeAuthority: OTHER,
+    });
     expect(decodeMintDecimals(raw(mintData()))).toBe(6);
     expect(decodeTokenAccount(raw(tokenAccountData(), OTHER))).toBeNull();
   });
