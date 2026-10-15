@@ -5,3 +5,4 @@ export * from './protocol';
 export * from './messages';
 export * from './autolock';
 export * from './service';
+export * from './internal';
