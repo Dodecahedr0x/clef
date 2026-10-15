@@ -373,6 +373,7 @@ export async function explain(
     const programs = [...new Set(instructions.map(programDisplay))].join(', ') || 'no programs';
     summary = `Interact with ${programs}${danger ? ` -- ${danger.message}` : ''}`;
   }
+  if (input.meta?.err) summary = `Failed: ${summary}`;
   const stateChanges = simulated.stateChanges ?? null;
   return { tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary };
 }

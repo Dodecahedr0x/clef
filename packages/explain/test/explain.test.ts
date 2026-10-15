@@ -321,7 +321,7 @@ describe('explain', () => {
     const ex = await explain({ wire, meta }, ctx(new MemoryChainReader()));
     expect(ex.issues).toContainEqual({ stage: 'execute', message: 'Transaction failed: {"InstructionError":[0,{"Custom":1}]}' });
     expect(ex.warnings).toEqual([{ rule: 'transaction-failed', severity: 'info', message: 'Transaction failed; only the fee was charged.' }]);
-    expect(ex.summary).not.toMatch(/^Send/);
+    expect(ex.summary).toBe('Failed: Interact with System Program');
   });
 
   describe('state changing between the pre-read and the simulation', () => {
