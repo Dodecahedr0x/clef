@@ -74,7 +74,7 @@ export class KitChainReader implements ChainReader {
 
   async getTransaction(signature: string): Promise<FetchedTransaction | null> {
     const res = await this.rpc
-      .getTransaction(signature as Signature, { encoding: 'base64', maxSupportedTransactionVersion: 0 })
+      .getTransaction(signature as Signature, { encoding: 'base64', maxSupportedTransactionVersion: 1 })
       .send();
     if (!res) return null;
     const m = res.meta;

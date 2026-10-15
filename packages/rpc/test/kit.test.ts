@@ -94,6 +94,36 @@ describe('KitChainReader (offline)', () => {
     expect(await reader.getTransaction('sig3')).toBeNull();
   });
 
+  it('requests transactions up to version 1', async () => {
+    const seen: unknown[] = [];
+    const reader = new KitChainReader(
+      fakeRpc({
+        getTransaction: (_sig: string, config: unknown) => {
+          seen.push(config);
+          return reply(null);
+        },
+      }),
+    );
+    await reader.getTransaction('sig');
+    expect(seen).toEqual([{ encoding: 'base64', maxSupportedTransactionVersion: 1 }]);
+  });
+
+  it('passes a v1 (message-first) wire to simulateTransaction unchanged', async () => {
+    // Version byte 0x81, then the message; signatures trail it.
+    const wire = new Uint8Array([0x81, 1, 0, 0, 0, 0, 0, 0, 9, 8, 7]);
+    const sent: string[] = [];
+    const reader = new KitChainReader(
+      fakeRpc({
+        simulateTransaction: (tx: string) => {
+          sent.push(tx);
+          return reply({ value: { err: null, logs: [], unitsConsumed: 1n, accounts: null } });
+        },
+      }),
+    );
+    await reader.simulate(wire, []);
+    expect(sent).toEqual([btoa(String.fromCharCode(...wire))]);
+  });
+
   it('maps simulate results and pads missing accounts with nulls', async () => {
     const results: unknown[] = [
       {
