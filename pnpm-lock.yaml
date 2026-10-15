@@ -20,6 +20,9 @@ importers:
       '@solana/kit':
         specifier: ^8.5.0
         version: 8.5.0(typescript@5.9.3)
+      '@types/chrome':
+        specifier: ^0.3.5
+        version: 0.3.5
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5

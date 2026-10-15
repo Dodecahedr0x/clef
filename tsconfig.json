@@ -22,7 +22,9 @@
     "packages/*/test",
     "apps/*/src",
     "apps/*/test",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "e2e",
+    "playwright.config.ts"
   ],
   "exclude": [
     "apps/extension"
