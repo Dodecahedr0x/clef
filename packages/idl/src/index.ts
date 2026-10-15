@@ -5,3 +5,4 @@ export * from './static-source';
 export * from './bundled';
 export * from './anchor-onchain';
 export * from './program-metadata';
+export * from './resolver';
