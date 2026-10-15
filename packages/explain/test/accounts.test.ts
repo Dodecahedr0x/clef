@@ -82,5 +82,6 @@ describe('account helpers', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith([ME, OTHER]);
     expect(cache.get(ME)).toBeNull();
+    expect(cache.get(USDC)).toBeUndefined();
   });
 });

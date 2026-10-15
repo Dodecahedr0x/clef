@@ -28,8 +28,9 @@ export class AccountCache {
     missing.forEach((a, i) => this.cache.set(a, accounts[i] ?? null));
   }
 
-  get(address: Address): RawAccount | null {
-    return this.cache.get(address) ?? null;
+  /** `null` when the account does not exist; `undefined` when it was never loaded. */
+  get(address: Address): RawAccount | null | undefined {
+    return this.cache.get(address);
   }
 }
 
