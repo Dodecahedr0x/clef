@@ -267,10 +267,12 @@ describe('evaluateRisks', () => {
       expect(rules(input([transferSol, transfer], { balanceChanges }))).toEqual([['sweep', 'danger']]);
     });
 
-    it('does not flag a swap (you receive something back)', () => {
+    it('does not flag a Jupiter swap (reviewed program; you receive something back)', () => {
       const swap = ix({ programId: JUP, name: 'route', idl: authority });
       const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(ME, USDC, 300n), change(OTHER, 'SOL', 2n * SOL)];
-      expect(rules(input([swap], { balanceChanges }))).toEqual([['self-described-outflow', 'warn']]);
+      expect(rules(input([swap], { balanceChanges }))).toEqual([]);
+      const sweptThroughJupiter = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
+      expect(rules(input([swap], { balanceChanges: sweptThroughJupiter }))).toEqual([['sweep', 'danger']]);
     });
 
     it('does not flag a single-asset deposit into a program vault, even of the whole balance', async () => {

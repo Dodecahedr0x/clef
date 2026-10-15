@@ -29,6 +29,8 @@ export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
   COMPUTE_BUDGET_PROGRAM,
   MEMO_PROGRAM,
   MEMO_V4_PROGRAM,
+  // reviewed: Jupiter v6 aggregator; swap outflows are expected; balance/sweep rules still apply
+  'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
 ]);
 
 export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
