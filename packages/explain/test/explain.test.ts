@@ -270,6 +270,29 @@ describe('explain', () => {
     expect(v.instructions.map((i) => i.program)).toEqual(['Router (address book, 6VoC\u2026uTAB)', 'System Program']);
   });
 
+  it('passes pre-state owners and signer flags to the risk rules: a program paying SOL back is not your own', async () => {
+    const CURVE = address('8VJxZ3tRvpHFAMrUmEfPQh4SXP8a2hDuDb6ZZnLK2gGq');
+    const run = async (curveOwner: Address) => {
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 5n * SOL, data: new Uint8Array() });
+      tokenAccount(reader, MY_USDC, ME, 100_000_000n);
+      reader.setAccount({ address: CURVE, owner: curveOwner, lamports: 5n * SOL, data: new Uint8Array(100) });
+      simulateWith(reader, {
+        [MY_USDC]: { data: tokenAccountData(ME, USDC, 0n) },
+        [CURVE]: { lamports: 5n * SOL - 7n * SOL / 10n },
+        [ME]: { lamports: 5n * SOL + 7n * SOL / 10n },
+      });
+      const wire = buildWire([{
+        programAddress: DRAINER, data: new Uint8Array([1]),
+        accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: MY_USDC, role: AccountRole.WRITABLE }, { address: CURVE, role: AccountRole.WRITABLE }],
+      }]);
+      const ex = await explain({ wire }, ctx(reader, { prices: { SOL: 150, [USDC]: 1 } }));
+      return ex.warnings.find((w) => w.rule === 'unexplained-outflow')?.severity;
+    };
+    expect(await run(DRAINER)).toBe('warn');
+    expect(await run(address(STAKE_PROGRAM))).toBe('danger');
+  });
+
   describe('v1 fees', () => {
     const SYSTEM = address('11111111111111111111111111111111');
     const v1Run = async (instructions: Instruction[], config: V1TransactionConfig, lost: bigint, balance = 5n * SOL) => {

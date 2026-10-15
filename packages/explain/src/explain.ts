@@ -8,7 +8,7 @@ import { identifyInstruction, type IdentifiedInstruction } from './identify';
 import { Labeler, tokenRelations } from './labels';
 import { verifyCodamaPdas } from './pda';
 import { CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, PROGRAM_NAMES, RENT_SYSVAR, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
-import { estimateFee, evaluateRisks, type RiskInput, type TokenHolding } from './risk';
+import { estimateFee, evaluateRisks, type AccountInfo, type RiskInput, type TokenHolding } from './risk';
 import { errorDetail } from './seeds';
 import { computeStateChanges, type StateChange } from './state-changes';
 import { summarize } from './summary';
@@ -354,6 +354,13 @@ export async function explain(
     if (label !== undefined) labels[a] = label;
   }
 
+  // Pre-state owner and size (from the cache, refreshed by a simulation retry), and the transaction's signer flags.
+  const accountInfo: Record<string, AccountInfo> = {};
+  for (const a of tx.accounts) {
+    const account = cache.get(a.address);
+    if (account) accountInfo[a.address] = { owner: account.owner, dataLength: account.data.length, signer: a.signer };
+  }
+
   const me = [...ctx.me];
   const risk: RiskInput = {
     instructions,
@@ -369,6 +376,7 @@ export async function explain(
     addressBook: new Set(Object.keys(ctx.addressBook ?? {})),
     labels,
     accountLamports,
+    accountInfo,
     ...(simulated.conservative && { balancesChanged: true }),
     ...(simulated.stateChanges && { stateChanges: simulated.stateChanges }),
     ...(simulated.postTokenOwners && { postTokenOwners: simulated.postTokenOwners }),

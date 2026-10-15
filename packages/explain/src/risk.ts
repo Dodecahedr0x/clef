@@ -2,7 +2,7 @@ import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { formatUnits } from './format';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, MAX_COMPUTE_UNIT_LIMIT, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, MAX_COMPUTE_UNIT_LIMIT, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS, VOTE_PROGRAM } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -30,11 +30,17 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   accountLamports?: Readonly<Record<string, bigint>>;
   /** Display labels from trusted sources (see `Labeler`), keyed by address: used to name recipients. */
   labels?: Readonly<Record<string, string>>;
+  /**
+   * Pre-transaction owner program, data length, and signer flag of the transaction's accounts, keyed by address.
+   * Lets value rules tell SOL you may control (stake, vote, nonce, your other keypairs) from SOL a program pays.
+   */
+  accountInfo?: Readonly<Record<string, AccountInfo>>;
   /** USD per whole unit, keyed by mint or 'SOL'. Lets the sweep rule weigh what comes back against what leaves. */
   prices?: Readonly<Record<string, number>>;
 };
 
 export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
+export type AccountInfo = { owner: Address; dataLength: number; signer: boolean };
 
 /**
  * SOL losses up to this much (0.01 SOL) are not treated as an outflow: they cover the rent of a few new
@@ -441,16 +447,35 @@ function usdValue(input: RiskInput, n: NetChange): number | undefined {
 const isPriced = (input: RiskInput, ns: NetChange[]) => input.prices !== undefined && ns.every((n) => usdValue(input, n) !== undefined);
 const usdTotal = (input: RiskInput, ns: NetChange[]) => ns.reduce((total, n) => total + usdValue(input, n)!, 0);
 
+/** A System-owned durable nonce account's data size. */
+const NONCE_ACCOUNT_SIZE = 80;
+
 /**
- * Whether an account that isn't yours loses lamports (beyond `RENT_SLACK`, plus the allowed fee for the fee
- * payer): a stake, vote or nonce account, a program-owned position, or any other wallet. SOL arriving in your
- * wallet may then be your own funds (e.g. a stake withdrawal), not value given back for what leaves. Read from
- * the balance changes: a non-token account's SOL change is keyed by its own address; a token account's rent is
- * keyed by its owner, and stays within `RENT_SLACK`.
+ * Whether SOL may be flowing out of an account you plausibly control without it being yours by `me`: a Stake or
+ * Vote account, a durable nonce account, or another System-owned keypair that signs this transaction. SOL
+ * arriving in your wallet may then be your own funds (e.g. a stake withdrawal), not value given back for what
+ * leaves. A loss within `RENT_SLACK` (plus the allowed fee, for the fee payer) is ignored.
+ *
+ * Without `accountInfo`, or for an account missing from it, any non-`me` account counts (fail safe). AMM and
+ * bonding-curve PDAs owned by other programs pay SOL legitimately, so they don't count.
+ *
+ * Known gap: a withdrawal from your own position held in a program-owned account (e.g. a lending deposit) looks
+ * like a program paying you, so it can still count as value coming back.
+ *
+ * Read from the balance changes: a non-token account's SOL change is keyed by its own address; a token
+ * account's rent is keyed by its owner, and stays within `RENT_SLACK`.
  */
 function foreignSolSource(input: RiskInput, me: ReadonlySet<string>): boolean {
   const allowance = (owner: string) => (owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
-  return (input.balanceChanges ?? []).some((c) => c.mint === 'SOL' && !me.has(c.owner) && -c.delta > allowance(c.owner));
+  const plausiblyYours = (address: string) => {
+    const info = input.accountInfo && (Object.hasOwn(input.accountInfo, address) ? input.accountInfo[address] : undefined);
+    if (!info) return true;
+    if (info.owner === STAKE_PROGRAM || info.owner === VOTE_PROGRAM) return true;
+    return info.owner === SYSTEM_PROGRAM && (info.dataLength === NONCE_ACCOUNT_SIZE || info.signer);
+  };
+  return (input.balanceChanges ?? []).some(
+    (c) => c.mint === 'SOL' && !me.has(c.owner) && -c.delta > allowance(c.owner) && plausiblyYours(c.owner),
+  );
 }
 
 /** At least this share of what leaves must come back for an undecodable outflow to be only a warning. */

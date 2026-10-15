@@ -214,6 +214,42 @@ describe('evaluateRisks', () => {
       expect(outflowRule(input([router], { balanceChanges: sponsored, prices }))?.severity).toBe('danger');
     });
 
+    describe('with account info, only SOL from sources you plausibly control blocks the downgrade', () => {
+      const SOURCE = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
+      const CURVE_PROGRAM = address('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+      const payback = [usdc(-100_000_000n), sol(-700_000_000n, SOURCE), sol(700_000_000n)];
+      const severity = (info: { owner: Address; dataLength: number; signer: boolean }) =>
+        outflowRule(input([router], { balanceChanges: payback, prices, accountInfo: { [SOURCE]: info } }))?.severity;
+
+      it('stake and vote withdrawals stay danger', () => {
+        expect(severity({ owner: address(STAKE_PROGRAM), dataLength: 200, signer: false })).toBe('danger');
+        expect(severity({ owner: address(VOTE_PROGRAM), dataLength: 3762, signer: false })).toBe('danger');
+      });
+
+      it('a nonce account withdrawal stays danger', () => {
+        expect(severity({ owner: address(SYSTEM_PROGRAM), dataLength: 80, signer: false })).toBe('danger');
+      });
+
+      it('SOL from another signing keypair stays danger', () => {
+        expect(severity({ owner: address(SYSTEM_PROGRAM), dataLength: 0, signer: true })).toBe('danger');
+      });
+
+      it('a curve or pool PDA paying SOL downgrades to warn', () => {
+        expect(severity({ owner: CURVE_PROGRAM, dataLength: 150, signer: false })).toBe('warn');
+        // A non-signing system account (e.g. a wallet that is not part of this signing) is not yours either.
+        expect(severity({ owner: address(SYSTEM_PROGRAM), dataLength: 0, signer: false })).toBe('warn');
+      });
+
+      it('a source missing from the account info counts as possibly yours', () => {
+        const other = address('FXZYmk8C97rhzTn7nE8YZCw1V9EGofcJ8jJ5XidoddLz');
+        expect(outflowRule(input([router], { balanceChanges: payback, prices, accountInfo: { [other]: { owner: address(SYSTEM_PROGRAM), dataLength: 0, signer: false } } }))?.severity).toBe('danger');
+      });
+
+      it('without account info, any account losing SOL blocks it (fail safe)', () => {
+        expect(outflowRule(input([router], { balanceChanges: payback, prices }))?.severity).toBe('danger');
+      });
+    });
+
     for (const bad of [0, -1, Infinity, NaN]) {
       it(`treats a price of ${bad} as missing`, () => {
         const SCAM_OUT = tok(SCAM, -5_000_000_000n);
