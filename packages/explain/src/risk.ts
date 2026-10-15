@@ -30,9 +30,22 @@ export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
  */
 export const RENT_SLACK = 10_000_000n;
 
-/** Base fee (5000 lamports per signature) plus priority fee: ceil(cuLimit * microLamportsPerCu / 1e6). */
-export function estimateFee(numSignatures: number, cuLimit?: number, microLamportsPerCu?: bigint): bigint {
-  const priority = cuLimit === undefined || microLamportsPerCu === undefined ? 0n : BigInt(cuLimit) * microLamportsPerCu;
+/** The runtime's default compute limit per instruction, and the transaction-wide maximum. */
+const DEFAULT_CU_PER_INSTRUCTION = 200_000;
+const MAX_CU_LIMIT = 1_400_000;
+
+/**
+ * Base fee (5000 lamports per signature) plus priority fee: ceil(limit * microLamportsPerCu / 1e6). Without an
+ * explicit `cuLimit`, the runtime's default applies: 200k CU per non-compute-budget instruction, capped at 1.4M.
+ */
+export function estimateFee(
+  numSignatures: number,
+  cuLimit?: number,
+  microLamportsPerCu?: bigint,
+  nonComputeBudgetInstructions = 0,
+): bigint {
+  const limit = cuLimit ?? Math.min(DEFAULT_CU_PER_INSTRUCTION * nonComputeBudgetInstructions, MAX_CU_LIMIT);
+  const priority = BigInt(limit) * (microLamportsPerCu ?? 0n);
   return 5000n * BigInt(numSignatures) + (priority + 999_999n) / 1_000_000n;
 }
 

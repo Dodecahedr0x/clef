@@ -150,6 +150,9 @@ describe('evaluateRisks', () => {
     expect(estimateFee(1)).toBe(5000n);
     expect(estimateFee(2, 200_000, 1n)).toBe(10_001n);
     expect(estimateFee(1, 1_400_000, 1000n)).toBe(6400n);
+    // No explicit limit: 200k CU per non-compute-budget instruction, capped at 1.4M.
+    expect(estimateFee(1, undefined, 1000n, 3)).toBe(5600n);
+    expect(estimateFee(1, undefined, 1_000_000n, 10)).toBe(1_405_000n);
   });
 
   it('applies token rules to Token-2022 too', () => {
