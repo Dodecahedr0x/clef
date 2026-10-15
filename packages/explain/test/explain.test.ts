@@ -361,12 +361,71 @@ describe('explain', () => {
       expect(rules(ex)).toEqual([['send-entire-balance', 'warn']]);
     });
 
-    it('gives up when the state keeps changing, counting it as a failed simulation', async () => {
+    it('keeps going when the state keeps changing, with a pre-state that never understates outflows', async () => {
       const { ex, calls } = await sendAll([11_000_000n, 11_000_000n]);
       expect(calls()).toBe(2);
-      expect(ex.balanceChanges).toBeNull();
-      expect(ex.issues).toContainEqual({ stage: 'simulate', message: 'state changed during simulation' });
-      expect(rules(ex)).toContainEqual(['simulation-failed', 'warn']);
+      // Pre-state takes the highest balance seen: both gifts are in it, so only the fee leaves, as in truth.
+      expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -5000n });
+      expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -100_000_000n });
+      expect(ex.issues).toContainEqual({ stage: 'simulate', message: 'state changed during simulation; balances computed conservatively' });
+      expect(rules(ex)).toEqual([['send-entire-balance', 'warn']]);
+    });
+
+    it('still flags a sweep when a gift lands before every simulation (scenario L)', async () => {
+      const reader = new MemoryChainReader();
+      const SYS = address('11111111111111111111111111111111');
+      reader.setAccount({ address: ME, owner: SYS, lamports: 10n * SOL, data: new Uint8Array() });
+      tokenAccount(reader, MY_USDC, ME, 100_000_000n);
+      tokenAccount(reader, OTHER_USDC, ATTACKER, 0n);
+      let calls = 0;
+      reader.simulateImpl = async (_wire, addresses) => {
+        calls++;
+        reader.accounts.get(ME)!.lamports += 1n; // a 1-lamport gift lands before every simulation
+        return {
+          err: null, logs: [], unitsConsumed: 1n,
+          postAccounts: addresses.map((a) => {
+            const now = structuredClone(reader.accounts.get(a) ?? null);
+            if (a === ME) return { ...now!, lamports: now!.lamports - 9n * SOL - 5000n };
+            if (a === ATTACKER) return { address: a, owner: SYS, lamports: 9n * SOL, data: new Uint8Array(), executable: false };
+            if (a === MY_USDC) return { ...now!, data: tokenAccountData(ME, USDC, 0n) };
+            if (a === OTHER_USDC) return { ...now!, data: tokenAccountData(ATTACKER, USDC, 100_000_000n) };
+            return now;
+          }),
+        };
+      };
+      const wire = buildWire([
+        getTransferSolInstruction({ source: me, destination: ATTACKER, amount: 9n * SOL }),
+        getTransferCheckedInstruction({ source: MY_USDC, mint: USDC, destination: OTHER_USDC, authority: me, amount: 100_000_000n, decimals: 6 }),
+      ]);
+      const ex = await explain({ wire }, ctx(reader));
+      expect(calls).toBe(2);
+      expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -9n * SOL - 5000n });
+      expect(rules(ex)).toContainEqual(['sweep', 'danger']);
+      expect(rules(ex)).not.toContainEqual(['simulation-failed', 'warn']);
+    });
+
+    it('takes the highest token amount seen when token gifts keep landing', async () => {
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: SOL, data: new Uint8Array() });
+      tokenAccount(reader, MY_USDC, ME, 100_000_000n);
+      tokenAccount(reader, OTHER_USDC, ATTACKER, 0n);
+      let held = 100_000_000n;
+      reader.simulateImpl = async (_wire, addresses) => {
+        held += 1n; // one base unit lands before every simulation
+        reader.setAccount({ ...reader.accounts.get(MY_USDC)!, data: tokenAccountData(ME, USDC, held) });
+        return {
+          err: null, logs: [], unitsConsumed: 1n,
+          postAccounts: addresses.map((a) => {
+            const now = structuredClone(reader.accounts.get(a) ?? null);
+            if (a === MY_USDC) return { ...now!, data: tokenAccountData(ME, USDC, held - 50_000_000n) };
+            if (a === OTHER_USDC) return { ...now!, data: tokenAccountData(ATTACKER, USDC, 50_000_000n) };
+            return now;
+          }),
+        };
+      };
+      const wire = buildWire([getTransferCheckedInstruction({ source: MY_USDC, mint: USDC, destination: OTHER_USDC, authority: me, amount: 50_000_000n, decimals: 6 })]);
+      const ex = await explain({ wire }, ctx(reader));
+      expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -50_000_000n });
     });
 
     it('simulates no older than the slot the pre-state was read at', async () => {

@@ -57,24 +57,57 @@ const simError = (err: unknown) =>
   sanitizeText(JSON.stringify(err, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)) ?? String(err), 200);
 
 type Simulated = { balanceChanges: ExplainedTransaction['balanceChanges']; stateChanges?: StateChange[]; postTokenOwners?: Record<string, Address> };
-/** A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. */
-type SimRun = { pre: (RawAccount | null)[]; post: (RawAccount | null)[] } | { failed: string };
+/**
+ * A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. `conservative`: the
+ * chain kept changing, so `pre` was built by `highestSeen`.
+ */
+type SimRun = { pre: (RawAccount | null)[]; post: (RawAccount | null)[]; conservative?: true } | { failed: string };
 
 const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 const sameAccount = (a: RawAccount | null, b: RawAccount | null) =>
   a === b || (!!a && !!b && a.lamports === b.lamports && a.owner === b.owner && sameBytes(a.data, b.data));
 
+/** SPL token account `amount`: u64 LE at offset 64. */
+const TOKEN_AMOUNT_OFFSET = 64;
+
+/**
+ * One account's pre-state from several reads that disagree: the latest read (owner, delegate, close authority),
+ * with the highest lamports and the highest token amount (same mint) seen in any read. Concurrent gifts only
+ * add, so pre-minus-post can then overstate an outflow but never understate one.
+ */
+function highestSeen(reads: readonly (RawAccount | null)[]): RawAccount | null {
+  const base = reads[reads.length - 1] ?? [...reads].reverse().find((a) => a !== null) ?? null;
+  if (!base) return null;
+  const present = reads.filter((a): a is RawAccount => a !== null);
+  const lamports = present.reduce((max, a) => (a.lamports > max ? a.lamports : max), base.lamports);
+  let data = base.data;
+  const token = decodeTokenAccount(base);
+  if (token) {
+    const amount = present
+      .map((a) => decodeTokenAccount(a))
+      .reduce((max, t) => (t && t.mint === token.mint && t.amount > max ? t.amount : max), token.amount);
+    if (amount > token.amount) {
+      data = new Uint8Array(base.data);
+      new DataView(data.buffer).setBigUint64(TOKEN_AMOUNT_OFFSET, amount, true);
+    }
+  }
+  return { ...base, lamports, data };
+}
+
 /**
  * Simulates against the cached pre-state of every writable account (only those can change, by top-level or CPI
  * instructions alike), then re-reads them: if the chain moved meanwhile, pre and post would describe different
- * states (a concurrent gift could offset a drain). Then it retries once from the fresh read, else gives up.
+ * states (a concurrent gift could offset a drain). It retries once from the fresh read. If the state moved again,
+ * it keeps the last simulation and compares it with `highestSeen` of all reads: never discarded (an attacker
+ * could otherwise turn any danger into "simulation failed" by gifting lamports before every simulation).
  */
 async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx: ExplainContext, cache: AccountCache): Promise<SimRun> {
   const loaded = writable.map((a) => cache.get(a));
   if (loaded.some((a) => a === undefined)) return { failed: 'Simulation skipped: pre-transaction state unavailable' };
   let pre = loaded as (RawAccount | null)[];
+  const reads: (RawAccount | null)[][] = [pre];
+  let post: (RawAccount | null)[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
-    let post: (RawAccount | null)[];
     let now: (RawAccount | null)[];
     try {
       const minContextSlot = cache.slot;
@@ -92,11 +125,14 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
     } catch (e) {
       return { failed: `Could not confirm the pre-transaction state: ${errorDetail(e)}` };
     }
-    if (now.length === writable.length && now.every((a, i) => sameAccount(a ?? null, pre[i]!))) return { pre, post };
-    pre = writable.map((a, i) => now[i] ?? null);
+    if (now.length !== writable.length) return { failed: 'Could not confirm the pre-transaction state' };
+    if (now.every((a, i) => sameAccount(a ?? null, pre[i]!))) return { pre, post };
+    pre = now.map((a) => a ?? null);
+    reads.push(pre);
     pre.forEach((a, i) => cache.set(writable[i]!, a));
   }
-  return { failed: 'state changed during simulation' };
+  const conservative = writable.map((_, i) => highestSeen(reads.map((r) => r[i]!)));
+  return { pre: conservative, post, conservative: true };
 }
 
 /** Balance and state changes from a simulation run, the same index-aligned lists feeding both. */
@@ -112,6 +148,7 @@ async function fromSimulation(
     return { balanceChanges: null };
   }
   const { pre, post } = run;
+  if (run.conservative) issues.push({ stage: 'simulate', message: 'state changed during simulation; balances computed conservatively' });
   // Accounts created in the transaction may hold mints not seen before: their decimals are needed too.
   const postTokens = post.map((a) => (a ? decodeTokenAccount(a) : null));
   await load(postTokens.flatMap((t) => (t ? [t.mint] : [])), 'mints');

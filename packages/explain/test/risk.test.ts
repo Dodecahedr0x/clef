@@ -84,6 +84,7 @@ describe('evaluateRisks', () => {
     expect(
       rules(
         input([nonce, unknown], {
+          balanceChanges: null,
           issues: [{ stage: 'simulate', message: 'Simulation failed: custom error 1' }],
           relations: [{ kind: 'pda', from: OTHER, to: OTHER, label: 'PDA', status: 'mismatch', instructionIndex: 1 }],
         }),
@@ -93,7 +94,11 @@ describe('evaluateRisks', () => {
       ['unknown-program', 'warn'],
       ['relation-mismatch', 'danger'],
       ['simulation-failed', 'warn'],
+      ['unexplained-outflow', 'danger'],
     ]);
+    // A simulate issue that still produced balance changes is not a failed simulation.
+    const conservative = [{ stage: 'simulate' as const, message: 'state changed during simulation; balances computed conservatively' }];
+    expect(rules(input([], { issues: conservative }))).toEqual([]);
   });
 
   it('makes a durable nonce danger when anything else is flagged or someone else controls the nonce', () => {
@@ -116,7 +121,7 @@ describe('evaluateRisks', () => {
       ['unknown-program', 'warn'],
       ['unknown-program', 'warn'],
     ]);
-    expect(evaluateRisks(input([], { issues: [{ stage: 'simulate', message: 'x' }] }))[0]!.message).toBe(
+    expect(evaluateRisks(input([], { balanceChanges: null, issues: [{ stage: 'simulate', message: 'x' }] }))[0]!.message).toBe(
       'Simulation failed or unavailable: balance changes are unknown.',
     );
   });

@@ -203,7 +203,8 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
     warn('transaction-failed', 'info', 'Transaction failed; only the fee was charged.');
   }
 
-  if (input.issues.some((i) => i.stage === 'simulate')) {
+  // A simulate issue with balance changes (e.g. computed conservatively) is not a failed simulation.
+  if (input.balanceChanges === null && input.issues.some((i) => i.stage === 'simulate')) {
     warn('simulation-failed', 'warn', 'Simulation failed or unavailable: balance changes are unknown.');
   }
 
