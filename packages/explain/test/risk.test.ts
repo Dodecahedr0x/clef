@@ -51,6 +51,7 @@ describe('evaluateRisks', () => {
     expect(rules(input([approve(99n)], { tokenBalances }))).toEqual([['delegation', 'warn']]);
     expect(rules(input([approve(U64_MAX, ME)]))).toEqual([['delegation', 'warn']]);
     expect(evaluateRisks(input([approve(5n)]))[0]!.message).toContain('your token account');
+    expect(evaluateRisks(input([approve(U64_MAX)]))[0]!.message).toBe('Lets a delegate spend an UNLIMITED amount of the tokens in your token account.');
     const notMine = ix({ name: 'approve', args: { amount: 5n }, accounts: [named('source', SRC), named('delegate', OTHER)] });
     expect(evaluateRisks(input([notMine]))[0]!.message).not.toContain('your');
   });

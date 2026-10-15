@@ -103,7 +103,7 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       const all = unlimited || held === undefined || amount >= held.amount;
       const danger = all && notMineOrUnknown(account(ix, 'delegate'));
       const whose = source && (source.mine || me.has(source.address) || (held && me.has(held.owner))) ? 'your' : 'a';
-      const what = unlimited ? 'an UNLIMITED amount of' : all ? 'ALL' : 'some';
+      const what = unlimited ? 'an UNLIMITED amount' : all ? 'ALL' : 'some';
       warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
     }
     if (isToken(ix.programId) && ix.name === 'setAuthority') {
@@ -150,7 +150,7 @@ export function evaluateRisks(input: RiskInput): Warning[] {
     } else {
       const amount = c.amount ?? 0n;
       const all = amount >= HALF_U64 || (c.balance !== undefined && amount >= c.balance);
-      const what = amount >= HALF_U64 ? 'an UNLIMITED amount of' : all ? 'ALL' : 'some';
+      const what = amount >= HALF_U64 ? 'an UNLIMITED amount' : all ? 'ALL' : 'some';
       warn('delegation', all ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in your token account.`, undefined, c.address);
     }
   }
