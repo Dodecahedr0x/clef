@@ -3636,4 +3636,13 @@ git add -A && git commit -m "test(explain): recorded mainnet fixtures with snaps
 - Nested-path seeds with non-public-key values.
 - Curated summary templates beyond System/Token transfers (Jupiter, Squads — M7/M9).
 - `Buffer` usage in `pda.ts`/`views.ts` must be replaced with a hex helper before the code runs in the extension (M2).
-- Transaction message `version: 1`.
+
+## Extensions beyond the original plan
+
+Landed in M1 although the plan above did not call for them:
+
+- **v1 transactions** (SIMD-0385): decoding with size, count and config-mask checks; the fee and compute limits from the transaction config; v1 envelopes; `maxSupportedTransactionVersion: 1` in `@clef/rpc`.
+- **Risk-engine hardening**: rules on simulated state changes (token owner, close authority, program owner); the sweep rule; fee and `high-fee` handling with a bounded allowance; stake authority, lockup, withdraw and initialize rules; netting of flows across all of your wallets (wrapped SOL as SOL); co-signer closes and approvals that are not yours.
+- **Race-safe simulation**: simulation against the cached pre-state of every writable account, a re-read and one retry, then a conservative pre-state (`highestSeen`) instead of discarding the result.
+- **IDL source hardening**: load timeouts and transient-error retries in the resolver, capped inflation, curated-only decoding for bundled programs, sanitized names, args and error text.
+- **CLI exit codes**: 0 explained, 1 error, 2 usage, 3 explained with a DANGER warning.
