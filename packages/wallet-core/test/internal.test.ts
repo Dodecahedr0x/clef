@@ -12,8 +12,17 @@ function api() {
   const permissions = new PermissionStore(local);
   const onLock = vi.fn();
   const onUnlock = vi.fn(async () => {});
-  const internal = new InternalApi({ vault, accounts: new AccountStore(local), permissions, settings: new SettingsStore(local), onLock, onUnlock });
-  return { internal, vault, permissions, onLock, onUnlock, state: () => internal.call({ type: 'state' }) as Promise<WalletState> };
+  const emitted: { origin: string; accounts: string[] }[] = [];
+  const internal = new InternalApi({
+    vault,
+    accounts: new AccountStore(local),
+    permissions,
+    settings: new SettingsStore(local),
+    onLock,
+    onUnlock,
+    emit: (origin, accounts) => emitted.push({ origin, accounts }),
+  });
+  return { internal, vault, permissions, onLock, onUnlock, emitted, state: () => internal.call({ type: 'state' }) as Promise<WalletState> };
 }
 
 async function onboarded() {
@@ -82,6 +91,20 @@ describe('InternalApi', () => {
     await internal.call({ type: 'settings:update', patch: { network: 'devnet' } });
     expect((await state()).settings.network).toBe('devnet');
     await expect(internal.call({ type: 'settings:update', patch: { evil: true } })).rejects.toThrow();
+  });
+
+  it('tells connected pages when their access is revoked or an account is removed', async () => {
+    const { internal, permissions, emitted } = await onboarded();
+    await internal.call({ type: 'accounts:watch', address: OTHER, label: 'Cold' });
+    await permissions.grant('https://a.example', [A, OTHER as never]);
+    await permissions.grant('https://b.example', [A]);
+    await internal.call({ type: 'accounts:remove', address: A });
+    expect(emitted).toEqual([
+      { origin: 'https://a.example', accounts: [OTHER] },
+      { origin: 'https://b.example', accounts: [] },
+    ]);
+    await internal.call({ type: 'permissions:revoke', origin: 'https://a.example' });
+    expect(emitted.at(-1)).toEqual({ origin: 'https://a.example', accounts: [] });
   });
 
   it('never returns secrets in state', async () => {

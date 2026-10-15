@@ -70,6 +70,7 @@ export default defineBackground(() => {
     settings,
     onLock: () => autoLock.stop(),
     onUnlock: () => autoLock.touch(),
+    emit,
   });
 
   browser.runtime.onConnect.addListener((port: Port) => {

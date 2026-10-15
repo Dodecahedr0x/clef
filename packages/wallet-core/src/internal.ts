@@ -21,6 +21,8 @@ export type InternalApiDeps = {
   settings: SettingsStore;
   onLock: () => void;
   onUnlock: () => Promise<void>;
+  /** Tells every page of `origin` its accounts changed (same channel as WalletService events). */
+  emit: (origin: string, accounts: string[]) => void;
 };
 
 const SETTINGS_KEYS = ['network', 'rpcUrl', 'autoLockMinutes'] as const;
@@ -101,13 +103,18 @@ export class InternalApi {
         return {};
       case 'accounts:remove': {
         const address = addressField(raw, 'address');
+        const affected = (await permissions.list()).filter((p) => p.accounts.includes(address));
         await accounts.remove(address);
         await permissions.removeAccount(address);
+        for (const p of affected) this.deps.emit(p.origin, (await permissions.get(p.origin))?.accounts ?? []);
         return {};
       }
-      case 'permissions:revoke':
-        await permissions.revoke(field(raw, 'origin', 512));
+      case 'permissions:revoke': {
+        const origin = field(raw, 'origin', 512);
+        await permissions.revoke(origin);
+        this.deps.emit(origin, []);
         return {};
+      }
       case 'settings:update': {
         const patch = raw.patch;
         if (!isObj(patch) || !Object.keys(patch).every((k) => (SETTINGS_KEYS as readonly string[]).includes(k))) throw new Error('Invalid settings');
