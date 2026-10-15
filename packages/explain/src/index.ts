@@ -9,3 +9,4 @@ export { displayBytes } from './seeds';
 export * from './pda';
 export * from './anchor-relations';
 export * from './labels';
+export * from './balances';
