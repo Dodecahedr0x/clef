@@ -74,20 +74,22 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         const seedValue = (dv.seeds ?? []).find((s) => s.name === seed.name)?.value;
         if (!seedValue) throw new Unresolvable(`seed "${seed.name}" has no value`);
         let resolved: unknown;
+        let display: SeedInfo | undefined;
         if (isNode(seedValue, 'accountValueNode')) {
           if (isAbsent(ix, seedValue.name)) throw new Unresolvable(`${seedValue.name} not provided`);
           resolved = byName.get(seedValue.name);
           if (!resolved) throw new Unresolvable(`account "${seedValue.name}" is not in the instruction`);
-          seeds.push({ kind: 'account', display: seedValue.name });
+          display = { kind: 'account', display: seedValue.name };
         } else if (isNode(seedValue, 'argumentValueNode')) {
           if (!Object.hasOwn(args, seedValue.name)) throw new Unresolvable(`argument "${seedValue.name}" is missing`);
           resolved = args[seedValue.name];
-          seeds.push({ kind: 'arg', display: seedValue.name });
+          display = { kind: 'arg', display: seedValue.name };
         } else {
           resolved = visit(seedValue, value);
-          seeds.push({ kind: 'const', display: String(resolved) });
         }
-        encoded.push(new Uint8Array(seedCodec.encode(resolved)));
+        const bytes = new Uint8Array(seedCodec.encode(resolved));
+        encoded.push(bytes);
+        seeds.push(display ?? { kind: 'const', display: displayBytes(bytes) });
       }
 
       programAddress = pdaProgramAddress;

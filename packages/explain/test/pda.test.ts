@@ -1,8 +1,29 @@
 import { address, getAddressEncoder, getProgramDerivedAddress, getU64Encoder, getUtf8Encoder } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
+import {
+  argumentValueNode,
+  bytesTypeNode,
+  bytesValueNode,
+  constantPdaSeedNodeFromProgramId,
+  constantPdaSeedNodeFromString,
+  fieldDiscriminatorNode,
+  fixedSizeTypeNode,
+  instructionAccountNode,
+  instructionArgumentNode,
+  instructionNode,
+  numberTypeNode,
+  numberValueNode,
+  pdaLinkNode,
+  pdaNode,
+  pdaSeedValueNode,
+  pdaValueNode,
+  programNode,
+  rootNode,
+  variablePdaSeedNode,
+} from '@codama/nodes';
 import type { Address } from '@solana/kit';
 import { identifyInstruction, toHex, verifyCodamaPdas, type IdentifiedInstruction } from '../src';
-import { anchorIdl, customIx, PROG } from './custom-idl';
+import { anchorIdl, bytesValue, customIx, IX_DISC, PROG } from './custom-idl';
 import { ME, USDC } from './helpers';
 import { OTHER, depositInstruction, vaultAddresses, vaultResolver } from './vault';
 
@@ -44,7 +65,10 @@ describe('verifyCodamaPdas', () => {
     const idl = ix.resolvedIdl!;
     const withNested: IdentifiedInstruction = {
       ...ix,
-      resolvedIdl: { ...idl, anchorExtras: { deposit: { pool: { relations: [], nestedSeeds: [] } } } },
+      resolvedIdl: {
+        ...idl,
+        anchorExtras: { deposit: { pool: { relations: [], nestedSeeds: [{ kind: 'account', path: ['user'] }] } } },
+      },
     };
     const edges = await verifyCodamaPdas(withNested);
     expect(edges.map((e) => e.from)).toEqual([accounts.poolVault]);
@@ -142,6 +166,59 @@ describe('verifyCodamaPdas deriving program from the instruction', () => {
     expect(pinned).toEqual([expect.objectContaining({ from: target, status: 'verified', to: USDC })]);
     const free = await verifyCodamaPdas(await customIx(anchorIdl(accounts(false)), [USDC, target]));
     expect(free).toEqual([expect.objectContaining({ from: target, status: 'unverified', detail: `derived under ${USDC}` })]);
+  });
+});
+
+describe('verifyCodamaPdas with Codama-native IDLs', () => {
+  const account = (name: string, defaultValue: ReturnType<typeof pdaValueNode>) =>
+    instructionAccountNode({ name, isWritable: false, isSigner: false, defaultValue });
+  const root = rootNode(
+    programNode({
+      name: 'p',
+      publicKey: PROG,
+      pdas: [pdaNode({ name: 'linked', seeds: [constantPdaSeedNodeFromString('utf8', 'l'), constantPdaSeedNodeFromProgramId()] })],
+      instructions: [
+        instructionNode({
+          name: 'go',
+          discriminators: [fieldDiscriminatorNode('discriminator')],
+          arguments: [
+            instructionArgumentNode({
+              name: 'discriminator',
+              type: fixedSizeTypeNode(bytesTypeNode(), 8),
+              defaultValue: bytesValueNode('base16', bytesValue(IX_DISC)[1]!),
+              defaultValueStrategy: 'omitted',
+            }),
+          ],
+          accounts: [
+            account('linked', pdaValueNode(pdaLinkNode('linked'))),
+            account(
+              'valued',
+              pdaValueNode(pdaNode({ name: 'valued', seeds: [variablePdaSeedNode('n', numberTypeNode('u8'))] }), [
+                pdaSeedValueNode('n', numberValueNode(5)),
+              ]),
+            ),
+            account(
+              'needsArg',
+              pdaValueNode(pdaNode({ name: 'needsArg', seeds: [variablePdaSeedNode('amt', numberTypeNode('u64'))] }), [
+                pdaSeedValueNode('amt', argumentValueNode('missing')),
+              ]),
+            ),
+          ],
+        }),
+      ],
+    }),
+  );
+
+  it('resolves pdaLinkNode, programId constant seeds, value seeds and missing args', async () => {
+    const [linked] = await getProgramDerivedAddress({ programAddress: PROG, seeds: ['l', getAddressEncoder().encode(PROG)] });
+    const [valued] = await getProgramDerivedAddress({ programAddress: PROG, seeds: [new Uint8Array([5])] });
+    const edges = await verifyCodamaPdas(await customIx(root, [linked, valued, OTHER]));
+    expect(edges.map((e) => [e.from, e.status, e.label])).toEqual([
+      [linked, 'verified', `PDA("l", 0x${toHex(new Uint8Array(getAddressEncoder().encode(PROG)))})`],
+      [valued, 'verified', 'PDA(0x05)'],
+      [OTHER, 'unverified', 'PDA'],
+    ]);
+    expect(edges[2]!.detail).toBe('argument "missing" is missing');
   });
 });
 
