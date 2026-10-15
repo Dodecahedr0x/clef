@@ -22,7 +22,7 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
   };
 
 /** Warnings under which a one-instruction template would mislead: the summary states the balance changes instead. */
-const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee', 'transaction-failed']);
+const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'transaction-failed']);
 
 type Context = Pick<SummaryInput, 'labels' | 'tokenOwners' | 'tokenBalances' | 'accountLamports'>;
 type Template = (ix: ExplainedInstruction, ctx: Context) => string | null;
@@ -195,18 +195,23 @@ export function summarize(input: SummaryInput): string {
   const lone = meaningful.length === 1 ? meaningful[0]! : undefined;
   const t = lone && !flagged ? template(lone, input) : null;
   const text = t?.text ?? describe(input, meaningful);
-  const danger = (input.warnings ?? []).find(
-    (w) => w.severity === 'danger' && !(t?.expresses.includes(w.rule) && w.instructionIndex === lone?.index),
-  );
-  return danger ? `${text} -- ${shorten(danger.message)}` : text;
+  const warnings = input.warnings ?? [];
+  // The first danger the text doesn't state; else a high fee, which is never part of any text.
+  const shown =
+    warnings.find((w) => w.severity === 'danger' && !(t?.expresses.includes(w.rule) && w.instructionIndex === lone?.index)) ??
+    warnings.find((w) => w.rule === 'high-fee');
+  return shown ? `${text} -- ${shorten(shown.message)}` : text;
 }
 
 /** From balance changes (yours, without the expected fee) and the programs involved. */
 function describe(input: SummaryInput, meaningful: readonly ExplainedInstruction[]): string {
 
   const me = new Set<string>(input.me);
+  // A high fee is stated as a fee (see `summarize`), so all of it comes out; otherwise only the allowed part.
+  const highFee = (input.warnings ?? []).some((w) => w.rule === 'high-fee');
+  const fee = input.fee === undefined ? 0n : highFee ? input.fee : feeAllowance(input.fee, input.baseFee);
   const mine = (input.balanceChanges ?? [])
-    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, feeAllowance(input.fee, input.baseFee)) : c))
+    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, fee) : c))
     .filter((c) => me.has(c.owner) && c.delta !== 0n);
   const outflows = mine.filter((c) => c.delta < 0n);
   const sent = outflows.map(asset);

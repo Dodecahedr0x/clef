@@ -232,7 +232,7 @@ describe('explain', () => {
     expect(await run(20_000_000n, 30_005_001n)).toContainEqual(['unexplained-outflow', 'danger']);
   });
 
-  it('flags an absurd priority fee, and never summarizes it as a plain transfer', async () => {
+  it('flags an absurd priority fee and states it in the summary', async () => {
     const reader = new MemoryChainReader();
     reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 10n * SOL, data: new Uint8Array() });
     const fee = 8_400_005_000n; // 1.4M CU x 6e9 microLamports + 5000
@@ -245,9 +245,8 @@ describe('explain', () => {
     const ex = await explain({ wire }, ctx(reader));
     expect(ex.fee).toBe(fee);
     expect(rules(ex)).toContainEqual(['high-fee', 'danger']);
-    expect(ex.summary).not.toBe(`Send 0.001 SOL to ${shortAddress(OTHER)}`);
-    // Only the base fee and 0.01 SOL of priority fee are taken out of what you send.
-    expect(ex.summary).toMatch(/^Send 8\.391 SOL/);
+    // The transfer is described as it is, and the fee is stated as a fee.
+    expect(ex.summary).toBe(`Send 0.001 SOL to ${shortAddress(OTHER)} -- pays a priority fee of 8.4 SOL`);
   });
 
   it('leaves the fee unknown when a compute budget instruction cannot be decoded', async () => {

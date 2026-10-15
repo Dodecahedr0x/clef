@@ -46,6 +46,9 @@ export const RENT_SLACK = 10_000_000n;
  */
 export const PRIORITY_FEE_LIMIT = 10_000_000n;
 
+/** A priority fee is only ever a danger above this (0.05 SOL). */
+const HIGH_FEE_DANGER = 50_000_000n;
+
 /** How much of `fee` counts as expected spend: the base fee plus at most `PRIORITY_FEE_LIMIT` of priority fee. */
 export function feeAllowance(fee: bigint | undefined, baseFee = 0n): bigint {
   if (fee === undefined) return 0n;
@@ -204,8 +207,8 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   const priority = input.fee !== undefined ? input.fee - (input.baseFee ?? 0n) : 0n;
   if (input.feePayer !== undefined && me.has(input.feePayer) && priority > PRIORITY_FEE_LIMIT) {
     const balance = input.solBalances?.[input.feePayer];
-    // More than 5% of what the payer holds.
-    const severity = balance !== undefined && priority * 20n > balance ? 'danger' : 'warn';
+    // Danger: more than 5% of what the payer holds, and more than 0.05 SOL.
+    const severity = balance !== undefined && priority * 20n > balance && priority > HIGH_FEE_DANGER ? 'danger' : 'warn';
     warn('high-fee', severity, `Pays a priority fee of ${formatUnits(priority, 9)} SOL.`);
   }
 

@@ -174,6 +174,9 @@ describe('evaluateRisks', () => {
       expect(rules(input(curatedOnly, { ...base, fee: fee(10_000_001n) }))).toEqual([['high-fee', 'warn']]);
       expect(rules(input(curatedOnly, { ...base, fee: fee(10_000_001n), solBalances: { [ME]: 10n * SOL } }))).toEqual([['high-fee', 'warn']]);
       expect(rules(input(curatedOnly, { ...base, fee: fee(500_000_001n), solBalances: { [ME]: 10n * SOL } }))).toEqual([['high-fee', 'danger']]);
+      // Over 5% of a small balance, but not over 0.05 SOL: warn.
+      expect(rules(input(curatedOnly, { ...base, fee: fee(20_000_000n), solBalances: { [ME]: 3n * SOL / 10n } }))).toEqual([['high-fee', 'warn']]);
+      expect(rules(input(curatedOnly, { ...base, fee: fee(50_000_001n), solBalances: { [ME]: 3n * SOL / 10n } }))).toEqual([['high-fee', 'danger']]);
       expect(evaluateRisks(input(curatedOnly, { ...base, fee: fee(500_000_001n) }))[0]!.message).toBe('Pays a priority fee of 0.500000001 SOL.');
       // Someone else pays: not your loss.
       expect(rules(input(curatedOnly, { ...base, feePayer: OTHER, fee: fee(SOL) }))).toEqual([]);

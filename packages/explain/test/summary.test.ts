@@ -168,7 +168,14 @@ describe('summarize', () => {
     // The template would only describe the instruction; the summary must state what actually leaves.
     expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: sweep })).toBe(`Send 1.5 SOL to ${shortAddress(OTHER)} -- m`);
     const highFee: Warning[] = [{ rule: 'high-fee', severity: 'warn', message: 'm' }];
-    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: highFee })).not.toMatch(/Alice/);
+    // A high fee keeps the template and says so, warn or danger.
+    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: highFee })).toBe('Send 1.5 SOL to Alice -- m');
+    // Without a template, the whole fee comes out of what you send.
+    const unknown: ExplainedInstruction = { ...base, index: 0, programId: OTHER };
+    const paid = [{ owner: ME, mint: 'SOL' as const, symbol: 'SOL', decimals: 9, delta: -1_000_005_000n }];
+    expect(summarize({ instructions: [unknown], balanceChanges: paid, me: [ME], warnings: highFee, fee: 1_000_005_000n, baseFee: 5000n, feePayer: ME })).toBe(
+      `Interact with ${shortAddress(OTHER)} -- m`,
+    );
     const unexplained: Warning[] = [{ rule: 'unexplained-outflow', severity: 'danger', message: 'm' }];
     expect(summarize({ instructions: [transferSol()], balanceChanges: null, me: [ME], warnings: unexplained })).toBe(
       'Interact with System Program (balance changes unknown) -- m',

@@ -88,8 +88,22 @@ describe('basic view golden summaries for hostile transactions', () => {
       getSetComputeUnitPriceInstruction({ microLamports: 6_000_000_000n }),
       getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL / 1000n }),
     ]);
-    expect(v.summary).toBe('Send 8.391 SOL -- pays a priority fee of 8.4 SOL');
+    expect(v.summary).toBe(`Send 0.001 SOL to ${shortAddress(OTHER)} -- pays a priority fee of 8.4 SOL`);
     expect(v.fee).toBe('8.400005 SOL');
+  });
+
+  it('moderate priority fee on a small balance (scenario B2)', async () => {
+    const reader = new MemoryChainReader();
+    reader.setAccount({ address: ME, owner: SYS, lamports: (3n * SOL) / 10n, data: new Uint8Array() });
+    simulateWith(reader, { [OTHER]: { lamports: SOL / 100n, owner: SYS }, [ME]: { lamports: (3n * SOL) / 10n - SOL / 100n } }, { fee: 20_005_000n });
+    const v = await basic(reader, [
+      getSetComputeUnitLimitInstruction({ units: 200_000 }),
+      getSetComputeUnitPriceInstruction({ microLamports: 100_000_000n }),
+      getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL / 100n }),
+    ]);
+    // 0.02 SOL is over 5% of 0.3 SOL but not over 0.05 SOL: warn.
+    expect(v.summary).toBe(`Send 0.01 SOL to ${shortAddress(OTHER)} -- pays a priority fee of 0.02 SOL`);
+    expect(v.warnings.map((w) => [w.rule, w.severity])).toEqual([['high-fee', 'warn']]);
   });
 
   it('sweep of SOL and USDC', async () => {
