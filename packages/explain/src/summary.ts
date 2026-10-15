@@ -1,6 +1,6 @@
 import { formatUnits, programDisplay } from './format';
 import { shortAddress } from './labels';
-import { authorityArg, feeAllowance, HALF_U64, stakeRole } from './risk';
+import { authorityArg, feeAllowance, HALF_U64, RENT_SLACK, stakeRole } from './risk';
 import { CLOCK_SYSVAR, NATIVE_MINTS, PLUMBING_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import type { BalanceChange, ExplainedInstruction, ExplainedTransaction } from './types';
 
@@ -225,7 +225,9 @@ function describe(input: SummaryInput, meaningful: readonly ExplainedInstruction
   const [only] = recipients;
   const gain = (mint: string) => (input.balanceChanges ?? []).filter((c) => c.owner === only && c.mint === mint).reduce((t, c) => t + c.delta, 0n);
   const to = recipients.size === 1 && outflows.every((o) => gain(o.mint) * 2n >= -o.delta) ? ` to ${named(only!, input)}` : '';
-  const received = mine.filter((c) => c.delta > 0n).map(asset);
+  // A rent-sized SOL gain (e.g. the rent of an account someone else funded for you) is not a receive, as in risk's
+  // `netFlows`: it still shows in the balance changes.
+  const received = mine.filter((c) => (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n)).map(asset);
 
   const programs = [
     ...new Set(meaningful.filter((ix) => !TOKEN_PROGRAMS.has(ix.programId) && ix.programId !== SYSTEM_PROGRAM).map(programDisplay)),

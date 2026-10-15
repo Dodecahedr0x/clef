@@ -1223,7 +1223,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
     },
   ],
   "stateChanges": null,
-  "summary": "Send 4821.455814 DsjP…CSLT to F9yY…vovk, receive 0.000193618 SOL via Associated Token Program, Jupiter Aggregator v6",
+  "summary": "Send 4821.455814 DsjP…CSLT to F9yY…vovk via Associated Token Program, Jupiter Aggregator v6",
   "version": "0",
   "warnings": [],
 }
@@ -4993,7 +4993,7 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
     },
   ],
   "stateChanges": null,
-  "summary": "Receive 0.00148844 SOL via Associated Token Program -- hands an authority of a token account or mint to someone else",
+  "summary": "Interact with Associated Token Program, Token Program -- hands an authority of a token account or mint to someone else",
   "version": "legacy",
   "warnings": [
     {

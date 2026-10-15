@@ -2,6 +2,7 @@ import { address, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
   KNOWN_PROGRAMS,
+  RENT_SLACK,
   TRUSTED_PROGRAMS,
   formatUnits,
   programDisplay,
@@ -166,6 +167,14 @@ describe('summarize', () => {
     expect(summarize({ instructions, balanceChanges: sol(-5000n), me: [ME], fee: 5000n, feePayer: OTHER })).toBe(
       `Send 0.000005 SOL via ${shortAddress(OTHER)}`,
     );
+  });
+
+  it('does not call a rent-sized SOL gain a receive (it is rent of an account made for you)', () => {
+    const instructions: ExplainedInstruction[] = [{ ...base, index: 0, programId: OTHER }];
+    const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, symbol: 'SOL', decimals: 9, delta }];
+    expect(summarize({ instructions, balanceChanges: sol(2_039_280n), me: [ME] })).toBe(`Interact with ${shortAddress(OTHER)}`);
+    expect(summarize({ instructions, balanceChanges: sol(RENT_SLACK), me: [ME] })).toBe(`Interact with ${shortAddress(OTHER)}`);
+    expect(summarize({ instructions, balanceChanges: sol(RENT_SLACK + 1n), me: [ME] })).toBe(`Receive 0.010000001 SOL via ${shortAddress(OTHER)}`);
   });
 
   it('describes interactions when nothing moves', () => {
