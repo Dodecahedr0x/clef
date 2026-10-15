@@ -87,7 +87,9 @@ const setAuthority: Template = (ix, ctx) => {
   const owned = ix.accounts.find((a) => a.name === 'owned');
   const type = ix.args?.authorityType;
   const next = authorityArg(ix.args?.newAuthority);
-  const kind = typeof type === 'number' ? AUTHORITY_TYPES[type] : undefined;
+  // Decoded as `{ __kind: 'CloseAccount', __discriminator: 3 }`.
+  const index = type !== null && typeof type === 'object' ? (type as { __discriminator?: unknown }).__discriminator : type;
+  const kind = typeof index === 'number' ? AUTHORITY_TYPES[index] : undefined;
   if (!owned || kind === undefined || next === undefined) return null;
   return next === null
     ? `Revoke the ${kind} authority of ${who(owned)}`

@@ -42,9 +42,18 @@ describe('basic view golden summaries for hostile transactions', () => {
     const v = await basic(reader, [
       getSetAuthorityInstruction({ owned: MY_USDC, owner: me, authorityType: AuthorityType.AccountOwner, newAuthority: ATTACKER }),
     ]);
-    // Handing over the account moves its tokens and rent to the new owner: the outflows lead.
-    expect(v.summary).toBe(`Send 0.001 SOL, 100 USDC to ${A} -- hands an authority of a token account or mint to someone else`);
+    expect(v.summary).toBe(`Set the account owner authority of Your USDC token account to ${A}`);
     expect(v.warnings.map((w) => [w.rule, w.severity])).toEqual([['authority-change', 'danger'], ['send-entire-balance', 'warn']]);
+  });
+
+  it('setAuthority handing over the close authority', async () => {
+    const reader = chain();
+    simulateWith(reader, { [MY_USDC]: { data: tokenAccountData(ME, USDC, 100_000_000n, { closeAuthority: ATTACKER }) } });
+    const v = await basic(reader, [
+      getSetAuthorityInstruction({ owned: MY_USDC, owner: me, authorityType: AuthorityType.CloseAccount, newAuthority: ATTACKER }),
+    ]);
+    expect(v.summary).toBe(`Set the close account authority of Your USDC token account to ${A}`);
+    expect(v.warnings.map((w) => [w.rule, w.severity])).toEqual([['authority-change', 'danger']]);
   });
 
   it('CPI drainer setting a delegate', async () => {

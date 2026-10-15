@@ -202,7 +202,7 @@ describe('summary templates for authority-moving instructions', () => {
 
   it('revoke, setAuthority, closeAccount', () => {
     expect(one(token('revoke', [src, acc('owner', ME)]))).toBe('Revoke the delegate of Your USDC token account');
-    const set = (newAuthority: unknown) => token('setAuthority', [{ ...src, name: 'owned' }, acc('owner', ME)], { authorityType: 3, newAuthority });
+    const set = (newAuthority: unknown) => token('setAuthority', [{ ...src, name: 'owned' }, acc('owner', ME)], { authorityType: { __kind: 'CloseAccount', __discriminator: 3 }, newAuthority });
     expect(one(set({ __option: 'Some', value: DELEGATE }))).toBe(`Set the close account authority of Your USDC token account to ${shortAddress(DELEGATE)}`);
     expect(one(set({ __option: 'None' }))).toBe('Revoke the close account authority of Your USDC token account');
     expect(one(set('garbage'))).toBe('Interact with Token Program');
