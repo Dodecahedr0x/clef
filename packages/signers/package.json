@@ -1,0 +1,13 @@
+{
+  "name": "@clef/signers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@clef/vault": "workspace:*",
+    "@solana/kit": "^8.5.0"
+  }
+}

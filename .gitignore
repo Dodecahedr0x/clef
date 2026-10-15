@@ -4,3 +4,7 @@ dist/
 .output/
 .wxt/
 .DS_Store
+apps/extension/.wxt/
+apps/extension/.output/
+test-results/
+playwright-report/

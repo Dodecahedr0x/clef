@@ -1,0 +1,18 @@
+{
+  "name": "@clef/wallet-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@clef/explain": "workspace:*",
+    "@clef/rpc": "workspace:*",
+    "@clef/signers": "workspace:*",
+    "@clef/vault": "workspace:*",
+    "@solana/kit": "^8.5.0",
+    "@solana/wallet-standard-features": "^1.5.0",
+    "@solana/wallet-standard-util": "^1.2.0"
+  }
+}
