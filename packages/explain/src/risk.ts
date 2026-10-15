@@ -1,6 +1,6 @@
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
-import { KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -16,6 +16,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   solBalances?: Readonly<Record<string, bigint>>;
   /** Addresses in the user's address book: sending to them is not a sweep. */
   addressBook?: ReadonlySet<string>;
+  /** Mints the user values (e.g. priced ones) besides `KNOWN_MINTS`: receiving them counts as an inflow. */
+  valuedMints?: ReadonlySet<string>;
 };
 
 export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
@@ -153,9 +155,7 @@ export function evaluateRisks(input: RiskInput): Warning[] {
     }
   }
 
-  if (isSweep(input, me)) {
-    warn('sweep', 'danger', 'Moves your funds out without giving you anything back.');
-  }
+  for (const [rule, severity, message] of sweepWarnings(input, me)) warn(rule, severity, message);
 
   // A signature that never expires can be replayed once state has changed: anything else wrong becomes worse.
   if (nonce && (nonce.foreignAuthority || warnings.some((w) => w !== nonce!.warning && RANK[w.severity] >= RANK.warn))) {
@@ -185,19 +185,30 @@ const onCurve = (a: Address) => {
 };
 
 /**
- * Funds leave and nothing comes back, and the pattern looks like draining: several assets leave, a holding is
- * (nearly) emptied, or a leaving asset lands on a wallet (on-curve address) that is neither yours nor in your
- * address book. Judged on balance changes alone, so it holds whichever IDLs decoded the transaction.
+ * Funds go to wallets (on-curve addresses) that are neither yours nor in your address book, and nothing of value
+ * comes back: two or more assets (`sweep`, danger), or (almost) a whole holding (`send-entire-balance`, warn).
+ * Judged on balance changes alone, so it holds whichever IDLs decoded the transaction. Program-owned
+ * destinations (deposits into vaults) and partial single-asset sends are not flagged.
  */
-function isSweep(input: RiskInput, me: ReadonlySet<string>): boolean {
+function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warning['severity'], string][] {
   const changes = input.balanceChanges;
-  if (!changes) return false;
-  // Small SOL gains are rent refunds, not something received in exchange.
-  if (changes.some((c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n))) return false;
-  const out = outflows(input, me);
-  const assets = new Set<string>(out.map((c) => c.mint));
-  if (!out.length) return false;
-  if (assets.size >= 2) return true;
+  if (!changes) return [];
+  // Only something of value counts as received: SOL beyond rent refunds, or a known or priced token. An
+  // airdrop of an unknown token is free to mint and must not defuse the rule.
+  const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
+  const received = changes.some(
+    (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
+  );
+  if (received) return [];
+
+  // Rent-sized SOL amounts (e.g. a validator tip) don't count as landing on a wallet.
+  const toWallet = (c: BalanceChange) =>
+    (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) && !me.has(c.owner) && !input.addressBook?.has(c.owner) && onCurve(c.owner);
+  const recipient = (mint: string) => changes.find((c) => c.mint === mint && toWallet(c))?.owner;
+  const out = outflows(input, me).filter((c) => recipient(c.mint));
+  if (new Set(out.map((c) => c.mint)).size >= 2) {
+    return [['sweep', 'danger', 'Moves several of your assets to a wallet without giving you anything back.']];
+  }
 
   const emptied = (c: BalanceChange) => {
     let pre: bigint | undefined;
@@ -208,17 +219,10 @@ function isSweep(input: RiskInput, me: ReadonlySet<string>): boolean {
     }
     return pre !== undefined && (pre + c.delta) * 20n <= pre;
   };
-  if (out.some(emptied)) return true;
-
-  // Only a leaving asset counts, and only beyond rent-sized SOL amounts (e.g. a validator tip is not a sweep).
-  return changes.some(
-    (c) =>
-      assets.has(c.mint) &&
-      (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) &&
-      !me.has(c.owner) &&
-      !input.addressBook?.has(c.owner) &&
-      onCurve(c.owner),
-  );
+  return out.filter(emptied).map((c) => {
+    const asset = c.mint === 'SOL' ? 'SOL' : (c.symbol ?? shortAddress(c.mint));
+    return ['send-entire-balance', 'warn', `Sends (almost) your entire ${asset} balance to ${shortAddress(recipient(c.mint)!)}.`];
+  });
 }
 
 /** Your outflows: any token decrease, or a SOL loss beyond the fee (if you pay it) plus `RENT_SLACK`. */
