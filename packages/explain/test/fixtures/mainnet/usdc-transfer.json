@@ -1,0 +1,171 @@
+{
+ "version": 1,
+ "input": {
+  "signature": "K9NFd4wkPpippT9s5itHM7dg4PQtbTE728WRG7svsMP2fkY9jg7qAPjLCNxB9ixfNkoMn6z3jasKh4y82mEisGh",
+  "me": [
+   "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS"
+  ],
+  "labels": {}
+ },
+ "calls": {
+  "getTransaction:[\"K9NFd4wkPpippT9s5itHM7dg4PQtbTE728WRG7svsMP2fkY9jg7qAPjLCNxB9ixfNkoMn6z3jasKh4y82mEisGh\"]": {
+   "wire": {
+    "$bytes": "AQ+lm/kTSozVFWxR2FEndF2JabmlfpNtPhFAXOnzQ+diW6sHfDWlE3xBpZVNMqqEXu9KgJDRikDXd0Qd0LSRzA4BAAMG7778x8TgBvFCNu6P1NusjQ/GGenxG9pseCAgEfRd4OFieel6QaJyO4d9K+EsA2qB1Nip+HLBTxYcx8aqPhQVg+kyPyWYNEKXAQewOMVpJxCVUvGydBnpGBPww64Hsn54AwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAADG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpQgnbCrGQ+cz6MaSsQGslZdNjOB1rLwaZ4WeUV7MZIPACBQQBBAIACgwA7ZQAAAAAAAYDAAkDIKEHAAAAAAA="
+   },
+   "slot": {
+    "$bigint": "457368550"
+   },
+   "blockTime": {
+    "$bigint": "1792095606"
+   },
+   "meta": {
+    "err": null,
+    "fee": {
+     "$bigint": "106500"
+    },
+    "preBalances": [
+     {
+      "$bigint": "113050535250556"
+     },
+     {
+      "$bigint": "2039690"
+     },
+     {
+      "$bigint": "2039280"
+     },
+     {
+      "$bigint": "1"
+     },
+     {
+      "$bigint": "549849970167"
+     },
+     {
+      "$bigint": "230130698"
+     }
+    ],
+    "postBalances": [
+     {
+      "$bigint": "113050535144056"
+     },
+     {
+      "$bigint": "2039690"
+     },
+     {
+      "$bigint": "2039280"
+     },
+     {
+      "$bigint": "1"
+     },
+     {
+      "$bigint": "549849970167"
+     },
+     {
+      "$bigint": "230130698"
+     }
+    ],
+    "preTokenBalances": [
+     {
+      "accountIndex": 1,
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
+      "amount": {
+       "$bigint": "1065830310063"
+      },
+      "decimals": 6
+     },
+     {
+      "accountIndex": 2,
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "CFENNno45k6Di1SxCL4XXZ38taaUNYh6hquTMu1tp8U9",
+      "amount": {
+       "$bigint": "86636"
+      },
+      "decimals": 6
+     }
+    ],
+    "postTokenBalances": [
+     {
+      "accountIndex": 1,
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
+      "amount": {
+       "$bigint": "1065820550063"
+      },
+      "decimals": 6
+     },
+     {
+      "accountIndex": 2,
+      "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "owner": "CFENNno45k6Di1SxCL4XXZ38taaUNYh6hquTMu1tp8U9",
+      "amount": {
+       "$bigint": "9846636"
+      },
+      "decimals": 6
+     }
+    ],
+    "loadedAddresses": {
+     "writable": [],
+     "readonly": []
+    },
+    "logMessages": [
+     "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+     "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 203000 compute units",
+     "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+     "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+     "Program ComputeBudget111111111111111111111111111111 success"
+    ]
+   }
+  },
+  "getAccountsWithSlot:[[\"H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS\",\"7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx\",\"GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35\",\"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\"]]": {
+   "accounts": [
+    {
+     "address": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
+     "owner": "11111111111111111111111111111111",
+     "lamports": {
+      "$bigint": "112987814097451"
+     },
+     "data": {
+      "$bytes": ""
+     },
+     "executable": false
+    },
+    {
+     "address": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
+     "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "lamports": {
+      "$bigint": "2039690"
+     },
+     "data": {
+      "$bytes": "xvp6877brTo9ZfNqq8l0MbG75MLS9uDkfKYCA0UvXWHvvvzHxOAG8UI27o/U26yND8YZ6fEb2mx4ICAR9F3g4Qp+sfX0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+     },
+     "executable": false
+    },
+    {
+     "address": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
+     "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "lamports": {
+      "$bigint": "2039280"
+     },
+     "data": {
+      "$bytes": "xvp6877brTo9ZfNqq8l0MbG75MLS9uDkfKYCA0UvXWGnFc2qVaxkjwiJSz3qotozE51GOLa/2HkJ71eXov2SqnbsxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+     },
+     "executable": false
+    },
+    {
+     "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "lamports": {
+      "$bigint": "549849970167"
+     },
+     "data": {
+      "$bytes": "AQAAAJj+huiNm+Lqi8HMpIeLKYjCQPUrhCS/tA7Rot3LXhmbH3aP3Y6TGwAGAQEAAABicKqKWcWUBbRShshncubNEm6bil06OFNtN/e0FOi2Zw=="
+     },
+     "executable": false
+    }
+   ],
+   "slot": {
+    "$bigint": "457370456"
+   }
+  }
+ }
+}

@@ -1,6 +1,5 @@
 import { renameSync, rmSync, writeFileSync } from 'node:fs';
-import { explain, viewFor } from '@clef/explain';
-import { createDefaultResolver, UserIdlSource } from '@clef/idl';
+import { defaultExplainContext, explain, viewFor } from '@clef/explain';
 import { RecordingChainReader, type ChainReader, type TxMeta } from '@clef/rpc';
 import { getBase64Encoder, getCompiledTransactionMessageDecoder, getTransactionDecoder, type Address } from '@solana/kit';
 import { parseCli, USAGE } from './args';
@@ -76,10 +75,7 @@ export async function run(argv: readonly string[], env: Record<string, string | 
       note = `Note: No --me given: assuming you are the fee payer ${clean(payer)}. Pass --me to check other wallets.`;
     }
 
-    const ex = await explain(
-      { wire, meta },
-      { reader, idls: createDefaultResolver(reader, new UserIdlSource()), me, addressBook: opts.labels },
-    );
+    const ex = await explain({ wire, meta }, defaultExplainContext(reader, me, opts.labels));
     const view = viewFor(ex, opts.level);
     deps.out(renderView(view, note));
     code = hasDanger(view) ? 3 : 0;

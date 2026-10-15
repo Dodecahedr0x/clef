@@ -1,0 +1,98 @@
+{
+ "version": 1,
+ "input": {
+  "signature": "5fzJ1uCxhxbzVzUdXQKcG1c9oFiDS6W6o2T7c79us6g1Na2eLbYxHEsVF5HYpAGfRvpRBuuarQABH2kbNHsFQ37j",
+  "me": [
+   "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS"
+  ],
+  "labels": {}
+ },
+ "calls": {
+  "getTransaction:[\"5fzJ1uCxhxbzVzUdXQKcG1c9oFiDS6W6o2T7c79us6g1Na2eLbYxHEsVF5HYpAGfRvpRBuuarQABH2kbNHsFQ37j\"]": {
+   "wire": {
+    "$bytes": "AemwihGJIQqPCB490qMz0yezteTs52GcZbGL00lvHpflVqBNSroNbS6PC8hPeayj1VGvViaI/1jmTf7asVR/agYBAAIE7778x8TgBvFCNu6P1NusjQ/GGenxG9pseCAgEfRd4OEH2LG9CEVrbhXOQFLvYpbedcQFdm5L9DYgMEMqoEpKmgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAABkCjwb0Z1uEl1Wj46m1onXJNVaIGAdYY+e/SuIT5hC/AICAgABDAIAAADe+fwJAAAAAAMACQMgoQcAAAAAAA=="
+   },
+   "slot": {
+    "$bigint": "457368433"
+   },
+   "blockTime": {
+    "$bigint": "1792095581"
+   },
+   "meta": {
+    "err": null,
+    "fee": {
+     "$bigint": "8000"
+    },
+    "preBalances": [
+     {
+      "$bigint": "113050702832538"
+     },
+     {
+      "$bigint": "105965879"
+     },
+     {
+      "$bigint": "1"
+     },
+     {
+      "$bigint": "1"
+     }
+    ],
+    "postBalances": [
+     {
+      "$bigint": "113050535250556"
+     },
+     {
+      "$bigint": "273539861"
+     },
+     {
+      "$bigint": "1"
+     },
+     {
+      "$bigint": "1"
+     }
+    ],
+    "preTokenBalances": [],
+    "postTokenBalances": [],
+    "loadedAddresses": {
+     "writable": [],
+     "readonly": []
+    },
+    "logMessages": [
+     "Program 11111111111111111111111111111111 invoke [1]",
+     "Program 11111111111111111111111111111111 success",
+     "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+     "Program ComputeBudget111111111111111111111111111111 success"
+    ]
+   }
+  },
+  "getAccountsWithSlot:[[\"H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS\",\"XdVy2ZkVNQSQfmZrs5hxJrdDRv4Pe3tHhjzYKUPtJqX\"]]": {
+   "accounts": [
+    {
+     "address": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
+     "owner": "11111111111111111111111111111111",
+     "lamports": {
+      "$bigint": "112997772824514"
+     },
+     "data": {
+      "$bytes": ""
+     },
+     "executable": false
+    },
+    {
+     "address": "XdVy2ZkVNQSQfmZrs5hxJrdDRv4Pe3tHhjzYKUPtJqX",
+     "owner": "11111111111111111111111111111111",
+     "lamports": {
+      "$bigint": "273539861"
+     },
+     "data": {
+      "$bytes": ""
+     },
+     "executable": false
+    }
+   ],
+   "slot": {
+    "$bigint": "457370433"
+   }
+  }
+ }
+}
