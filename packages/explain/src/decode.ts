@@ -95,6 +95,24 @@ const KNOWN_CONFIG_BITS = V1_FIELDS.reduce((mask, f) => mask | f.bits, 0);
 const MIN_HEAP = 32 * 1024;
 const MAX_HEAP = 256 * 1024;
 
+/** SIMD-0385 transaction constraints: violations are sanitization failures. */
+const V1_MAX_WIRE_BYTES = 4096;
+const V1_MAX_SIGNERS = 12;
+const V1_MAX_ACCOUNTS = 64;
+const V1_MAX_INSTRUCTIONS = 64;
+/** Message offset of the v1 config mask (u32 LE): after the version byte and the 3-byte header. */
+const V1_CONFIG_MASK_OFFSET = 4;
+const V1_VERSION_BYTE = 0x81;
+
+/** The mask, if it uses only known bits and sets the priority fee's two bits together. */
+function checkConfigMask(configMask: number): number {
+  const mask = configMask >>> 0;
+  if (mask & ~KNOWN_CONFIG_BITS) throw malformed(`unknown config bits 0x${((mask & ~KNOWN_CONFIG_BITS) >>> 0).toString(16)}`);
+  const fee = mask & PRIORITY_FEE_BITS;
+  if (fee !== 0 && fee !== PRIORITY_FEE_BITS) throw malformed('priority fee needs both config bits');
+  return mask;
+}
+
 const popcount = (n: number) => {
   let count = 0;
   for (let v = n >>> 0; v; v >>>= 1) count += v & 1;
@@ -107,11 +125,11 @@ const popcount = (n: number) => {
  * builds consistent counts from wire bytes, so only hand-made messages can break them.
  */
 export function flattenV1(msg: Omit<V1CompiledTransactionMessage, 'version'>): { config: V1Config; instructions: CompiledInstruction[] } {
+  if (msg.header.numSignerAccounts > V1_MAX_SIGNERS) throw malformed(`more than ${V1_MAX_SIGNERS} signers`);
   if (msg.numStaticAccounts !== msg.staticAccounts.length) throw malformed('static account count mismatch');
-  const mask = msg.configMask >>> 0;
-  if (mask & ~KNOWN_CONFIG_BITS) throw malformed(`unknown config bits 0x${(mask & ~KNOWN_CONFIG_BITS).toString(16)}`);
-  const fee = mask & PRIORITY_FEE_BITS;
-  if (fee !== 0 && fee !== PRIORITY_FEE_BITS) throw malformed('priority fee needs both config bits');
+  if (msg.numStaticAccounts > V1_MAX_ACCOUNTS) throw malformed(`more than ${V1_MAX_ACCOUNTS} accounts`);
+  if (msg.numInstructions > V1_MAX_INSTRUCTIONS) throw malformed(`more than ${V1_MAX_INSTRUCTIONS} instructions`);
+  const mask = checkConfigMask(msg.configMask);
   // Each value is one 4-byte word per mask bit.
   const words = msg.configValues.reduce((n, v) => n + (v.kind === 'u64' ? 2 : 1), 0);
   if (words !== popcount(mask)) throw malformed('config value count does not match the config mask');
@@ -150,6 +168,14 @@ export function flattenV1(msg: Omit<V1CompiledTransactionMessage, 'version'>): {
  */
 export async function decodeTransaction(wire: Uint8Array, reader: ChainReader, loaded?: Loaded): Promise<DecodedTransaction> {
   const tx = getTransactionDecoder().decode(wire);
+  if (tx.messageBytes[0] === V1_VERSION_BYTE) {
+    if (wire.length > V1_MAX_WIRE_BYTES) throw malformed(`${wire.length} bytes exceeds the v1 limit of ${V1_MAX_WIRE_BYTES}`);
+    // Checked before kit decodes the message: kit skips unknown bits, so value words padded in for them would be
+    // read as instruction headers, and it reports a lone priority fee bit with its own error.
+    const bytes = tx.messageBytes;
+    if (bytes.length < V1_CONFIG_MASK_OFFSET + 4) throw malformed('message too short');
+    checkConfigMask(new DataView(bytes.buffer, bytes.byteOffset + V1_CONFIG_MASK_OFFSET, 4).getUint32(0, true));
+  }
   const [msg, end] = getCompiledTransactionMessageDecoder().read(tx.messageBytes, 0);
   if (msg.version !== 'legacy' && msg.version !== 0 && msg.version !== 1) {
     throw new Error(`Unsupported transaction version ${String((msg as { version: unknown }).version)}`);

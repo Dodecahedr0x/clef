@@ -20,9 +20,12 @@ export type AccountRef = { address: Address; signer: boolean; writable: boolean;
 export type DecodedInstruction = { index: number; programId: Address; accounts: AccountRef[]; data: Uint8Array };
 
 /**
- * A v1 transaction's config (SIMD-0385): protocol fields read straight from the message. Unlike legacy and v0,
- * the priority fee is a total in lamports, and an absent compute unit limit or loaded accounts data size limit
- * means zero, not a default.
+ * A v1 transaction's config (SIMD-0385): protocol fields read straight from the message header, trusted as
+ * such. Each field is present only when its mask bit is set. Unset means: no priority fee; a compute unit limit
+ * and a loaded accounts data size limit of 0 (not a default: such a transaction fails if it needs any); a 32 KiB
+ * heap. The priority fee is a total in lamports, not a price per compute unit. Compute budget instructions in a
+ * v1 transaction are ignored for all of these. Decoding rejects unknown mask bits, a lone priority fee bit, and
+ * a heap size outside 32-256 KiB or not a multiple of 1 KiB.
  */
 export type V1Config = {
   priorityFeeLamports?: bigint;

@@ -270,9 +270,21 @@ describe('decodeTransaction', () => {
       await expect(decode(wire)).rejects.toThrow('malformed transaction: unknown config bits 0x20');
     });
 
+    it('rejects unknown config bits even when extra value words pad them out', async () => {
+      // Bit 5 plus a value word for it: kit would skip the bit and read the word as an instruction header.
+      const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({
+        ...m,
+        configMask: 0b100100,
+        configValues: [{ kind: 'u32', value: 1000 }, { kind: 'u32', value: 0 }],
+      }));
+      await expect(decode(wire)).rejects.toThrow('malformed transaction: unknown config bits 0x20');
+    });
+
     it('rejects a priority fee with only one of its two bits', async () => {
-      const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask: 0b01 }));
-      await expect(decode(wire)).rejects.toThrow();
+      for (const configMask of [0b01, 0b10]) {
+        const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask, configValues: [{ kind: 'u32', value: 1 }] }));
+        await expect(decode(wire)).rejects.toThrow('malformed transaction: priority fee needs both config bits');
+      }
       expect(() => flattenV1({ ...v1Message(buildV1Wire([transfer()])), configMask: 0b10, configValues: [{ kind: 'u32', value: 1 }] })).toThrow(
         'malformed transaction: priority fee needs both config bits',
       );
@@ -283,6 +295,13 @@ describe('decodeTransaction', () => {
         const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask: 0b10000, configValues: [{ kind: 'u32', value: heapSize }] }));
         await expect(decode(wire)).rejects.toThrow(`malformed transaction: invalid heap size ${heapSize}`);
       }
+    });
+
+    it('rejects a v1 wire over 4096 bytes', async () => {
+      const big = { ...memo, data: new Uint8Array(3700) };
+      await expect(decode(buildV1Wire([transfer(), big]))).resolves.toMatchObject({ version: 1 });
+      const tooBig = { ...memo, data: new Uint8Array(4100) };
+      await expect(decode(buildV1Wire([transfer(), tooBig]))).rejects.toThrow(/malformed transaction: 4\d{3} bytes exceeds the v1 limit of 4096/);
     });
 
     it('rejects trailing bytes between the message and the signatures', async () => {
@@ -315,6 +334,21 @@ describe('decodeTransaction', () => {
         expect(() => flattenV1({ ...m, instructionHeaders: headers({ numInstructionDataBytes: 9 }) })).toThrow(
           'malformed transaction: instruction 1: data length mismatch',
         );
+      });
+
+      it('enforces the v1 limits: 12 signers, 64 accounts, 64 instructions', () => {
+        const m = msg();
+        expect(() => flattenV1({ ...m, header: { ...m.header, numSignerAccounts: 13 } })).toThrow('malformed transaction: more than 12 signers');
+        const accounts = Array.from({ length: 65 }, (_, i) => m.staticAccounts[i % m.staticAccounts.length]!);
+        expect(() => flattenV1({ ...m, numStaticAccounts: 65, staticAccounts: accounts })).toThrow('malformed transaction: more than 64 accounts');
+        const n = 65;
+        const headers = Array.from({ length: n }, () => m.instructionHeaders[0]!);
+        const payloads = Array.from({ length: n }, () => m.instructionPayloads[0]!);
+        expect(() => flattenV1({ ...m, numInstructions: n, instructionHeaders: headers, instructionPayloads: payloads })).toThrow(
+          'malformed transaction: more than 64 instructions',
+        );
+        // At the limits: accepted.
+        expect(() => flattenV1({ ...m, header: { ...m.header, numSignerAccounts: 12 } })).not.toThrow();
       });
 
       it('rejects config values that do not match the mask', () => {
