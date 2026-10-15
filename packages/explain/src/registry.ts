@@ -11,6 +11,20 @@ export const TOKEN_PROGRAMS: ReadonlySet<string> = new Set([TOKEN_PROGRAM, TOKEN
 /** Programs whose instructions are never "the point" of a transaction. */
 export const PLUMBING_PROGRAMS: ReadonlySet<string> = new Set([COMPUTE_BUDGET_PROGRAM, MEMO_PROGRAM, MEMO_V4_PROGRAM]);
 
+/**
+ * Programs whose behavior Clef knows independently of any IDL they publish. Security-sensitive: an IDL for a
+ * program outside this set is the program describing itself. Review every addition.
+ */
+export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
+  SYSTEM_PROGRAM,
+  TOKEN_PROGRAM,
+  TOKEN_2022_PROGRAM,
+  ATA_PROGRAM,
+  COMPUTE_BUDGET_PROGRAM,
+  MEMO_PROGRAM,
+  MEMO_V4_PROGRAM,
+]);
+
 export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
   [SYSTEM_PROGRAM]: 'System Program',
   [TOKEN_PROGRAM]: 'Token Program',

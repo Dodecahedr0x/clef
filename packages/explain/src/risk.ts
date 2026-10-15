@@ -1,5 +1,6 @@
-import type { Address } from '@solana/kit';
-import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
+import { isOffCurveAddress, type Address } from '@solana/kit';
+import { shortAddress } from './labels';
+import { KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -11,6 +12,10 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   feePayer?: Address;
   /** Pre-transaction state of token accounts the transaction touches, keyed by token account address. */
   tokenBalances?: Readonly<Record<string, TokenHolding>>;
+  /** Pre-transaction lamports of the user's wallets, keyed by address. */
+  solBalances?: Readonly<Record<string, bigint>>;
+  /** Addresses in the user's address book: sending to them is not a sweep. */
+  addressBook?: ReadonlySet<string>;
 };
 
 export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
@@ -121,7 +126,64 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   if (unexplained && possibleOutflow(input, me)) {
     warn('unexplained-outflow', 'danger', 'Funds leave your wallet in a transaction Clef cannot fully explain.');
   }
+
+  if (possibleOutflow(input, me)) {
+    const selfDescribed = input.instructions.filter((ix) => ix.idl?.trust === 'authority' && !TRUSTED_PROGRAMS.has(ix.programId));
+    for (const programId of new Set(selfDescribed.map((ix) => ix.programId))) {
+      const name = KNOWN_PROGRAMS[programId] ?? shortAddress(programId);
+      warn('self-described-outflow', 'warn', `${name} describes itself with its own IDL; Clef can't independently verify what it does with your funds.`);
+    }
+  }
+
+  if (isSweep(input, me)) {
+    warn('sweep', 'danger', 'Moves your funds out without giving you anything back.');
+  }
   return warnings;
+}
+
+const onCurve = (a: Address) => {
+  try {
+    return !isOffCurveAddress(a);
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * Funds leave and nothing comes back, and the pattern looks like draining: several assets leave, a holding is
+ * (nearly) emptied, or a leaving asset lands on a wallet (on-curve address) that is neither yours nor in your
+ * address book. Judged on balance changes alone, so it holds whichever IDLs decoded the transaction.
+ */
+function isSweep(input: RiskInput, me: ReadonlySet<string>): boolean {
+  const changes = input.balanceChanges;
+  if (!changes) return false;
+  // Small SOL gains are rent refunds, not something received in exchange.
+  if (changes.some((c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n))) return false;
+  const out = outflows(input, me);
+  const assets = new Set<string>(out.map((c) => c.mint));
+  if (!out.length) return false;
+  if (assets.size >= 2) return true;
+
+  const emptied = (c: BalanceChange) => {
+    let pre: bigint | undefined;
+    if (c.mint === 'SOL') pre = input.solBalances?.[c.owner];
+    else {
+      const held = Object.values(input.tokenBalances ?? {}).filter((h) => h.owner === c.owner && h.mint === c.mint);
+      if (held.length) pre = held.reduce((sum, h) => sum + h.amount, 0n);
+    }
+    return pre !== undefined && (pre + c.delta) * 20n <= pre;
+  };
+  if (out.some(emptied)) return true;
+
+  // Only a leaving asset counts, and only beyond rent-sized SOL amounts (e.g. a validator tip is not a sweep).
+  return changes.some(
+    (c) =>
+      assets.has(c.mint) &&
+      (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) &&
+      !me.has(c.owner) &&
+      !input.addressBook?.has(c.owner) &&
+      onCurve(c.owner),
+  );
 }
 
 /** Your outflows: any token decrease, or a SOL loss beyond the fee (if you pay it) plus `RENT_SLACK`. */

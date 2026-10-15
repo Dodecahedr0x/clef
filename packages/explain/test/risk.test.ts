@@ -1,17 +1,19 @@
-import { address, type Address } from '@solana/kit';
+import { address, getProgramDerivedAddress, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
   estimateFee,
   evaluateRisks,
+  shortAddress,
   SYSTEM_PROGRAM,
   TOKEN_2022_PROGRAM,
   TOKEN_PROGRAM,
   U64_MAX,
   type ExplainedInstruction,
+  type BalanceChange,
   type RiskInput,
   type StateChange,
 } from '../src';
-import { ME, OTHER } from './helpers';
+import { ME, OTHER, USDC } from './helpers';
 
 const ix = (over: Partial<ExplainedInstruction>): ExplainedInstruction => ({
   index: 0, programId: address(TOKEN_PROGRAM), accounts: [], data: new Uint8Array(), ...over,
@@ -195,6 +197,66 @@ describe('evaluateRisks', () => {
       expect(withState([{ address: ME, kind: 'program-owner', before: address(SYSTEM_PROGRAM), after: OTHER }], [assign])).toEqual([
         ['authority-change', 'danger'],
       ]);
+    });
+  });
+
+  describe('outflows to programs that describe themselves, and sweeps', () => {
+    const JUP = address('JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4');
+    const DRAINER = address('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS');
+    const authority = { source: 'program-metadata' as const, trust: 'authority' as const, hash: 'h' };
+    const curated = { source: 'bundled' as const, trust: 'curated' as const, hash: 'h' };
+    const change = (owner: Address, mint: Address | 'SOL', delta: bigint): BalanceChange =>
+      ({ owner, mint, decimals: mint === 'SOL' ? 9 : 6, delta });
+    const SOL = 1_000_000_000n;
+
+    it('warns once per non-core program decoded only by its own IDL when funds leave', () => {
+      const claim = (index: number) => ix({ index, programId: DRAINER, name: 'claimAirdrop', idl: authority });
+      const balanceChanges = [change(ME, USDC, -5n)];
+      const warnings = evaluateRisks(input([claim(0), claim(1)], { balanceChanges }));
+      expect(warnings.map((w) => [w.rule, w.severity])).toEqual([['self-described-outflow', 'warn']]);
+      expect(warnings[0]!.message).toBe(
+        `${shortAddress(DRAINER)} describes itself with its own IDL; Clef can't independently verify what it does with your funds.`,
+      );
+      expect(rules(input([claim(0)], { balanceChanges: [change(ME, USDC, 5n)] }))).toEqual([]);
+      const core = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: authority });
+      expect(rules(input([core], { balanceChanges }))).toEqual([]);
+    });
+
+    it('flags an all-curated sweep of SOL and USDC to a wallet', () => {
+      const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const transfer = ix({ index: 1, name: 'transfer', idl: curated });
+      const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
+      expect(rules(input([transferSol, transfer], { balanceChanges }))).toEqual([['sweep', 'danger']]);
+    });
+
+    it('does not flag a swap (you receive something back)', () => {
+      const swap = ix({ programId: JUP, name: 'route', idl: authority });
+      const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(ME, USDC, 300n), change(OTHER, 'SOL', 2n * SOL)];
+      expect(rules(input([swap], { balanceChanges }))).toEqual([['self-described-outflow', 'warn']]);
+    });
+
+    it('does not flag a single-asset deposit into a program vault, unless it empties the holding', async () => {
+      const [vault] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
+      const deposit = ix({ programId: DRAINER, name: 'deposit', idl: curated });
+      const deposited = (delta: bigint) => [change(ME, USDC, -delta), change(vault, USDC, delta)];
+      const tokenBalances = { [OTHER]: { owner: ME, mint: USDC, amount: 100n } };
+      expect(rules(input([deposit], { balanceChanges: deposited(50n), tokenBalances }))).toEqual([]);
+      expect(rules(input([deposit], { balanceChanges: deposited(96n), tokenBalances }))).toEqual([['sweep', 'danger']]);
+      expect(rules(input([deposit], { balanceChanges: deposited(96n) }))).toEqual([]);
+      const solDeposit = [change(ME, 'SOL', -SOL), change(vault, 'SOL', SOL)];
+      expect(rules(input([deposit], { balanceChanges: solDeposit, solBalances: { [ME]: 2n * SOL } }))).toEqual([]);
+      expect(rules(input([deposit], { balanceChanges: solDeposit, solBalances: { [ME]: SOL + 1n } }))).toEqual([['sweep', 'danger']]);
+    });
+
+    it('does not flag sending one asset to an address-book contact, or a small tip alongside a deposit', async () => {
+      const send = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const sent = [change(ME, 'SOL', -SOL), change(OTHER, 'SOL', SOL)];
+      expect(rules(input([send], { balanceChanges: sent }))).toEqual([['sweep', 'danger']]);
+      expect(rules(input([send], { balanceChanges: sent, addressBook: new Set([OTHER]) }))).toEqual([]);
+      const [vault] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
+      const deposit = ix({ programId: DRAINER, name: 'deposit', idl: curated });
+      const tipped = [change(ME, USDC, -10n), change(vault, USDC, 10n), change(ME, 'SOL', -100_000n), change(OTHER, 'SOL', 100_000n)];
+      expect(rules(input([deposit], { balanceChanges: tipped }))).toEqual([]);
     });
   });
 });
