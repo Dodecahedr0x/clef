@@ -9,5 +9,8 @@
   "dependencies": {
     "@clef/vault": "workspace:*",
     "@solana/kit": "^8.5.0"
+  },
+  "devDependencies": {
+    "@solana-program/system": "^0.15.0"
   }
 }

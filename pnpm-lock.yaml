@@ -166,6 +166,10 @@ importers:
       '@solana/kit':
         specifier: ^8.5.0
         version: 8.5.0(typescript@5.9.3)
+    devDependencies:
+      '@solana-program/system':
+        specifier: ^0.15.0
+        version: 0.15.0(@solana/kit@8.5.0(typescript@5.9.3))
 
   packages/vault:
     dependencies:
