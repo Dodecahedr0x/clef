@@ -1,8 +1,9 @@
 import { getNodeCodecVisitor, getValueNodeVisitor } from '@codama/dynamic-codecs';
-import { isNode, type PdaNode, type ProgramNode, type RootNode } from '@codama/nodes';
+import { isNode, type PdaNode, type RootNode } from '@codama/nodes';
 import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/visitors-core';
 import { getProgramDerivedAddress, type Address } from '@solana/kit';
 import type { IdentifiedInstruction } from './identify';
+import { instructionNodes, isAbsent, programs } from './idl-lookup';
 import { displayBytes, errorDetail, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
@@ -20,17 +21,12 @@ function visitorsFor(root: RootNode): Visitors {
   return v;
 }
 
-function programs(root: RootNode): ProgramNode[] {
-  return [root.program, ...(root.additionalPrograms ?? [])];
-}
-
 /** Re-derives every PDA declared on the instruction's accounts and compares it to what was passed. */
 export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<RelationEdge[]> {
   const idl = ix.resolvedIdl;
-  if (!idl || !ix.name) return [];
-  const program = programs(idl.root).find((p) => p.publicKey === ix.programId);
-  const node = (program?.instructions ?? []).find((i) => i.name === ix.name);
-  if (!program || !node) return [];
+  const nodes = instructionNodes(ix);
+  if (!idl || !ix.name || !nodes) return [];
+  const { program, node } = nodes;
 
   // Accounts without a name (ambiguous positions) are never guessed: they neither get edges nor serve as seeds.
   const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
@@ -42,7 +38,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
   for (const accountNode of node.accounts ?? []) {
     const dv = accountNode.defaultValue;
     const actual = byName.get(accountNode.name);
-    if (!dv || !isNode(dv, 'pdaValueNode') || !actual) continue;
+    if (!dv || !isNode(dv, 'pdaValueNode') || !actual || isAbsent(ix, accountNode.name)) continue;
     // Codama's default is absent or wrong for nested-path seeds: `verifyAnchorExtras` handles these.
     if (extras?.[accountNode.name]?.nestedSeeds) continue;
 
@@ -79,6 +75,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         if (!seedValue) throw new Unresolvable(`seed "${seed.name}" has no value`);
         let resolved: unknown;
         if (isNode(seedValue, 'accountValueNode')) {
+          if (isAbsent(ix, seedValue.name)) throw new Unresolvable(`${seedValue.name} not provided`);
           resolved = byName.get(seedValue.name);
           if (!resolved) throw new Unresolvable(`account "${seedValue.name}" is not in the instruction`);
           seeds.push({ kind: 'account', display: seedValue.name });
@@ -95,6 +92,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
 
       programAddress = pdaProgramAddress;
       if (dv.programId && isNode(dv.programId, 'accountValueNode')) {
+        if (isAbsent(ix, dv.programId.name)) throw new Unresolvable(`${dv.programId.name} not provided`);
         const fromAccount = byName.get(dv.programId.name);
         if (!fromAccount) throw new Unresolvable(`program account "${dv.programId.name}" is not in the instruction`);
         programAddress = fromAccount;

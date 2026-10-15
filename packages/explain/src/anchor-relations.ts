@@ -3,6 +3,7 @@ import { parseAccountData } from '@codama/dynamic-parsers';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
+import { isAbsent } from './idl-lookup';
 import { displayBytes, errorDetail, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
@@ -25,8 +26,9 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
   const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
   const reads = new Map<string, Promise<Read>>();
   const read = async (name: string): Promise<Read> => {
+    if (isAbsent(ix, name)) return { status: 'unverified', detail: `${name} not provided` };
     const address = byName.get(name);
-    if (!address) return { status: 'unverified', detail: `could not read ${name}` };
+    if (!address) return { status: 'unverified', detail: `${name} not identified` };
     try {
       await cache.load([address]);
     } catch (e) {
@@ -56,12 +58,13 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
   const edges: RelationEdge[] = [];
   for (const [target, extra] of Object.entries(extras)) {
     const targetAddress = byName.get(target);
-    if (!targetAddress) continue;
+    if (!targetAddress || isAbsent(ix, target)) continue;
 
     for (const { holder, field } of extra.relations) {
-      const holderAddress = byName.get(holder) ?? targetAddress;
       const label = `${holder}.${field}`;
-      const base = { kind: 'has_one' as const, from: targetAddress, to: holderAddress, label, instructionIndex: ix.index };
+      // Unnamed holder: no address to point at, so the edge points at the program (as for unresolved PDAs).
+      const to = byName.get(holder) ?? ix.programId;
+      const base = { kind: 'has_one' as const, from: targetAddress, to, label, instructionIndex: ix.index };
       try {
         const result = await decode(holder);
         if (failed(result)) {
@@ -103,7 +106,10 @@ async function verifyNestedSeeds(
     const [head, ...fields] = seed.path;
     let value: unknown;
     if (seed.kind === 'arg') value = ix.rawArgs?.[head!];
-    else if (!fields.length) value = byName.get(head!);
+    else if (!fields.length) {
+      if (isAbsent(ix, head!)) throw new Unresolvable(`${head} not provided`);
+      value = byName.get(head!);
+    }
     else {
       const result = await decode(head!);
       if (failed(result)) throw result.status === 'mismatch' ? new Foreign(result.detail) : new Unresolvable(result.detail);

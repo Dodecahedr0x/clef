@@ -72,4 +72,43 @@ describe('verifyAnchorExtras', () => {
     expect(edges).toHaveLength(3);
     for (const edge of edges) expect(edge).toMatchObject({ status: 'unverified', detail: expect.stringMatching(/rpc down/) });
   });
+
+  it('never guesses an unnamed holder', async () => {
+    const accounts = await vaultAddresses();
+    const reader = new MemoryChainReader();
+    await setPool(reader, accounts.pool, { mint: accounts.mint, authority: AUTHORITY });
+    const ix = await identifyInstruction(await depositInstruction(accounts), vaultResolver(), []);
+    const unnamed = { ...ix, accounts: ix.accounts.map((a) => (a.name === 'pool' ? { ...a, name: undefined } : a)) };
+    const edges = await verifyAnchorExtras(unnamed, new AccountCache(reader));
+    expect(edges.map((e) => [e.label, e.status, e.detail, e.to])).toEqual([
+      ['pool.mint', 'unverified', 'pool not identified', VAULT],
+      ['PDA of userPosition', 'unverified', 'pool not identified', VAULT],
+      ['pool.authority', 'unverified', 'pool not identified', VAULT],
+    ]);
+  });
+
+  describe('absent optional accounts (passed as the program id)', () => {
+    it('reports a has_one with an absent holder as not provided', async () => {
+      const json = anchorIdl([{ name: 'pool', optional: true }, { name: 'mint', relations: ['pool'] }]);
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: PROG, owner: OTHER, data: new Uint8Array(36), executable: true });
+      const edges = await verifyAnchorExtras(await customIx(json, [PROG, USDC]), new AccountCache(reader));
+      expect(edges).toEqual([expect.objectContaining({ label: 'pool.mint', status: 'unverified', detail: 'pool not provided' })]);
+    });
+
+    it('produces no edge for an absent has_one target', async () => {
+      const json = anchorIdl([{ name: 'pool' }, { name: 'mint', optional: true, relations: ['pool'] }]);
+      const edges = await verifyAnchorExtras(await customIx(json, [ME, PROG]), new AccountCache(new MemoryChainReader()));
+      expect(edges).toEqual([]);
+    });
+
+    it('reports a nested seed through an absent account as not provided', async () => {
+      const json = anchorIdl([
+        { name: 'pool', optional: true },
+        { name: 'p', pda: { seeds: [{ kind: 'account', path: 'pool.mint', account: 'Pool' }] } },
+      ]);
+      const edges = await verifyAnchorExtras(await customIx(json, [PROG, OTHER]), new AccountCache(new MemoryChainReader()));
+      expect(edges).toEqual([expect.objectContaining({ kind: 'pda', status: 'unverified', detail: 'pool not provided' })]);
+    });
+  });
 });

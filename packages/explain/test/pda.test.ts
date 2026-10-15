@@ -90,6 +90,27 @@ describe('verifyCodamaPdas argument seeds', () => {
   });
 });
 
+describe('verifyCodamaPdas absent optional accounts', () => {
+  it('skips an optional PDA passed as the program id (absent)', async () => {
+    const json = anchorIdl([
+      { name: 'mint' },
+      { name: 'opt', optional: true, pda: { seeds: [{ kind: 'const', value: [120] }, { kind: 'account', path: 'mint' }] } },
+    ]);
+    const ix = await customIx(json, [ME, PROG]);
+    expect(await verifyCodamaPdas(ix)).toEqual([]);
+  });
+
+  it('leaves a PDA unverified when an optional seed account is absent', async () => {
+    const json = anchorIdl([
+      { name: 'mint', optional: true },
+      { name: 'p', pda: { seeds: [{ kind: 'const', value: [120] }, { kind: 'account', path: 'mint' }] } },
+    ]);
+    const ix = await customIx(json, [PROG, OTHER]);
+    const edges = await verifyCodamaPdas(ix);
+    expect(edges).toEqual([expect.objectContaining({ from: OTHER, status: 'unverified', detail: 'mint not provided' })]);
+  });
+});
+
 describe('verifyCodamaPdas error isolation', () => {
   it('turns a failing derivation into unverified and still reports other accounts', async () => {
     const json = anchorIdl(
