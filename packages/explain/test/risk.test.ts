@@ -431,4 +431,11 @@ describe('evaluateRisks', () => {
       'danger',
     ]);
   });
+
+  it('treats an unreadable stake authorize type as danger', () => {
+    const stake = (args: Record<string, unknown>) => ix({ programId: address(STAKE_PROGRAM), name: 'authorize', args });
+    expect(rules(input([stake({ arg0: OTHER, arg1: 'staker' })]))).toEqual([['authority-change', 'danger']]);
+    expect(rules(input([stake({ arg0: OTHER, arg1: { __discriminator: 0, __kind: 'Withdrawer' } })]))).toEqual([['authority-change', 'danger']]);
+    expect(rules(input([stake({ arg0: OTHER, arg1: { __discriminator: 0, __kind: 'Staker' } })]))).toEqual([['stake-delegation-authority', 'warn']]);
+  });
 });

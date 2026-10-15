@@ -4,7 +4,7 @@ import { getAssignInstruction } from '@solana-program/system';
 import { AuthorityType, getApproveInstruction, getSetAuthorityInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, getAddressEncoder, type Address, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { decodeTransaction, evaluateRisks, identifyInstruction, STAKE_PROGRAM, U64_MAX, type Issue } from '../src';
+import { decodeTransaction, evaluateRisks, identifyInstruction, shortAddress, STAKE_PROGRAM, U64_MAX, type Issue } from '../src';
 import { buildWire, ME, OTHER, USDC } from './helpers';
 
 const SRC = OTHER;
@@ -77,10 +77,33 @@ describe('risk rules on decoded instructions', () => {
       expect((await risks([authorize(OTHER, false)])).rules).toEqual([['authority-change', 'danger']]);
       expect((await risks([authorize(OTHER, true)])).rules).toEqual([['authority-change', 'danger']]);
       expect((await risks([authorize(ME, true)])).rules).toEqual([]);
-      const withSeed = (to: Address) => stakeIx([u32(8), key(to), u32(0), seed('s'), key(OTHER)], [[STAKE_ACC, W], [ME, S]]);
+      const withSeed = (to: Address) => stakeIx([u32(8), key(to), u32(1), seed('s'), key(OTHER)], [[STAKE_ACC, W], [ME, S]]);
       expect((await risks([withSeed(OTHER)])).names).toEqual(['authorizeWithSeed']);
       expect((await risks([withSeed(OTHER)])).rules).toEqual([['authority-change', 'danger']]);
       expect((await risks([withSeed(ME)])).rules).toEqual([]);
+    });
+
+    it('treats handing over only the staker role as warn', async () => {
+      const STAKER = u32(0);
+      const authorize = stakeIx([u32(1), key(OTHER), STAKER], [[STAKE_ACC, W], [ME, S]]);
+      const r = await risks([authorize]);
+      expect(r.rules).toEqual([['stake-delegation-authority', 'warn']]);
+      const tx = await decodeTransaction(buildWire([authorize]), new MemoryChainReader());
+      const explained = await identifyInstruction(tx.instructions[0]!, new IdlResolver([createBundledSource()]), []);
+      expect(evaluateRisks({ instructions: [explained], relations: [], balanceChanges: [], issues: [], me: [ME] })[0]!.message).toBe(
+        `Hands staking control (not withdrawal) of a stake account to ${shortAddress(OTHER)}.`,
+      );
+      const withSeed = stakeIx([u32(8), key(OTHER), STAKER, seed('s'), key(OTHER)], [[STAKE_ACC, W], [ME, S]]);
+      expect((await risks([withSeed])).rules).toEqual([['stake-delegation-authority', 'warn']]);
+      for (const clock of [false, true]) {
+        const checked = stakeIx([u32(10), STAKER], [[STAKE_ACC, W], ...(clock ? [[CLOCK, R] as [Address, AccountRole]] : []), [ME, S], [OTHER, S]]);
+        expect((await risks([checked])).rules).toEqual([['stake-delegation-authority', 'warn']]);
+        const checkedSeed = stakeIx([u32(11), STAKER, seed('s'), key(OTHER)], [[STAKE_ACC, W], [ME, S], ...(clock ? [[CLOCK, R] as [Address, AccountRole]] : []), [OTHER, S]]);
+        expect((await risks([checkedSeed])).rules).toEqual([['stake-delegation-authority', 'warn']]);
+      }
+      // Defense in depth on the modern layout: an extra foreign authority account is only warn for the staker role.
+      const extra = stakeIx([u32(10), STAKER], [[STAKE_ACC, W], [ME, S], [ME, S], [OTHER, S]]);
+      expect((await risks([extra])).rules).toEqual([['stake-delegation-authority', 'warn']]);
     });
 
     it('reads the new authority of Checked variants by position, in both layouts', async () => {
@@ -128,12 +151,12 @@ describe('risk rules on decoded instructions', () => {
       const init = (staker: Address, withdrawer: Address) =>
         stakeIx([u32(0), key(staker), key(withdrawer), ...lockup], [[STAKE_ACC, W], [RENT, R]]);
       expect((await risks([init(ME, OTHER)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
-      expect((await risks([init(OTHER, ME)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+      expect((await risks([init(OTHER, ME)])).rules).toEqual([['stake-foreign-authority', 'warn']]);
       expect((await risks([init(ME, ME)])).rules).toEqual([]);
       const checked = (staker: Address, withdrawer: Address, rent: boolean) =>
         stakeIx([u32(9)], [[STAKE_ACC, W], ...(rent ? [[RENT, R] as [Address, AccountRole]] : []), [staker, R], [withdrawer, S]]);
       for (const rent of [false, true]) {
-        expect((await risks([checked(OTHER, ME, rent)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+        expect((await risks([checked(OTHER, ME, rent)])).rules).toEqual([['stake-foreign-authority', 'warn']]);
         expect((await risks([checked(ME, OTHER, rent)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
         expect((await risks([checked(ME, ME, rent)])).rules).toEqual([]);
       }

@@ -194,23 +194,27 @@ export function evaluateRisks(input: RiskInput): Warning[] {
 function stakeRisks(ix: RiskInput['instructions'][number], mine: (a: string | undefined) => boolean): [string, Warning['severity'], string][] {
   const at = (n: number) => ix.accounts[n]?.address;
   const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
-  const handOff: [string, Warning['severity'], string] = ['authority-change', 'danger', 'Hands control of a stake account to someone else.'];
+  const staker = stakeRole(ix.name === 'authorize' ? ix.args?.arg1 : ix.args?.stakeAuthorize) === 'staker';
+  // Withdrawer (or an unreadable role) handed over: danger. Only the staker role: it can redelegate or
+  // deactivate, not withdraw, so warn.
+  const handOff = (to: string | undefined): [string, Warning['severity'], string] =>
+    staker
+      ? ['stake-delegation-authority', 'warn', `Hands staking control (not withdrawal) of a stake account to ${to ? shortAddress(to) : 'an unknown address'}.`]
+      : ['authority-change', 'danger', 'Hands control of a stake account to someone else.'];
+  const authorize = (to: string | undefined, extra?: string) =>
+    !mine(to) ? [handOff(to)] : extra !== undefined && !mine(extra) ? [handOff(extra)] : [];
   switch (ix.name) {
     case 'authorize':
-      return mine(str(ix.args?.arg0)) ? [] : [handOff];
+      return authorize(str(ix.args?.arg0));
     case 'authorizeWithSeed':
-      return mine(str(ix.args?.newAuthorizedPubkey)) ? [] : [handOff];
-    case 'authorizeChecked': {
-      // Legacy: [stake, clock, old, new, custodian?]. Modern: [stake, old, new, custodian?]; there every
-      // authority after the old one must be yours (defense in depth).
-      const ok = at(1) === CLOCK_SYSVAR ? mine(at(3)) : mine(at(2)) && (at(3) === undefined || mine(at(3)));
-      return ok ? [] : [handOff];
-    }
-    case 'authorizeCheckedWithSeed': {
-      // Legacy: [stake, base, clock, new, custodian?]. Modern: [stake, base, new, custodian?].
-      const ok = at(2) === CLOCK_SYSVAR ? mine(at(3)) : mine(at(2)) && (at(3) === undefined || mine(at(3)));
-      return ok ? [] : [handOff];
-    }
+      return authorize(str(ix.args?.newAuthorizedPubkey));
+    // Legacy: [stake, clock, old, new, custodian?]. Modern: [stake, old, new, custodian?]; there every
+    // authority after the old one must be yours too (defense in depth).
+    case 'authorizeChecked':
+      return at(1) === CLOCK_SYSVAR ? authorize(at(3)) : authorize(at(2), at(3));
+    // Legacy: [stake, base, clock, new, custodian?]. Modern: [stake, base, new, custodian?].
+    case 'authorizeCheckedWithSeed':
+      return at(2) === CLOCK_SYSVAR ? authorize(at(3)) : authorize(at(2), at(3));
     case 'withdraw':
       // [stake, recipient, ...] in both layouts.
       return mine(at(1)) ? [] : [['stake-withdraw', 'danger', 'Withdraws staked SOL to an address you do not own.']];
@@ -218,15 +222,14 @@ function stakeRisks(ix: RiskInput['instructions'][number], mine: (a: string | un
     case 'initializeChecked': {
       const authorized = ix.args?.arg0 as { staker?: unknown; withdrawer?: unknown } | undefined;
       // initializeChecked: legacy [stake, rent, staker, withdrawer], modern [stake, staker, withdrawer].
-      const [staker, withdrawer] =
+      const [stakerKey, withdrawer] =
         ix.name === 'initialize'
           ? [str(authorized?.staker), str(authorized?.withdrawer)]
           : at(1) === RENT_SYSVAR
             ? [at(2), at(3)]
             : [at(1), at(2)];
-      return mine(staker) && mine(withdrawer)
-        ? []
-        : [['stake-foreign-authority', 'danger', 'Creates a stake account that someone else controls.']];
+      if (!mine(withdrawer)) return [['stake-foreign-authority', 'danger', 'Creates a stake account that someone else can withdraw from.']];
+      return mine(stakerKey) ? [] : [['stake-foreign-authority', 'warn', 'Creates a stake account whose staking (not withdrawal) someone else controls.']];
     }
     case 'setLockup':
     case 'setLockupChecked': {
@@ -239,6 +242,15 @@ function stakeRisks(ix: RiskInput['instructions'][number], mine: (a: string | un
     default:
       return [];
   }
+}
+
+/** The decoded `StakeAuthorize` enum (`{ __kind: 'Staker', __discriminator: 0 }` / Withdrawer, 1); undefined if unreadable. */
+function stakeRole(v: unknown): 'staker' | 'withdrawer' | undefined {
+  if (v === null || typeof v !== 'object') return undefined;
+  const { __kind, __discriminator } = v as { __kind?: unknown; __discriminator?: unknown };
+  if (__kind === 'Staker' && __discriminator === 0) return 'staker';
+  if (__kind === 'Withdrawer' && __discriminator === 1) return 'withdrawer';
+  return undefined;
 }
 
 /**
