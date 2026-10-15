@@ -1,6 +1,6 @@
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -113,13 +113,7 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       }
     }
     if (ix.programId === STAKE_PROGRAM) {
-      const next = newStakeAuthority(ix);
-      if (next !== null && (next === undefined || !me.has(next))) {
-        warn('authority-change', 'danger', 'Hands control of a stake account to someone else.', i);
-      }
-      if (ix.name === 'setLockup' || ix.name === 'setLockupChecked') {
-        warn('stake-lockup', 'warn', 'Changes the lockup (and possibly the lockup custodian) of a stake account.', i);
-      }
+      for (const [rule, severity, message] of stakeRisks(ix, (a) => a !== undefined && me.has(a))) warn(rule, severity, message, i);
     }
     if (ix.programId === SYSTEM_PROGRAM && ix.name === 'advanceNonceAccount' && i === 0) {
       warn('durable-nonce', 'warn', 'Uses a durable nonce: this signature never expires and can be submitted later. Balance changes reflect current state only.', i);
@@ -177,25 +171,58 @@ export function evaluateRisks(input: RiskInput): Warning[] {
 }
 
 /**
- * The new authority set by a stake `authorize*` instruction: an address, undefined if it can't be read, null for
- * other instructions. The Checked variants take it as an account. The vendored IDL names only the modern account
- * layout; the legacy layout (still accepted, and sent by most clients) has the Clock sysvar before the
- * authorities, shifting every later name. So those are read by position, the way the program does.
+ * Stake rules. The vendored IDL names only the program's modern account layout; the legacy layout (still
+ * accepted, and sent by most clients) puts sysvars (Clock, Rent, ...) before the authorities and shifts every
+ * later name. So accounts are read by position, branching on the sysvar the way the program does
+ * (program/src/processor.rs at the vendored commit).
  */
-function newStakeAuthority(ix: RiskInput['instructions'][number]): string | null | undefined {
+function stakeRisks(ix: RiskInput['instructions'][number], mine: (a: string | undefined) => boolean): [string, Warning['severity'], string][] {
   const at = (n: number) => ix.accounts[n]?.address;
   const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  const handOff: [string, Warning['severity'], string] = ['authority-change', 'danger', 'Hands control of a stake account to someone else.'];
   switch (ix.name) {
     case 'authorize':
-      return str(ix.args?.arg0);
+      return mine(str(ix.args?.arg0)) ? [] : [handOff];
     case 'authorizeWithSeed':
-      return str(ix.args?.newAuthorizedPubkey);
-    case 'authorizeChecked':
-      return at(1) === CLOCK_SYSVAR ? at(3) : at(2);
-    case 'authorizeCheckedWithSeed':
-      return at(2) === CLOCK_SYSVAR ? at(3) : at(2);
+      return mine(str(ix.args?.newAuthorizedPubkey)) ? [] : [handOff];
+    case 'authorizeChecked': {
+      // Legacy: [stake, clock, old, new, custodian?]. Modern: [stake, old, new, custodian?]; there every
+      // authority after the old one must be yours (defense in depth).
+      const ok = at(1) === CLOCK_SYSVAR ? mine(at(3)) : mine(at(2)) && (at(3) === undefined || mine(at(3)));
+      return ok ? [] : [handOff];
+    }
+    case 'authorizeCheckedWithSeed': {
+      // Legacy: [stake, base, clock, new, custodian?]. Modern: [stake, base, new, custodian?].
+      const ok = at(2) === CLOCK_SYSVAR ? mine(at(3)) : mine(at(2)) && (at(3) === undefined || mine(at(3)));
+      return ok ? [] : [handOff];
+    }
+    case 'withdraw':
+      // [stake, recipient, ...] in both layouts.
+      return mine(at(1)) ? [] : [['stake-withdraw', 'danger', 'Withdraws staked SOL to an address you do not own.']];
+    case 'initialize':
+    case 'initializeChecked': {
+      const authorized = ix.args?.arg0 as { staker?: unknown; withdrawer?: unknown } | undefined;
+      // initializeChecked: legacy [stake, rent, staker, withdrawer], modern [stake, staker, withdrawer].
+      const [staker, withdrawer] =
+        ix.name === 'initialize'
+          ? [str(authorized?.staker), str(authorized?.withdrawer)]
+          : at(1) === RENT_SYSVAR
+            ? [at(2), at(3)]
+            : [at(1), at(2)];
+      return mine(staker) && mine(withdrawer)
+        ? []
+        : [['stake-foreign-authority', 'danger', 'Creates a stake account that someone else controls.']];
+    }
+    case 'setLockup':
+    case 'setLockupChecked': {
+      // setLockupChecked: [stake, authority, newCustodian?].
+      const custodian = ix.name === 'setLockup' ? authorityArg(ix.args?.custodian) : (at(2) ?? null);
+      return custodian === null || mine(custodian)
+        ? [['stake-lockup', 'warn', 'Changes the lockup of a stake account.']]
+        : [['stake-lockup', 'danger', 'Makes someone else the lockup custodian of a stake account.']];
+    }
     default:
-      return null;
+      return [];
   }
 }
 

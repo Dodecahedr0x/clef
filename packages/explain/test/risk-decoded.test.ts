@@ -98,11 +98,52 @@ describe('risk rules on decoded instructions', () => {
       expect((await risks([withSeed(ME, true)])).rules).toEqual([]);
     });
 
-    it('warns on lockup changes', async () => {
-      const setLockup = stakeIx([u32(6), new Uint8Array([0, 0, 1]), key(OTHER)], [[STAKE_ACC, W], [ME, S]]);
-      const setLockupChecked = stakeIx([u32(12), new Uint8Array([0, 0])], [[STAKE_ACC, W], [ME, S], [OTHER, S]]);
-      expect((await risks([setLockup])).rules).toEqual([['stake-lockup', 'warn']]);
-      expect((await risks([setLockupChecked])).rules).toEqual([['stake-lockup', 'warn']]);
+    it('warns on lockup changes; danger when the new custodian is not yours', async () => {
+      const setLockup = (custodian: Address | null) =>
+        stakeIx([u32(6), new Uint8Array([0, 0]), ...(custodian ? [new Uint8Array([1]), key(custodian)] : [new Uint8Array([0])])], [[STAKE_ACC, W], [ME, S]]);
+      expect((await risks([setLockup(OTHER)])).rules).toEqual([['stake-lockup', 'danger']]);
+      expect((await risks([setLockup(ME)])).rules).toEqual([['stake-lockup', 'warn']]);
+      expect((await risks([setLockup(null)])).rules).toEqual([['stake-lockup', 'warn']]);
+      const checked = (custodian?: Address) =>
+        stakeIx([u32(12), new Uint8Array([0, 0])], [[STAKE_ACC, W], [ME, S], ...(custodian ? [[custodian, S] as [Address, AccountRole]] : [])]);
+      expect((await risks([checked(OTHER)])).rules).toEqual([['stake-lockup', 'danger']]);
+      expect((await risks([checked(ME)])).rules).toEqual([['stake-lockup', 'warn']]);
+      expect((await risks([checked()])).rules).toEqual([['stake-lockup', 'warn']]);
+    });
+
+    it('flags withdrawing stake to someone else, in both layouts', async () => {
+      const withdraw = (to: Address, clock: boolean) =>
+        stakeIx(
+          [u32(4), u64(1_000_000_000)],
+          [[STAKE_ACC, W], [to, W], ...(clock ? ([[CLOCK, R], [USDC, R]] as [Address, AccountRole][]) : []), [ME, S]],
+        );
+      expect((await risks([withdraw(OTHER, false)])).rules).toEqual([['stake-withdraw', 'danger']]);
+      expect((await risks([withdraw(OTHER, true)])).rules).toEqual([['stake-withdraw', 'danger']]);
+      expect((await risks([withdraw(ME, true)])).rules).toEqual([]);
+    });
+
+    it('flags creating a stake account someone else controls', async () => {
+      const RENT = address('SysvarRent111111111111111111111111111111111');
+      const lockup = [u64(0), u64(0), key(ME)];
+      const init = (staker: Address, withdrawer: Address) =>
+        stakeIx([u32(0), key(staker), key(withdrawer), ...lockup], [[STAKE_ACC, W], [RENT, R]]);
+      expect((await risks([init(ME, OTHER)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+      expect((await risks([init(OTHER, ME)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+      expect((await risks([init(ME, ME)])).rules).toEqual([]);
+      const checked = (staker: Address, withdrawer: Address, rent: boolean) =>
+        stakeIx([u32(9)], [[STAKE_ACC, W], ...(rent ? [[RENT, R] as [Address, AccountRole]] : []), [staker, R], [withdrawer, S]]);
+      for (const rent of [false, true]) {
+        expect((await risks([checked(OTHER, ME, rent)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+        expect((await risks([checked(ME, OTHER, rent)])).rules).toEqual([['stake-foreign-authority', 'danger']]);
+        expect((await risks([checked(ME, ME, rent)])).rules).toEqual([]);
+      }
+    });
+
+    it('requires every authority account of a modern-layout Checked authorize to be yours', async () => {
+      const checked = stakeIx([u32(10), u32(1)], [[STAKE_ACC, W], [ME, S], [ME, S], [OTHER, S]]);
+      expect((await risks([checked])).rules).toEqual([['authority-change', 'danger']]);
+      const withSeed = stakeIx([u32(11), u32(1), seed('s'), key(OTHER)], [[STAKE_ACC, W], [ME, S], [ME, S], [OTHER, S]]);
+      expect((await risks([withSeed])).rules).toEqual([['authority-change', 'danger']]);
     });
   });
 });
