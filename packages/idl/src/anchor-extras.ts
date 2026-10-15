@@ -27,7 +27,7 @@ export type AnchorAccountExtras = {
   seedProgram?: AnchorSeed;
 };
 
-/** instruction name → account name → extras (all camelCase, matching Codama node names). */
+/** instruction name -> account name -> extras (all camelCase, matching Codama node names). */
 export type AnchorExtras = Record<string, Record<string, AnchorAccountExtras>>;
 
 type Leaf = { account: V01LeafAccount; prefix?: string };

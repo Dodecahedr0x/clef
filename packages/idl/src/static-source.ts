@@ -2,7 +2,7 @@ import type { Address } from '@solana/kit';
 import { resolveIdl } from './normalize';
 import type { IdlSource, IdlSourceKind, ResolvedIdl, TrustTier } from './types';
 
-/** Serves IDLs from an in-memory map of program id → IDL JSON, normalizing each one at most once. */
+/** Serves IDLs from an in-memory map of program id -> IDL JSON, normalizing each one at most once. */
 export class StaticIdlSource implements IdlSource {
   protected readonly cache = new Map<string, Promise<ResolvedIdl>>();
 

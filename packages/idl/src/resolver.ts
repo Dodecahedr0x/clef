@@ -69,7 +69,7 @@ export class IdlResolver {
   }
 }
 
-/** user → curated bundle → Program Metadata → on-chain Anchor IDL. */
+/** user -> curated bundle -> Program Metadata -> on-chain Anchor IDL. */
 export function createDefaultResolver(
   reader: ChainReader,
   user: UserIdlSource,

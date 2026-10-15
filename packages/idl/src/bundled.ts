@@ -8,14 +8,14 @@ import token2022 from '../idls/token-2022.json' with { type: 'json' };
 import token from '../idls/token.json' with { type: 'json' };
 import { StaticIdlSource } from './static-source';
 
-// Memo v4 (Memo4c2p…) is wire-compatible with v3 (MemoSq4…), and the vendored IDL targets v4. Codama matches
+// Memo v4 (Memo4c2p...) is wire-compatible with v3 (MemoSq4...), and the vendored IDL targets v4. Codama matches
 // a program by its exact address, so the v3 alias needs its own root.
 const memoV3 = { ...memo, program: { ...memo.program, publicKey: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr' } };
 
 /**
  * The ATA program still accepts `create` with empty instruction data (the pre-discriminator form, still sent
- * by older clients), which the vendored IDL cannot match. Add it as `createLegacy` — `create`'s accounts, no
- * arguments, matched by empty data — without editing the hash-pinned vendored file.
+ * by older clients), which the vendored IDL cannot match. Add it as `createLegacy` -- `create`'s accounts, no
+ * arguments, matched by empty data -- without editing the hash-pinned vendored file.
  */
 function withLegacyAtaCreate(root: RootNode): RootNode {
   const instructions = root.program.instructions ?? [];

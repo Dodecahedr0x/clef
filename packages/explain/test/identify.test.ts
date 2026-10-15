@@ -141,7 +141,7 @@ describe('identifyInstruction', () => {
 
   describe('omitted optional accounts', () => {
     // Token-2022 confidentialWithdraw: token, mint, instructionsSysvar?, equalityRecord?, rangeRecord?, authority
-    // with optionalAccountStrategy "omitted" — the optional accounts sit before a required one.
+    // with optionalAccountStrategy "omitted" -- the optional accounts sit before a required one.
     const data = new Uint8Array(49);
     data.set([27, 6]);
     const withdraw = (n: number) => ({ index: 1, programId: address(TOKEN_2022_PROGRAM), accounts: accounts(n), data });
@@ -153,7 +153,7 @@ describe('identifyInstruction', () => {
     };
 
     // confidentialWithdraw also declares remaining (multisig signer) accounts, so even 6 accounts cannot be
-    // told apart from "token, mint, multisig authority + 3 signers" — the safe answer is "ambiguous".
+    // told apart from "token, mint, multisig authority + 3 signers" -- the safe answer is "ambiguous".
     it('treats a full-length account list as ambiguous when remaining accounts are declared', async () => {
       const issues: Issue[] = [];
       const out = await identifyInstruction(withdraw(6), bundled(), issues);
@@ -163,7 +163,7 @@ describe('identifyInstruction', () => {
     });
 
     it('does not name a multisig authority and its signers as optional accounts', async () => {
-      // token, mint, multisig authority, 3 signers — all three optional accounts omitted.
+      // token, mint, multisig authority, 3 signers -- all three optional accounts omitted.
       const multisig = { ...withdraw(6), accounts: accounts(6).map((a, i) => ({ ...a, signer: i >= 3, writable: i === 0 })) };
       const issues: Issue[] = [];
       const out = await identifyInstruction(multisig, bundled(), issues);

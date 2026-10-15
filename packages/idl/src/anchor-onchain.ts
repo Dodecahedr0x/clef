@@ -28,7 +28,7 @@ export function decodeAnchorIdlAccount(data: Uint8Array): string {
 
 /**
  * Anchor IDLs stored on chain by `anchor idl init`. Trust is 'authority' because only the IDL account's
- * authority can write it — note that this is the IDL authority, which may differ from the upgrade authority.
+ * authority can write it -- note that this is the IDL authority, which may differ from the upgrade authority.
  */
 export class AnchorOnchainIdlSource implements IdlSource {
   readonly kind = 'anchor-onchain' as const;
