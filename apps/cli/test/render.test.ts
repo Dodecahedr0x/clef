@@ -103,7 +103,7 @@ describe('renderView', () => {
   it('says when an expert fee or state changes are unknown', () => {
     const out = renderView({ ...expert, fee: null, stateChanges: null });
     expect(out).toContain('Network fee: unknown');
-    expect(out).toContain('State changes: unknown');
+    expect(out).toContain('State changes: unknown');    expect(renderView({ ...expert, stateChanges: [] })).toContain('State changes: none');
   });
 
   it('renders unknown balance changes as unknown, never as an empty list', () => {

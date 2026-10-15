@@ -77,7 +77,9 @@ export function renderView(view: AnyView): string {
   if (view.level === 'expert') {
     if (view.stateChanges === null) {
       lines.push('State changes: unknown (no simulation)', '');
-    } else if (view.stateChanges.length) {
+    } else if (view.stateChanges.length === 0) {
+      lines.push('State changes: none', '');
+    } else {
       lines.push('State changes:');
       for (const s of view.stateChanges) {
         const extra = [
