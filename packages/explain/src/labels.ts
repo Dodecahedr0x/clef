@@ -55,7 +55,8 @@ export class Labeler {
 
   label(address: Address): string | undefined {
     if (this.me.has(address)) return 'Your wallet';
-    const named = this.addressBook[address] ?? PROGRAM_NAMES[address];
+    // Program naming precedence: see `PROGRAM_NAMES`.
+    const named = PROGRAM_NAMES[address] ?? (Object.hasOwn(this.addressBook, address) ? this.addressBook[address] : undefined);
     if (named) return named;
     if (KNOWN_MINTS[address]) return `${KNOWN_MINTS[address]!.symbol} mint`;
     const token = decodeTokenAccount(this.cache.get(address));

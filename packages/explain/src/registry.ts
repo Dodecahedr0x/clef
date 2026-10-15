@@ -58,6 +58,10 @@ export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
 /**
  * Display names for programs: `KNOWN_PROGRAMS` plus programs Clef only names. Never a source of trust: unlike
  * `KNOWN_PROGRAMS`, these don't vouch for PDA derivations (`isTrustedProgram`) or anything else.
+ *
+ * Program naming precedence, everywhere (`programDisplay`, `Labeler.label`, `programLabel` in `explain`): these
+ * names first; then the user's address book; then, for instructions only, the IDL's own name, qualified with its
+ * trust tier. An address book entry can't rename a program Clef knows.
  */
 export const PROGRAM_NAMES: Readonly<Record<string, string>> = {
   ...KNOWN_PROGRAMS,

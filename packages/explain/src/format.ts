@@ -17,10 +17,9 @@ export function formatUnits(amount: bigint, decimals: number | null): string {
 }
 
 /**
- * How to name a program. Known programs come from Clef's registry (`PROGRAM_NAMES`), never from an IDL. Next
- * comes the user's address book, marked as such. Any other program's IDL name is the IDL describing itself, so
- * it is qualified with the IDL's trust tier and the program's address: an untrusted IDL calling itself `system`
- * can't pass for the System Program.
+ * How to name a program (precedence: see `PROGRAM_NAMES`). Names never come from an IDL unqualified: an IDL's
+ * name is the IDL describing itself, so it is qualified with the IDL's trust tier and the program's address, and
+ * an untrusted IDL calling itself `system` can't pass for the System Program. Address book names are marked too.
  */
 export function programDisplay(ix: Pick<ExplainedInstruction, 'programId' | 'programName' | 'programLabel' | 'idl'>): string {
   const known = PROGRAM_NAMES[ix.programId];

@@ -36,6 +36,15 @@ describe('token relations and labels', () => {
     expect(labeler.mintInfo(USDC)).toEqual({ symbol: 'USDC', decimals: 6 });
   });
 
+  it('names programs registry first, then from the address book', () => {
+    const PUMP = address('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
+    const ROUTER = address('6VoCNEmYFdMQ5kK8RkzcH9NoBhNQf3xVWzggf3bduTAB');
+    const labeler = new Labeler([ME], cache, { [TOKEN_PROGRAM]: 'Evil', [PUMP]: 'Evil too', [ROUTER]: 'Router' });
+    expect(labeler.label(address(TOKEN_PROGRAM))).toBe('Token Program');
+    expect(labeler.label(PUMP)).toBe('pump.fun');
+    expect(labeler.label(ROUTER)).toBe('Router');
+  });
+
   it('labels Token-2022 and foreign token accounts from on-chain data only', async () => {
     const mint = address('So11111111111111111111111111111111111111112');
     const fakeMint = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
