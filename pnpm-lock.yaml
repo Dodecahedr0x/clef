@@ -29,9 +29,6 @@ importers:
       '@clef/explain':
         specifier: workspace:*
         version: link:../../packages/explain
-      '@clef/idl':
-        specifier: workspace:*
-        version: link:../../packages/idl
       '@clef/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
