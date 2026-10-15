@@ -56,7 +56,13 @@ const toBigint = (v: unknown) => (typeof v === 'bigint' ? v : typeof v === 'numb
 const simError = (err: unknown) =>
   sanitizeText(JSON.stringify(err, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)) ?? String(err), 200);
 
-type Simulated = { balanceChanges: ExplainedTransaction['balanceChanges']; stateChanges?: StateChange[]; postTokenOwners?: Record<string, Address> };
+type Simulated = {
+  balanceChanges: ExplainedTransaction['balanceChanges'];
+  stateChanges?: StateChange[];
+  postTokenOwners?: Record<string, Address>;
+  /** The pre-state was built conservatively (see `highestSeen`). */
+  conservative?: true;
+};
 /**
  * A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. `conservative`: the
  * chain kept changing, so `pre` was built by `highestSeen`.
@@ -71,12 +77,14 @@ const sameAccount = (a: RawAccount | null, b: RawAccount | null) =>
 const TOKEN_AMOUNT_OFFSET = 64;
 
 /**
- * One account's pre-state from several reads that disagree: the latest read (owner, delegate, close authority),
- * with the highest lamports and the highest token amount (same mint) seen in any read. Concurrent gifts only
- * add, so pre-minus-post can then overstate an outflow but never understate one.
+ * One account's pre-state from several reads that disagree. Owner, delegate and close authority come from the
+ * read the final simulation started from (the one before the last re-read); lamports and the token amount (same
+ * mint) are the highest seen in any read. Concurrent gifts only add, so pre-minus-post can then overstate an
+ * outflow but never understate one.
  */
 function highestSeen(reads: readonly (RawAccount | null)[]): RawAccount | null {
-  const base = reads[reads.length - 1] ?? [...reads].reverse().find((a) => a !== null) ?? null;
+  const simulatedFrom = reads.length > 1 ? reads[reads.length - 2] : reads[0];
+  const base = simulatedFrom ?? [...reads].reverse().find((a) => a !== null) ?? null;
   if (!base) return null;
   const present = reads.filter((a): a is RawAccount => a !== null);
   const lamports = present.reduce((max, a) => (a.lamports > max ? a.lamports : max), base.lamports);
@@ -163,6 +171,7 @@ async function fromSimulation(
     balanceChanges: balanceChangesFromSimulation(pre, post, (mint) => labeler.mintInfo(mint)),
     stateChanges: computeStateChanges(pre, post),
     postTokenOwners,
+    ...(run.conservative && { conservative: true as const }),
   };
 }
 
@@ -350,6 +359,7 @@ export async function explain(
     addressBook: new Set(Object.keys(ctx.addressBook ?? {})),
     labels,
     accountLamports,
+    ...(simulated.conservative && { balancesChanged: true }),
     ...(simulated.stateChanges && { stateChanges: simulated.stateChanges }),
     ...(simulated.postTokenOwners && { postTokenOwners: simulated.postTokenOwners }),
     ...(ctx.valuedMints && { valuedMints: ctx.valuedMints }),

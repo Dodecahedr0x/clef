@@ -24,6 +24,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   valuedMints?: ReadonlySet<string>;
   /** Post-transaction owners of token accounts created in the transaction, keyed by token account address. */
   postTokenOwners?: Readonly<Record<string, Address>>;
+  /** Balances changed on chain while checking, so pre-state was built conservatively (amounts may be overstated). */
+  balancesChanged?: boolean;
   /** Pre-transaction lamports of the accounts the transaction touches, keyed by address. */
   accountLamports?: Readonly<Record<string, bigint>>;
   /** Display labels from trusted sources (see `Labeler`), keyed by address: used to name recipients. */
@@ -214,6 +216,10 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
 
   if (input.issues.some((i) => i.stage === 'execute')) {
     warn('transaction-failed', 'info', 'Transaction failed; only the fee was charged.');
+  }
+
+  if (input.balancesChanged) {
+    warn('balances-changed', 'warn', 'Your balances changed while Clef was checking; amounts may be overstated.');
   }
 
   // A simulate issue with balance changes (e.g. computed conservatively) is not a failed simulation.

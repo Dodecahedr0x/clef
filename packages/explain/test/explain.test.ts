@@ -367,7 +367,7 @@ describe('explain', () => {
       expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -5000n });
       expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: USDC, symbol: 'USDC', decimals: 6, delta: -100_000_000n });
       expect(ex.issues).toContainEqual({ stage: 'simulate', message: 'state changed during simulation; balances computed conservatively' });
-      expect(rules(ex)).toEqual([['send-entire-balance', 'warn']]);
+      expect(rules(ex)).toEqual([['balances-changed', 'warn'], ['send-entire-balance', 'warn']]);
     });
 
     it('still flags a sweep when a gift lands before every simulation (scenario L)', async () => {
@@ -401,6 +401,50 @@ describe('explain', () => {
       expect(ex.balanceChanges).toContainEqual({ owner: ME, mint: 'SOL', symbol: 'SOL', decimals: 9, delta: -9n * SOL - 5000n });
       expect(rules(ex)).toContainEqual(['sweep', 'danger']);
       expect(rules(ex)).not.toContainEqual(['simulation-failed', 'warn']);
+    });
+
+    it('warns that amounts may be overstated when balances keep changing (L3)', async () => {
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: SOL, data: new Uint8Array() });
+      reader.simulateImpl = async (_wire, addresses) => {
+        reader.accounts.get(ME)!.lamports += 5n * SOL; // a recurring 5 SOL inflow
+        return {
+          err: null, logs: [], unitsConsumed: 1n,
+          postAccounts: addresses.map((a) => {
+            const now = structuredClone(reader.accounts.get(a) ?? null);
+            return a === ME ? { ...now!, lamports: now!.lamports - 5000n } : now;
+          }),
+        };
+      };
+      const ex = await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 0n })]) }, ctx(reader));
+      expect(ex.warnings).toContainEqual({
+        rule: 'balances-changed', severity: 'warn', message: 'Your balances changed while Clef was checking; amounts may be overstated.',
+      });
+      expect(rules(ex)).not.toContainEqual(['simulation-failed', 'warn']);
+    });
+
+    it('bases authorities on the read the final simulation started from', async () => {
+      const reader = new MemoryChainReader();
+      const X = address('75hbt6uvDqjPZ9WgFtMhBnTeyHw7cinoHiz4FD2vEz2d');
+      reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: SOL, data: new Uint8Array() });
+      tokenAccount(reader, MY_USDC, ME, 100n);
+      // The delegate changes on chain before each simulation: first to X, then to ATTACKER.
+      const delegates = [X, ATTACKER];
+      let calls = 0;
+      reader.simulateImpl = async (_wire, addresses) => {
+        const delegate = delegates[calls++]!;
+        reader.setAccount({ ...reader.accounts.get(MY_USDC)!, data: tokenAccountData(ME, USDC, 100n, { delegate, delegatedAmount: 100n }) });
+        return { err: null, logs: [], unitsConsumed: 1n, postAccounts: addresses.map((a) => structuredClone(reader.accounts.get(a) ?? null)) };
+      };
+      const drain: Instruction = {
+        programAddress: DRAINER, data: new Uint8Array([7]),
+        accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: MY_USDC, role: AccountRole.WRITABLE }],
+      };
+      const ex = await explain({ wire: buildWire([drain]) }, ctx(reader));
+      expect(calls).toBe(2);
+      // The final simulation started from delegate X and ended with ATTACKER: that hand-over is shown.
+      expect(ex.stateChanges).toContainEqual(expect.objectContaining({ address: MY_USDC, kind: 'token-delegate', before: X, after: ATTACKER }));
+      expect(rules(ex)).toContainEqual(['delegation', 'danger']);
     });
 
     it('takes the highest token amount seen when token gifts keep landing', async () => {
