@@ -59,12 +59,16 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   const mineOrUnknown = (a: NamedAccount | undefined) => !a || a.mine || me.has(a.address);
   const notMineOrUnknown = (a: NamedAccount | undefined) => !a || (!a.mine && !me.has(a.address));
 
+  const unknownPrograms = new Set<string>();
+  let nonce: { warning: Warning; foreignAuthority: boolean } | undefined;
+
   for (const ix of input.instructions) {
     const i = ix.index;
     if (!ix.name) {
       if (SENSITIVE_PROGRAMS.has(ix.programId)) {
         warn('sensitive-program', 'danger', `Instruction #${i + 1} changes stake, vote or program accounts; Clef can't decode it.`, i);
-      } else if (!PLUMBING_PROGRAMS.has(ix.programId)) {
+      } else if (!PLUMBING_PROGRAMS.has(ix.programId) && !unknownPrograms.has(ix.programId)) {
+        unknownPrograms.add(ix.programId);
         warn('unknown-program', 'warn', `Clef can't decode instruction #${i + 1} (program ${ix.programId}).`, i);
       }
       continue;
@@ -81,7 +85,12 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
     }
     if (isToken(ix.programId) && ix.name === 'setAuthority') {
-      warn('authority-change', 'danger', 'Changes the authority of a token account or mint.', i, account(ix, 'owned')?.address);
+      const next = authorityArg(ix.args?.newAuthority);
+      const owned = account(ix, 'owned')?.address;
+      if (next === null) warn('authority-change', 'warn', 'Revokes an authority of a token account or mint.', i, owned);
+      else if (next !== undefined && me.has(next)) {
+        warn('authority-change', 'warn', 'Changes an authority of a token account or mint to your wallet.', i, owned);
+      } else warn('authority-change', 'danger', 'Hands an authority of a token account or mint to someone else.', i, owned);
     }
     if (ix.programId === SYSTEM_PROGRAM && (ix.name === 'assign' || ix.name === 'assignWithSeed')) {
       // assignWithSeed reassigns an account derived from (and controlled by) `baseAccount`.
@@ -99,7 +108,8 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       }
     }
     if (ix.programId === SYSTEM_PROGRAM && ix.name === 'advanceNonceAccount' && i === 0) {
-      warn('durable-nonce', 'warn', 'Uses a durable nonce: this signature never expires and can be submitted later.', i);
+      warn('durable-nonce', 'warn', 'Uses a durable nonce: this signature never expires and can be submitted later. Balance changes reflect current state only.', i);
+      nonce = { warning: warnings[warnings.length - 1]!, foreignAuthority: notMineOrUnknown(account(ix, 'nonceAuthority')) };
     }
   }
 
@@ -127,7 +137,7 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   }
 
   if (input.issues.some((i) => i.stage === 'simulate')) {
-    warn('simulation-failed', 'warn', 'Simulation failed: balance changes are unknown.');
+    warn('simulation-failed', 'warn', 'Simulation failed or unavailable: balance changes are unknown.');
   }
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));
@@ -146,7 +156,24 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   if (isSweep(input, me)) {
     warn('sweep', 'danger', 'Moves your funds out without giving you anything back.');
   }
+
+  // A signature that never expires can be replayed once state has changed: anything else wrong becomes worse.
+  if (nonce && (nonce.foreignAuthority || warnings.some((w) => w !== nonce!.warning && RANK[w.severity] >= RANK.warn))) {
+    nonce.warning.severity = 'danger';
+  }
   return warnings;
+}
+
+/**
+ * A decoded `option<address>` arg: the address, null for None, undefined when the shape is unexpected.
+ * Codama decodes options as `{ __option: 'Some', value }` / `{ __option: 'None' }`.
+ */
+function authorityArg(v: unknown): string | null | undefined {
+  if (v === null) return null;
+  if (typeof v !== 'object') return undefined;
+  const o = v as { __option?: unknown; value?: unknown };
+  if (o.__option === 'None') return null;
+  return o.__option === 'Some' && typeof o.value === 'string' ? o.value : undefined;
 }
 
 const onCurve = (a: Address) => {

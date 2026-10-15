@@ -69,11 +69,45 @@ describe('evaluateRisks', () => {
         }),
       ),
     ).toEqual([
-      ['durable-nonce', 'warn'],
+      ['durable-nonce', 'danger'],
       ['unknown-program', 'warn'],
       ['relation-mismatch', 'danger'],
       ['simulation-failed', 'warn'],
     ]);
+  });
+
+  it('makes a durable nonce danger when anything else is flagged or someone else controls the nonce', () => {
+    const nonce = (authority: Address) =>
+      ix({ programId: address(SYSTEM_PROGRAM), name: 'advanceNonceAccount', accounts: [named('nonceAuthority', authority)] });
+    const warnings = evaluateRisks(input([nonce(ME)]));
+    expect(warnings.map((w) => [w.rule, w.severity])).toEqual([['durable-nonce', 'warn']]);
+    expect(warnings[0]!.message).toMatch(/ Balance changes reflect current state only\.$/);
+    expect(rules(input([nonce(OTHER)]))).toEqual([['durable-nonce', 'danger']]);
+    const limited = ix({ index: 1, name: 'approve', args: { amount: 5n } });
+    expect(rules(input([nonce(ME), limited]))).toEqual([
+      ['durable-nonce', 'danger'],
+      ['delegation', 'warn'],
+    ]);
+  });
+
+  it('reports each undecodable program once', () => {
+    const unknown = (index: number, programId: Address) => ix({ index, programId });
+    expect(rules(input([unknown(0, OTHER), unknown(1, OTHER), unknown(2, ME)]))).toEqual([
+      ['unknown-program', 'warn'],
+      ['unknown-program', 'warn'],
+    ]);
+    expect(evaluateRisks(input([], { issues: [{ stage: 'simulate', message: 'x' }] }))[0]!.message).toBe(
+      'Simulation failed or unavailable: balance changes are unknown.',
+    );
+  });
+
+  it('treats revoking or keeping an authority as warn, handing it to someone else as danger', () => {
+    const set = (newAuthority: unknown) => ix({ name: 'setAuthority', args: { newAuthority } });
+    expect(rules(input([set({ __option: 'Some', value: OTHER })]))).toEqual([['authority-change', 'danger']]);
+    expect(rules(input([set({ __option: 'Some', value: ME })]))).toEqual([['authority-change', 'warn']]);
+    expect(rules(input([set({ __option: 'None' })]))).toEqual([['authority-change', 'warn']]);
+    expect(rules(input([set(null)]))).toEqual([['authority-change', 'warn']]);
+    expect(rules(input([set('garbage')]))).toEqual([['authority-change', 'danger']]);
   });
 
   it('flags outflows when part of the transaction is unexplained', () => {
