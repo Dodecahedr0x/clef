@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   estimateFee,
   evaluateRisks,
+  BPF_UPGRADEABLE_LOADER,
   shortAddress,
+  STAKE_PROGRAM,
+  VOTE_PROGRAM,
   SYSTEM_PROGRAM,
   TOKEN_2022_PROGRAM,
   TOKEN_PROGRAM,
@@ -258,5 +261,18 @@ describe('evaluateRisks', () => {
       const tipped = [change(ME, USDC, -10n), change(vault, USDC, 10n), change(ME, 'SOL', -100_000n), change(OTHER, 'SOL', 100_000n)];
       expect(rules(input([deposit], { balanceChanges: tipped }))).toEqual([]);
     });
+  });
+
+  it('flags handing a nonce account to someone else', () => {
+    const authorize = (newNonceAuthority: Address) =>
+      ix({ programId: address(SYSTEM_PROGRAM), name: 'authorizeNonceAccount', args: { newNonceAuthority } });
+    expect(rules(input([authorize(OTHER)]))).toEqual([['authority-change', 'danger']]);
+    expect(rules(input([authorize(ME)]))).toEqual([]);
+  });
+
+  it('flags undecoded stake, vote and upgradeable-loader instructions as danger', () => {
+    for (const program of [STAKE_PROGRAM, VOTE_PROGRAM, BPF_UPGRADEABLE_LOADER]) {
+      expect(rules(input([ix({ programId: address(program) })]))).toEqual([['sensitive-program', 'danger']]);
+    }
   });
 });

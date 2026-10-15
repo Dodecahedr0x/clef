@@ -1,6 +1,6 @@
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
-import { KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -62,7 +62,9 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   for (const ix of input.instructions) {
     const i = ix.index;
     if (!ix.name) {
-      if (!PLUMBING_PROGRAMS.has(ix.programId)) {
+      if (SENSITIVE_PROGRAMS.has(ix.programId)) {
+        warn('sensitive-program', 'danger', `Instruction #${i + 1} changes stake, vote or program accounts; Clef can't decode it.`, i);
+      } else if (!PLUMBING_PROGRAMS.has(ix.programId)) {
         warn('unknown-program', 'warn', `Clef can't decode instruction #${i + 1} (program ${ix.programId}).`, i);
       }
       continue;
@@ -89,6 +91,12 @@ export function evaluateRisks(input: RiskInput): Warning[] {
     }
     if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination'))) {
       warn('close-to-third-party', 'danger', 'Closes an account and sends its rent to an address you do not own.', i);
+    }
+    if (ix.programId === SYSTEM_PROGRAM && ix.name === 'authorizeNonceAccount') {
+      const next = ix.args?.newNonceAuthority;
+      if (typeof next !== 'string' || !me.has(next)) {
+        warn('authority-change', 'danger', 'Hands control of a durable nonce account to someone else.', i);
+      }
     }
     if (ix.programId === SYSTEM_PROGRAM && ix.name === 'advanceNonceAccount' && i === 0) {
       warn('durable-nonce', 'warn', 'Uses a durable nonce: this signature never expires and can be submitted later.', i);

@@ -5,8 +5,14 @@ export const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 export const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';
 export const MEMO_PROGRAM = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 export const MEMO_V4_PROGRAM = 'Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH';
+export const STAKE_PROGRAM = 'Stake11111111111111111111111111111111111111';
+export const VOTE_PROGRAM = 'Vote111111111111111111111111111111111111111';
+export const BPF_UPGRADEABLE_LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
 
 export const TOKEN_PROGRAMS: ReadonlySet<string> = new Set([TOKEN_PROGRAM, TOKEN_2022_PROGRAM]);
+
+/** Programs that move stake, votes or program code: an undecoded instruction to them is a danger. */
+export const SENSITIVE_PROGRAMS: ReadonlySet<string> = new Set([STAKE_PROGRAM, VOTE_PROGRAM, BPF_UPGRADEABLE_LOADER]);
 
 /** Programs whose instructions are never "the point" of a transaction. */
 export const PLUMBING_PROGRAMS: ReadonlySet<string> = new Set([COMPUTE_BUDGET_PROGRAM, MEMO_PROGRAM, MEMO_V4_PROGRAM]);
@@ -33,6 +39,9 @@ export const KNOWN_PROGRAMS: Readonly<Record<string, string>> = {
   [COMPUTE_BUDGET_PROGRAM]: 'Compute Budget',
   [MEMO_PROGRAM]: 'Memo Program',
   [MEMO_V4_PROGRAM]: 'Memo Program',
+  [STAKE_PROGRAM]: 'Stake Program',
+  [VOTE_PROGRAM]: 'Vote Program',
+  [BPF_UPGRADEABLE_LOADER]: 'BPF Upgradeable Loader',
   JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4: 'Jupiter Aggregator v6',
   SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf: 'Squads v4',
 };
