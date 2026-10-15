@@ -35,7 +35,8 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
   // Accounts without a name (ambiguous positions) are never guessed: they neither get edges nor serve as seeds.
   const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
   const extras = idl.anchorExtras?.[ix.name];
-  const args = ix.args ?? {};
+  // Seeds come from the raw args: sanitized display strings can differ from what was derived.
+  const args = ix.rawArgs ?? {};
   const edges: RelationEdge[] = [];
 
   for (const accountNode of node.accounts ?? []) {
@@ -82,7 +83,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
           if (!resolved) throw new Unresolvable(`account "${seedValue.name}" is not in the instruction`);
           seeds.push({ kind: 'account', display: seedValue.name });
         } else if (isNode(seedValue, 'argumentValueNode')) {
-          if (!(seedValue.name in args)) throw new Unresolvable(`argument "${seedValue.name}" is missing`);
+          if (!Object.hasOwn(args, seedValue.name)) throw new Unresolvable(`argument "${seedValue.name}" is missing`);
           resolved = args[seedValue.name];
           seeds.push({ kind: 'arg', display: seedValue.name });
         } else {

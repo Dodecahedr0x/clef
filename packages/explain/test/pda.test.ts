@@ -1,7 +1,8 @@
-import { getProgramDerivedAddress } from '@solana/kit';
+import { getAddressEncoder, getProgramDerivedAddress, getU64Encoder, getUtf8Encoder } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { identifyInstruction, toHex, verifyCodamaPdas, type IdentifiedInstruction } from '../src';
 import { anchorIdl, customIx, PROG } from './custom-idl';
+import { ME } from './helpers';
 import { OTHER, depositInstruction, vaultAddresses, vaultResolver } from './vault';
 
 async function identified(overrides: Partial<Awaited<ReturnType<typeof vaultAddresses>>> = {}) {
@@ -58,6 +59,34 @@ describe('verifyCodamaPdas', () => {
     // poolVault has no name: no edge. pool's seed account (mint) has no name: unverified.
     expect(edges).toHaveLength(1);
     expect(edges[0]).toMatchObject({ from: accounts.pool, status: 'unverified' });
+  });
+});
+
+describe('verifyCodamaPdas argument seeds', () => {
+  const json = anchorIdl(
+    [{ name: 'p', pda: { seeds: [{ kind: 'arg', path: 'name' }, { kind: 'arg', path: 'id' }, { kind: 'arg', path: 'key' }] } }],
+    [{ name: 'name', type: 'string' }, { name: 'id', type: 'u64' }, { name: 'key', type: 'pubkey' }],
+  );
+  const derive = async (name: string) =>
+    (
+      await getProgramDerivedAddress({
+        programAddress: PROG,
+        seeds: [getUtf8Encoder().encode(name), getU64Encoder().encode(7n), getAddressEncoder().encode(ME)],
+      })
+    )[0];
+
+  it('verifies string, u64 and pubkey argument seeds', async () => {
+    const ix = await customIx(json, [await derive('hello')], { name: 'hello', id: 7n, key: ME });
+    const edges = await verifyCodamaPdas(ix);
+    expect(edges.map((e) => [e.label, e.status])).toEqual([['PDA(name, id, key)', 'verified']]);
+  });
+
+  it('derives from the raw argument, not the display-sanitized one', async () => {
+    const name = 'he\u200bllo';
+    const ix = await customIx(json, [await derive(name)], { name, id: 7n, key: ME });
+    expect(ix.args?.name).toBe('hello');
+    const edges = await verifyCodamaPdas(ix);
+    expect(edges.map((e) => e.status)).toEqual(['verified']);
   });
 });
 

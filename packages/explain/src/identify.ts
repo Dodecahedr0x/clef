@@ -65,7 +65,15 @@ function accountNames(node: InstructionNode, count: number, ixIndex: number, iss
   return names;
 }
 
-export type IdentifiedInstruction = ExplainedInstruction & { resolvedIdl?: ResolvedIdl };
+/**
+ * Internal pipeline view of an instruction. `resolvedIdl` and `rawArgs` are for verification only: the
+ * orchestrator must strip both before returning an `ExplainedInstruction`.
+ */
+export type IdentifiedInstruction = ExplainedInstruction & {
+  resolvedIdl?: ResolvedIdl;
+  /** Decoded args before display sanitization: what PDA seeds were actually derived from. */
+  rawArgs?: Record<string, unknown>;
+};
 
 /** Tries each candidate IDL in priority order; the first one that decodes the instruction wins. */
 export async function identifyInstruction(
@@ -102,6 +110,7 @@ export async function identifyInstruction(
         name: sanitizeText(node.name),
         programName: programName === undefined ? undefined : sanitizeText(programName),
         args: sanitizeArgs(parsed.data) as Record<string, unknown>,
+        rawArgs: parsed.data as Record<string, unknown>,
         idl: { source: idl.source, trust: idl.trust, hash: idl.hash },
         accounts: raw.accounts.map((a, i) => ({ ...a, name: names[i] })),
         resolvedIdl: idl,

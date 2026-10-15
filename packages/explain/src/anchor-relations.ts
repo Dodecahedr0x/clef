@@ -102,7 +102,7 @@ async function verifyNestedSeeds(
     }
     const [head, ...fields] = seed.path;
     let value: unknown;
-    if (seed.kind === 'arg') value = ix.args?.[head!];
+    if (seed.kind === 'arg') value = ix.rawArgs?.[head!];
     else if (!fields.length) value = byName.get(head!);
     else {
       const result = await decode(head!);
