@@ -1,6 +1,6 @@
 import type { Address } from '@solana/kit';
 import { fromJson, toJson } from './serde';
-import type { ChainReader, FetchedTransaction, RawAccount, SimulationResult } from './types';
+import type { ChainReader, FetchedTransaction, RawAccount, SimulateOptions, SimulationResult } from './types';
 
 export type FixtureFile = { version: 1; input?: unknown; calls: Record<string, unknown> };
 
@@ -28,8 +28,9 @@ export class RecordingChainReader implements ChainReader {
     return this.record('getTransaction', [signature], () => this.inner.getTransaction(signature));
   }
 
-  simulate(wire: Uint8Array, addresses: readonly Address[]) {
-    return this.record('simulate', [wire, addresses], () => this.inner.simulate(wire, addresses));
+  /** Options (e.g. `minContextSlot`) are passed through but not part of the recorded key. */
+  simulate(wire: Uint8Array, addresses: readonly Address[], options?: SimulateOptions) {
+    return this.record('simulate', [wire, addresses], () => this.inner.simulate(wire, addresses, options));
   }
 
   toFixture(input?: unknown): string {

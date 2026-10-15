@@ -124,4 +124,38 @@ describe('KitChainReader (offline)', () => {
     expect(failed.logs).toEqual([]);
     expect(failed.unitsConsumed).toBeNull();
   });
+
+  it('reads accounts at confirmed commitment and reports the highest context slot', async () => {
+    const seen: unknown[] = [];
+    const slots = [7n, 9n, 8n];
+    const reader = new KitChainReader(
+      fakeRpc({
+        getMultipleAccounts: (chunk: Address[], config: unknown) => {
+          seen.push(config);
+          return reply({ context: { slot: slots.shift()! }, value: chunk.map(() => null) });
+        },
+      }),
+    );
+    const { accounts, slot } = await reader.getAccountsWithSlot(Array.from({ length: 250 }, (_, i) => addr(i)));
+    expect(accounts).toHaveLength(250);
+    expect(slot).toBe(9n);
+    expect(seen).toEqual([0, 1, 2].map(() => ({ encoding: 'base64', commitment: 'confirmed' })));
+  });
+
+  it('simulates at confirmed commitment, no older than a given slot', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const reader = new KitChainReader(
+      fakeRpc({
+        simulateTransaction: (_tx: string, config: Record<string, unknown>) => {
+          seen.push(config);
+          return reply({ value: { err: null, logs: [], unitsConsumed: 1n, accounts: [null] } });
+        },
+      }),
+    );
+    await reader.simulate(new Uint8Array([0]), [addr(1)], { minContextSlot: 9n });
+    await reader.simulate(new Uint8Array([0]), [addr(1)]);
+    expect(seen[0]).toMatchObject({ commitment: 'confirmed', minContextSlot: 9n });
+    expect(seen[1]).toMatchObject({ commitment: 'confirmed' });
+    expect(seen[1]).not.toHaveProperty('minContextSlot');
+  });
 });

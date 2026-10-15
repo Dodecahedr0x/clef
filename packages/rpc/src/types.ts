@@ -47,9 +47,16 @@ export type SimulationResult = {
   postAccounts: (RawAccount | null)[];
 };
 
+export type SimulateOptions = {
+  /** Simulate against state no older than this slot (e.g. the slot the pre-state was read at). */
+  minContextSlot?: bigint;
+};
+
 /** Every chain read the engine performs goes through this interface (live, recorded, or replayed). */
 export interface ChainReader {
   getAccounts(addresses: readonly Address[]): Promise<(RawAccount | null)[]>;
+  /** Optional: `getAccounts` plus the (highest) slot the reads were served at. */
+  getAccountsWithSlot?(addresses: readonly Address[]): Promise<{ accounts: (RawAccount | null)[]; slot: bigint }>;
   getTransaction(signature: string): Promise<FetchedTransaction | null>;
-  simulate(wire: Uint8Array, addresses: readonly Address[]): Promise<SimulationResult>;
+  simulate(wire: Uint8Array, addresses: readonly Address[], options?: SimulateOptions): Promise<SimulationResult>;
 }

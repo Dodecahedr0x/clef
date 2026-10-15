@@ -8,7 +8,7 @@ import {
   type SolanaRpcApi,
   type Signature,
 } from '@solana/kit';
-import type { ChainReader, FetchedTransaction, RawAccount, SimulationResult, TokenBalance } from './types';
+import type { ChainReader, FetchedTransaction, RawAccount, SimulateOptions, SimulationResult, TokenBalance } from './types';
 
 const MAX_ACCOUNTS_PER_CALL = 100;
 
@@ -49,13 +49,21 @@ export class KitChainReader implements ChainReader {
   }
 
   async getAccounts(addresses: readonly Address[]): Promise<(RawAccount | null)[]> {
-    const out: (RawAccount | null)[] = [];
+    return (await this.getAccountsWithSlot(addresses)).accounts;
+  }
+
+  /** Reads at `confirmed` commitment; `slot` is the highest context slot of the (chunked) reads. */
+  async getAccountsWithSlot(addresses: readonly Address[]): Promise<{ accounts: (RawAccount | null)[]; slot: bigint }> {
+    const accounts: (RawAccount | null)[] = [];
+    let slot = 0n;
     for (let i = 0; i < addresses.length; i += MAX_ACCOUNTS_PER_CALL) {
       const chunk = addresses.slice(i, i + MAX_ACCOUNTS_PER_CALL);
-      const { value } = await this.rpc.getMultipleAccounts(chunk, { encoding: 'base64' }).send();
-      value.forEach((acc, j) => out.push(acc ? toRaw(chunk[j]!, acc as EncodedAccount) : null));
+      const { context, value } = await this.rpc.getMultipleAccounts(chunk, { encoding: 'base64', commitment: 'confirmed' }).send();
+      const at = context?.slot === undefined ? 0n : BigInt(context.slot);
+      if (at > slot) slot = at;
+      value.forEach((acc, j) => accounts.push(acc ? toRaw(chunk[j]!, acc as EncodedAccount) : null));
     }
-    return out;
+    return { accounts, slot };
   }
 
   async getTransaction(signature: string): Promise<FetchedTransaction | null> {
@@ -84,14 +92,16 @@ export class KitChainReader implements ChainReader {
     };
   }
 
-  async simulate(wire: Uint8Array, addresses: readonly Address[]): Promise<SimulationResult> {
+  async simulate(wire: Uint8Array, addresses: readonly Address[], options: SimulateOptions = {}): Promise<SimulationResult> {
     const encoded = getBase64Decoder().decode(wire) as Base64EncodedWireTransaction;
     const { value } = await this.rpc
       .simulateTransaction(encoded, {
         encoding: 'base64',
+        commitment: 'confirmed',
         sigVerify: false,
         replaceRecentBlockhash: true,
         accounts: { encoding: 'base64', addresses: [...addresses] },
+        ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
       })
       .send();
     return {
