@@ -15,3 +15,4 @@ export * from './state-changes';
 export * from './format';
 export * from './summary';
 export * from './explain';
+export * from './views';

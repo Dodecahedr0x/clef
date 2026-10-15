@@ -1,0 +1,137 @@
+import { formatUnits, programDisplay } from './format';
+import { toHex } from './hex';
+import { shortAddress } from './labels';
+import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, TOKEN_PROGRAMS } from './registry';
+import type { BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge, Warning } from './types';
+
+export type ChangeView = { owner: string; asset: string; amount: string };
+export type AccountView = { name: string; address: string; label?: string; badges: string[] };
+export type InstructionView = { index: number; program: string; name: string; trust?: string; args: Record<string, string>; accounts: AccountView[] };
+export type ExpertAccountView = AccountView & { signer: boolean; writable: boolean; lookupTable?: string };
+export type ExpertInstructionView = Omit<InstructionView, 'accounts'> & {
+  programId: string;
+  idl?: { source: string; trust: string; hash: string };
+  dataHex: string;
+  accounts: ExpertAccountView[];
+};
+
+/** `balanceChanges` is null when they are unknown (no meta, failed simulation): never shown as "nothing moves". */
+export type BasicView = { level: 'basic'; summary: string; balanceChanges: ChangeView[] | null; warnings: Warning[] };
+export type IntermediateView = Omit<BasicView, 'level'> & { level: 'intermediate'; instructions: InstructionView[] };
+export type ExpertView = Omit<BasicView, 'level'> & {
+  level: 'expert';
+  instructions: ExpertInstructionView[];
+  version: string;
+  feePayer: string;
+  recentBlockhash: string;
+  computeUnitLimit?: number;
+  computeUnitPrice?: bigint;
+  relations: RelationEdge[];
+  issues: Issue[];
+};
+
+const SYMBOLS: Record<RelationEdge['status'], string> = { verified: '\u2713', mismatch: '\u2717', unverified: '?' };
+
+function formatValue(v: unknown): string {
+  if (typeof v === 'bigint') return v.toString();
+  if (v instanceof Uint8Array) return toHex(v);
+  if (typeof v === 'string') return v;
+  return JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? x.toString() : x instanceof Uint8Array ? toHex(x) : x)) ?? String(v);
+}
+
+/** Formats `ix.args` (already sanitized at decode time). Token amounts without a known unit show as raw units. */
+function formatArgs(ix: ExplainedInstruction): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(ix.args ?? {})) {
+    if (key === 'discriminator') continue;
+    if (key === 'amount' && typeof value === 'bigint' && ix.amountUnit) {
+      out[key] = `${formatUnits(value, ix.amountUnit.decimals)} ${ix.amountUnit.symbol}`;
+    } else if (key === 'amount' && typeof value === 'bigint' && TOKEN_PROGRAMS.has(ix.programId)) {
+      out[key] = formatUnits(value, null);
+    } else {
+      out[key] = formatValue(value);
+    }
+  }
+  return out;
+}
+
+function badges(ex: ExplainedTransaction, ix: ExplainedInstruction, address: string): string[] {
+  return ex.relations
+    .filter((r) => r.from === address && (r.instructionIndex === undefined || r.instructionIndex === ix.index))
+    .filter((r) => r.kind !== 'token-mint')
+    .map((r) => `${r.kind === 'token-owner' ? 'owner' : r.kind === 'ata' ? 'ATA' : r.label} ${SYMBOLS[r.status]}`);
+}
+
+function accountViews(ex: ExplainedTransaction, ix: ExplainedInstruction): AccountView[] {
+  return ix.accounts.map((a, i) => ({
+    name: a.name ?? `#${i}`,
+    address: a.address,
+    ...(a.label !== undefined && { label: a.label }),
+    badges: badges(ex, ix, a.address),
+  }));
+}
+
+/** Built field by field: nothing else on the instruction (e.g. verification-only data) can reach a view. */
+function instructionView(ex: ExplainedTransaction, ix: ExplainedInstruction): InstructionView {
+  return {
+    index: ix.index,
+    program: programDisplay(ix),
+    name: ix.name ?? 'Unknown instruction',
+    ...(ix.idl && { trust: ix.idl.trust }),
+    args: formatArgs(ix),
+    accounts: accountViews(ex, ix),
+  };
+}
+
+function changeView(c: BalanceChange): ChangeView {
+  const amount = formatUnits(c.delta, c.decimals);
+  return { owner: c.owner, asset: c.symbol ?? shortAddress(c.mint), amount: c.delta > 0n ? `+${amount}` : amount };
+}
+
+const toNumber = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'bigint' ? Number(v) : undefined);
+const toBigint = (v: unknown) => (typeof v === 'bigint' ? v : typeof v === 'number' ? BigInt(v) : undefined);
+
+export function viewFor(ex: ExplainedTransaction, level: 'basic'): BasicView;
+export function viewFor(ex: ExplainedTransaction, level: 'intermediate'): IntermediateView;
+export function viewFor(ex: ExplainedTransaction, level: 'expert'): ExpertView;
+export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView | IntermediateView | ExpertView;
+export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView | IntermediateView | ExpertView {
+  const me = new Set<string>(ex.me);
+  const changes = ex.balanceChanges;
+  const common = {
+    summary: ex.summary,
+    warnings: ex.warnings,
+    balanceChanges: changes && (level === 'expert' ? changes : changes.filter((c) => me.has(c.owner))).map(changeView),
+  };
+  if (level === 'basic') return { level, ...common };
+  if (level === 'intermediate') {
+    return { level, ...common, instructions: ex.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId)).map((ix) => instructionView(ex, ix)) };
+  }
+
+  // Compute budget values only from the curated IDL, as the fee estimate does.
+  const budget = (name: string) =>
+    ex.instructions.find((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM && ix.name === name && ix.idl?.trust === 'curated')?.args;
+  const limit = toNumber(budget('setComputeUnitLimit')?.units);
+  const price = toBigint(budget('setComputeUnitPrice')?.microLamports);
+  return {
+    level,
+    ...common,
+    version: String(ex.tx.version),
+    feePayer: ex.tx.feePayer,
+    recentBlockhash: ex.tx.recentBlockhash,
+    ...(limit !== undefined && { computeUnitLimit: limit }),
+    ...(price !== undefined && { computeUnitPrice: price }),
+    relations: ex.relations,
+    issues: ex.issues,
+    instructions: ex.instructions.map((ix) => ({
+      ...instructionView(ex, ix),
+      programId: ix.programId,
+      ...(ix.idl && { idl: { source: ix.idl.source, trust: ix.idl.trust, hash: ix.idl.hash } }),
+      dataHex: toHex(ix.data),
+      accounts: accountViews(ex, ix).map((a, i) => {
+        const ref = ix.accounts[i]!;
+        return { ...a, signer: ref.signer, writable: ref.writable, ...(ref.lookupTable && { lookupTable: ref.lookupTable }) };
+      }),
+    })),
+  };
+}
