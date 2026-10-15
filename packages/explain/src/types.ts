@@ -62,7 +62,8 @@ export type BalanceChange = {
   owner: Address;
   mint: Address | 'SOL';
   symbol?: string;
-  decimals: number;
+  /** Null when the mint's decimals are unknown. */
+  decimals: number | null;
   delta: bigint;
 };
 

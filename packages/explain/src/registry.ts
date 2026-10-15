@@ -52,4 +52,10 @@ export const KNOWN_MINTS: Readonly<Record<string, { symbol: string; decimals: nu
   Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: { symbol: 'USDT', decimals: 6 },
 };
 
+/** Mints whose token accounts hold their amount as lamports (wrapped SOL), for Token and Token-2022. */
+export const NATIVE_MINTS: ReadonlySet<string> = new Set([
+  'So11111111111111111111111111111111111111112',
+  '9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP',
+]);
+
 export const U64_MAX = (1n << 64n) - 1n;
