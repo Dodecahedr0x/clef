@@ -28,6 +28,20 @@ describe('evaluateRisks', () => {
     expect(rules(input([ix({ name: 'approve', args: { amount: 5n } })]))).toEqual([['delegation', 'warn']]);
   });
 
+  it('treats near-unlimited or whole-balance delegation to someone else as danger', () => {
+    const SRC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const approve = (amount: bigint, delegate: Address = OTHER) =>
+      ix({ name: 'approve', args: { amount }, accounts: [named('source', SRC, true), named('delegate', delegate), named('owner', ME)] });
+    const tokenBalances = { [SRC]: { owner: ME, mint: OTHER, amount: 100n } };
+    expect(rules(input([approve(U64_MAX - 1n)]))).toEqual([['delegation', 'danger']]);
+    expect(rules(input([approve(100n)], { tokenBalances }))).toEqual([['delegation', 'danger']]);
+    expect(rules(input([approve(99n)], { tokenBalances }))).toEqual([['delegation', 'warn']]);
+    expect(rules(input([approve(U64_MAX, ME)]))).toEqual([['delegation', 'warn']]);
+    expect(evaluateRisks(input([approve(5n)]))[0]!.message).toContain('your token account');
+    const notMine = ix({ name: 'approve', args: { amount: 5n }, accounts: [named('source', SRC), named('delegate', OTHER)] });
+    expect(evaluateRisks(input([notMine]))[0]!.message).not.toContain('your');
+  });
+
   it('flags authority changes and system reassignment of your accounts', () => {
     expect(rules(input([ix({ name: 'setAuthority' })]))).toEqual([['authority-change', 'danger']]);
     const assign = ix({ programId: address(SYSTEM_PROGRAM), name: 'assign', accounts: [named('account', ME, true)] });

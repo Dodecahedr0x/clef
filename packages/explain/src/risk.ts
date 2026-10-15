@@ -1,5 +1,5 @@
 import type { Address } from '@solana/kit';
-import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, U64_MAX } from './registry';
+import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -9,7 +9,11 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   /** Expected network fee in lamports (see `estimateFee`), paid by `feePayer`. */
   fee?: bigint;
   feePayer?: Address;
+  /** Pre-transaction state of token accounts the transaction touches, keyed by token account address. */
+  tokenBalances?: Readonly<Record<string, TokenHolding>>;
 };
+
+export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
 
 /**
  * SOL losses up to this much (0.01 SOL) are not treated as an outflow: they cover the rent of a few new
@@ -59,8 +63,15 @@ export function evaluateRisks(input: RiskInput): Warning[] {
       continue;
     }
     if (isToken(ix.programId) && (ix.name === 'approve' || ix.name === 'approveChecked')) {
-      const unlimited = ix.args?.amount === U64_MAX;
-      warn('delegation', unlimited ? 'danger' : 'warn', unlimited ? 'Grants UNLIMITED spending of a token account to a delegate.' : 'Lets a delegate spend tokens from your account.', i, account(ix, 'source')?.address);
+      const source = account(ix, 'source');
+      const held = source && input.tokenBalances?.[source.address];
+      const amount = ix.args?.amount;
+      const unlimited = typeof amount !== 'bigint' || amount >= HALF_U64;
+      const all = unlimited || (held !== undefined && amount >= held.amount);
+      const danger = all && notMineOrUnknown(account(ix, 'delegate'));
+      const whose = source && (source.mine || me.has(source.address) || (held && me.has(held.owner))) ? 'your' : 'a';
+      const what = unlimited ? 'an UNLIMITED amount of' : all ? 'ALL' : 'some';
+      warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
     }
     if (isToken(ix.programId) && ix.name === 'setAuthority') {
       warn('authority-change', 'danger', 'Changes the authority of a token account or mint.', i, account(ix, 'owned')?.address);
@@ -91,7 +102,8 @@ export function evaluateRisks(input: RiskInput): Warning[] {
     } else {
       const amount = c.amount ?? 0n;
       const all = amount >= HALF_U64 || (c.balance !== undefined && amount >= c.balance);
-      warn('delegation', all ? 'danger' : 'warn', all ? 'Lets a delegate spend ALL tokens in one of your token accounts.' : 'Lets a delegate spend tokens from your account.', undefined, c.address);
+      const what = amount >= HALF_U64 ? 'an UNLIMITED amount of' : all ? 'ALL' : 'some';
+      warn('delegation', all ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in your token account.`, undefined, c.address);
     }
   }
 
