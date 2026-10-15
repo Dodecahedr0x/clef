@@ -319,6 +319,31 @@ describe('evaluateRisks', () => {
       );
     });
 
+    it('without prices, an inflow of one asset only offsets an outflow of that asset', () => {
+      const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+      const otc = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      // SOL out to a wallet, USDT back: a trade, not a sweep.
+      const trade = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDT, 300_000_000n)];
+      expect(rules(input([otc], { balanceChanges: trade }))).toEqual([]);
+      // Two assets out, a little of one of them back (netted per asset): still two assets leaving.
+      const twoOut = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
+      expect(rules(input([otc], { balanceChanges: [...twoOut, change(ME, USDT, 5_000_000n)] }))).toEqual([['sweep', 'danger']]);
+    });
+
+    it('with prices, an inflow defuses a sweep only if it is worth at least half the outflow', () => {
+      const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+      const otc = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const prices = { SOL: 150, [USDC]: 1, [USDT]: 1 };
+      // $300 of SOL and $100 of USDC leave.
+      const twoOut = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100_000_000n), change(OTHER, USDC, 100_000_000n)];
+      const back = (usd: bigint) => [...twoOut, change(ME, USDT, usd * 1_000_000n)];
+      expect(rules(input([otc], { balanceChanges: back(1n), prices }))).toEqual([['sweep', 'danger']]);
+      expect(rules(input([otc], { balanceChanges: back(199n), prices }))).toEqual([['sweep', 'danger']]);
+      expect(rules(input([otc], { balanceChanges: back(200n), prices }))).toEqual([]);
+      // A missing price falls back to the price-less rule.
+      expect(rules(input([otc], { balanceChanges: back(200n), prices: { SOL: 150, [USDT]: 1 } }))).toEqual([['sweep', 'danger']]);
+    });
+
     it('treats program-owned recipients as wallets when only core programs run', async () => {
       const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
       const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
@@ -334,9 +359,12 @@ describe('evaluateRisks', () => {
       const swept = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
       const drain = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
       expect(rules(input([drain], { balanceChanges: [...swept, change(ME, JUNK, 1_000_000n)] }))).toEqual([['sweep', 'danger']]);
-      expect(rules(input([drain], { balanceChanges: [...swept, change(ME, JUNK, 1n)], valuedMints: new Set([JUNK]) }))).toEqual([]);
+      // Without prices, even a valued inflow of a third asset can't vouch for two assets leaving.
+      expect(rules(input([drain], { balanceChanges: [...swept, change(ME, JUNK, 1n)], valuedMints: new Set([JUNK]) }))).toEqual([
+        ['sweep', 'danger'],
+      ]);
       const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
-      expect(rules(input([drain], { balanceChanges: [...swept, change(ME, USDT, 1n)] }))).toEqual([]);
+      expect(rules(input([drain], { balanceChanges: [...swept, change(ME, USDT, 1n)] }))).toEqual([['sweep', 'danger']]);
       // A rent-sized SOL refund to another of your wallets isn't something received in exchange either.
       const refund = { balanceChanges: [...swept, change(JUP, 'SOL', RENT_SLACK)], me: [ME, JUP] };
       expect(rules(input([drain], refund))).toEqual([['sweep', 'danger']]);

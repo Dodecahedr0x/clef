@@ -18,6 +18,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   addressBook?: ReadonlySet<string>;
   /** Mints the user values (e.g. priced ones) besides `KNOWN_MINTS`: receiving them counts as an inflow. */
   valuedMints?: ReadonlySet<string>;
+  /** USD per whole unit, keyed by mint or 'SOL'. Lets the sweep rule weigh what comes back against what leaves. */
+  prices?: Readonly<Record<string, number>>;
 };
 
 export type TokenHolding = { owner: Address; mint: Address; amount: bigint };
@@ -229,10 +231,9 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   // Only something of value counts as received: SOL beyond rent refunds, or a known or priced token. An
   // airdrop of an unknown token is free to mint and must not defuse the rule.
   const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
-  const received = changes.some(
+  const inflows = changes.filter(
     (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
   );
-  if (received) return [];
 
   // Program-owned (off-curve) recipients are exempt only when some non-core program runs: that program may be
   // depositing into its own vault. With only core programs, a transfer to a PDA is just a transfer.
@@ -244,10 +245,26 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
     !input.addressBook?.has(c.owner) &&
     (!deposits || onCurve(c.owner));
   const recipient = (mint: string) => changes.find((c) => c.mint === mint && toWallet(c))?.owner;
-  const out = outflows(input, me).filter((c) => recipient(c.mint));
-  if (new Set(out.map((c) => c.mint)).size >= 2) {
-    return [['sweep', 'danger', 'Moves several of your assets to a wallet without giving you anything back.']];
+  const allOut = outflows(input, me);
+  const out = allOut.filter((c) => recipient(c.mint));
+
+  // With prices for everything involved, what comes back must be worth at least half of what leaves. Without
+  // them, an inflow only vouches for an exchange of one asset: it never offsets two or more other assets leaving
+  // (paying back a little of something must not defuse a sweep).
+  const usd = (c: BalanceChange) => {
+    const price = input.prices?.[c.mint];
+    return price === undefined || c.decimals === null ? undefined : (Math.abs(Number(c.delta)) / 10 ** c.decimals) * price;
+  };
+  const sum = (cs: BalanceChange[]) => cs.reduce((total, c) => total + usd(c)!, 0);
+  const priced = input.prices !== undefined && [...allOut, ...inflows].every((c) => usd(c) !== undefined);
+  const fairExchange = priced ? sum(inflows) >= sum(allOut) / 2 : undefined;
+
+  const sweptAssets = new Set(out.map((c) => c.mint));
+  const sweep = priced ? sweptAssets.size >= 2 && !fairExchange : sweptAssets.size >= 2;
+  if (sweep) {
+    return [['sweep', 'danger', 'Moves several of your assets to another address without giving you comparable value back.']];
   }
+  if (priced ? fairExchange : inflows.length > 0) return [];
 
   const emptied = (c: BalanceChange) => {
     let pre: bigint | undefined;
