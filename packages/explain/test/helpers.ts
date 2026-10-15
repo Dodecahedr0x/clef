@@ -5,6 +5,10 @@ import {
   compressTransactionMessageUsingAddressLookupTables,
   createTransactionMessage,
   getAddressEncoder,
+  getCompiledTransactionMessageDecoder,
+  getCompiledTransactionMessageEncoder,
+  getShortU16Encoder,
+  getTransactionDecoder,
   getTransactionEncoder,
   none,
   pipe,
@@ -38,11 +42,31 @@ export function buildWire(
   return new Uint8Array(getTransactionEncoder().encode(compileTransaction(compressed)));
 }
 
+export const LOOKUP_TABLE_PROGRAM = address('AddressLookupTab1e1111111111111111111111111');
+
 /** Stores an address lookup table account (56-byte header + 32-byte addresses). */
 export function setLookupTable(reader: MemoryChainReader, table: Address, addresses: Address[]): void {
   const data = new Uint8Array(56 + 32 * addresses.length);
+  data[0] = 1; // u32 LE discriminator: LookupTable
   addresses.forEach((a, i) => data.set(getAddressEncoder().encode(a), 56 + 32 * i));
-  reader.setAccount({ address: table, owner: address('AddressLookupTab1e1111111111111111111111111'), data });
+  reader.setAccount({ address: table, owner: LOOKUP_TABLE_PROGRAM, data });
+}
+
+type AnyCompiledMessage = ReturnType<ReturnType<typeof getCompiledTransactionMessageDecoder>['decode']>;
+export type CompiledMessage = Extract<AnyCompiledMessage, { version: 'legacy' | 0 }>;
+
+/**
+ * Re-encodes `wire` after `mutate` edits its compiled message, with zeroed signatures. Lets tests build
+ * messages that kit's message builder refuses to produce (bad headers, duplicate keys, bad indices).
+ */
+export function rewire(wire: Uint8Array, mutate: (m: CompiledMessage) => CompiledMessage): Uint8Array {
+  const tx = getTransactionDecoder().decode(wire);
+  const decoded = getCompiledTransactionMessageDecoder().decode(tx.messageBytes);
+  if (decoded.version !== 'legacy' && decoded.version !== 0) throw new Error('rewire supports legacy and v0 only');
+  const msg = mutate(decoded);
+  const messageBytes = getCompiledTransactionMessageEncoder().encode(msg);
+  const signatures = Math.min(msg.header.numSignerAccounts, msg.staticAccounts.length);
+  return new Uint8Array([...getShortU16Encoder().encode(signatures), ...new Uint8Array(64 * signatures), ...messageBytes]);
 }
 
 export const USDC = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
