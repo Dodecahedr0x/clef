@@ -1,0 +1,134 @@
+import { getNodeCodecVisitor, getValueNodeVisitor } from '@codama/dynamic-codecs';
+import { isNode, type PdaNode, type ProgramNode, type RootNode } from '@codama/nodes';
+import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/visitors-core';
+import { getProgramDerivedAddress, type Address } from '@solana/kit';
+import { toHex } from './hex';
+import type { IdentifiedInstruction } from './identify';
+import type { RelationEdge, SeedInfo } from './types';
+
+class Unresolvable extends Error {}
+
+type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
+const visitorsCache = new WeakMap<RootNode, Visitors>();
+
+function visitorsFor(root: RootNode): Visitors {
+  let v = visitorsCache.get(root);
+  if (!v) {
+    const linkables = new LinkableDictionary();
+    visit(root, getRecordLinkablesVisitor(linkables));
+    v = { codec: getNodeCodecVisitor(linkables), value: getValueNodeVisitor(linkables) };
+    visitorsCache.set(root, v);
+  }
+  return v;
+}
+
+/** Printable ASCII is shown as a quoted string, anything else as hex. */
+export function displayBytes(bytes: Uint8Array): string {
+  const printable = bytes.length > 0 && bytes.every((b) => b >= 0x20 && b < 0x7f);
+  return printable ? JSON.stringify(new TextDecoder().decode(bytes)) : `0x${toHex(bytes)}`;
+}
+
+function programs(root: RootNode): ProgramNode[] {
+  return [root.program, ...(root.additionalPrograms ?? [])];
+}
+
+/** Re-derives every PDA declared on the instruction's accounts and compares it to what was passed. */
+export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<RelationEdge[]> {
+  const idl = ix.resolvedIdl;
+  if (!idl || !ix.name) return [];
+  const program = programs(idl.root).find((p) => p.publicKey === ix.programId);
+  const node = (program?.instructions ?? []).find((i) => i.name === ix.name);
+  if (!program || !node) return [];
+
+  const { codec, value } = visitorsFor(idl.root);
+  // Accounts without a name (ambiguous positions) are never guessed: they neither get edges nor serve as seeds.
+  const byName = new Map(ix.accounts.filter((a) => a.name).map((a) => [a.name!, a.address]));
+  const extras = idl.anchorExtras?.[ix.name];
+  const args = ix.args ?? {};
+  const edges: RelationEdge[] = [];
+
+  for (const accountNode of node.accounts ?? []) {
+    const dv = accountNode.defaultValue;
+    const actual = byName.get(accountNode.name);
+    if (!dv || !isNode(dv, 'pdaValueNode') || !actual) continue;
+    // Codama's default is absent or wrong for nested-path seeds: `verifyAnchorExtras` handles these.
+    if (extras?.[accountNode.name]?.nestedSeeds) continue;
+
+    let pda: PdaNode | undefined;
+    let pdaProgram = program;
+    if (isNode(dv.pda, 'pdaNode')) {
+      pda = dv.pda;
+    } else {
+      const linked = dv.pda.program?.name;
+      const owner = linked ? programs(idl.root).find((p) => p.name === linked) : program;
+      if (!owner) continue;
+      pdaProgram = owner;
+      pda = (owner.pdas ?? []).find((p) => p.name === dv.pda.name);
+    }
+    if (!pda) continue;
+    const pdaProgramAddress = (pda.programId ?? pdaProgram.publicKey) as Address;
+
+    const seeds: SeedInfo[] = [];
+    try {
+      const encoded: Uint8Array[] = [];
+      for (const seed of pda.seeds ?? []) {
+        const seedCodec = visit(seed.type, codec);
+        if (isNode(seed, 'constantPdaSeedNode')) {
+          // `programIdValueNode` (the deriving program's own address) is not a plain value the visitor can produce.
+          const constant = isNode(seed.value, 'programIdValueNode') ? pdaProgramAddress : visit(seed.value, value);
+          const bytes = new Uint8Array(seedCodec.encode(constant));
+          encoded.push(bytes);
+          seeds.push({ kind: 'const', display: displayBytes(bytes) });
+          continue;
+        }
+        const seedValue = (dv.seeds ?? []).find((s) => s.name === seed.name)?.value;
+        if (!seedValue) throw new Unresolvable(`seed "${seed.name}" has no value`);
+        let resolved: unknown;
+        if (isNode(seedValue, 'accountValueNode')) {
+          resolved = byName.get(seedValue.name);
+          if (!resolved) throw new Unresolvable(`account "${seedValue.name}" is not in the instruction`);
+          seeds.push({ kind: 'account', display: seedValue.name });
+        } else if (isNode(seedValue, 'argumentValueNode')) {
+          if (!(seedValue.name in args)) throw new Unresolvable(`argument "${seedValue.name}" is missing`);
+          resolved = args[seedValue.name];
+          seeds.push({ kind: 'arg', display: seedValue.name });
+        } else {
+          resolved = visit(seedValue, value);
+          seeds.push({ kind: 'const', display: String(resolved) });
+        }
+        encoded.push(new Uint8Array(seedCodec.encode(resolved)));
+      }
+
+      let programAddress = pdaProgramAddress;
+      if (dv.programId && isNode(dv.programId, 'accountValueNode')) {
+        const fromAccount = byName.get(dv.programId.name);
+        if (!fromAccount) throw new Unresolvable(`program account "${dv.programId.name}" is not in the instruction`);
+        programAddress = fromAccount;
+      }
+      const [expected, bump] = await getProgramDerivedAddress({ programAddress, seeds: encoded });
+      edges.push({
+        kind: 'pda',
+        from: actual,
+        to: programAddress,
+        label: `PDA(${seeds.map((s) => s.display).join(', ')})`,
+        status: expected === actual ? 'verified' : 'mismatch',
+        instructionIndex: ix.index,
+        seeds,
+        bump,
+        ...(expected !== actual && { detail: `expected ${expected}` }),
+      });
+    } catch (e) {
+      if (!(e instanceof Unresolvable)) throw e;
+      edges.push({
+        kind: 'pda',
+        from: actual,
+        to: program.publicKey as Address,
+        label: 'PDA',
+        status: 'unverified',
+        detail: e.message,
+        instructionIndex: ix.index,
+      });
+    }
+  }
+  return edges;
+}
