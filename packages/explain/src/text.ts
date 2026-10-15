@@ -1,8 +1,9 @@
 /**
- * C0 controls, DEL, C1 controls, the Arabic letter mark, zero-width characters and LRM/RLM, line/paragraph
- * separators, and the bidi embedding/override/isolate characters.
+ * Control (Cc: C0, DEL, C1), format (Cf: soft hyphen, zero-width, LRM/RLM, ALM, bidi embeddings/overrides/
+ * isolates, BOM, word joiner, tag characters, U+180E), surrogate (Cs: lone halves), line/paragraph separators
+ * (Zl, Zp), the Hangul fillers (blank-looking letters) and variation selectors.
  */
-const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g;
+const UNSAFE = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}\u115f\u1160\u3164\uffa0\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
 
 /**
  * Makes a string from an untrusted source (IDL names, decoded args) safe to display: strips control, invisible

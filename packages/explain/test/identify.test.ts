@@ -238,4 +238,22 @@ describe('sanitizeText', () => {
     expect(sanitizeText('x'.repeat(100))).toBe('x'.repeat(64));
     expect(sanitizeText('abcdef', 3)).toBe('abc');
   });
+
+  it('strips every format/control character, Hangul fillers and variation selectors', () => {
+    const hostile = [
+      '\u00ad', // soft hyphen (Cf)
+      '\u180e', // Mongolian vowel separator (Cf)
+      '\ufeff', // BOM (Cf)
+      '\u2060', // word joiner (Cf)
+      '\u2063', // invisible separator (Cf)
+      '\u{e0041}', // tag character (Cf)
+      '\u115f', '\u1160', '\u3164', '\uffa0', // Hangul fillers
+      '\ufe00', '\ufe0f', '\u{e0100}', '\u{e01ef}', // variation selectors
+      '\ud800', // lone surrogate (Cs)
+      '\u0085', '\u2028', '\u2029', // C1, Zl, Zp
+    ];
+    for (const c of hostile) expect(sanitizeText(`a${c}b`), `U+${c.codePointAt(0)!.toString(16)}`).toBe('ab');
+    // Ordinary non-ASCII text survives.
+    expect(sanitizeText('caf\u00e9 \u65e5\u672c \u20ac')).toBe('caf\u00e9 \u65e5\u672c \u20ac');
+  });
 });

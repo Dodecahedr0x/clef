@@ -175,4 +175,14 @@ describe('renderView', () => {
     expect(out).not.toContain('\re');
     expect(clean('x\u001b[31my')).toBe('x[31my');
   });
+
+  it('strips invisible format characters, Hangul fillers and variation selectors', () => {
+    const chars = ['\u00ad', '\u180e', '\ufeff', '\u2060', '\u2063', '\u{e0041}', '\u115f', '\u1160', '\u3164', '\uffa0', '\ufe00', '\ufe0f', '\u{e0100}', '\u{e01ef}', '\ud800'];
+    for (const c of chars) {
+      const out = renderView({ level: 'basic', summary: `a${c}b`, warnings: [{ rule: 'r', severity: 'warn', message: `m${c}n` }], balanceChanges: [] });
+      expect(out, `U+${c.codePointAt(0)!.toString(16)}`).toContain('ab');
+      expect(out).toContain('Warning: mn');
+      expect(out).not.toContain(c);
+    }
+  });
 });
