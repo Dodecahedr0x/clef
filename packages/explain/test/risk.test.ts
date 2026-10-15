@@ -1,6 +1,7 @@
 import { address, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import {
+  estimateFee,
   evaluateRisks,
   SYSTEM_PROGRAM,
   TOKEN_2022_PROGRAM,
@@ -58,8 +59,36 @@ describe('evaluateRisks', () => {
 
   it('flags outflows when part of the transaction is unexplained', () => {
     const unknown = ix({ programId: OTHER });
-    const out = input([unknown], { balanceChanges: [{ owner: ME, mint: 'SOL', decimals: 9, delta: -1n }] });
+    const out = input([unknown], { balanceChanges: [{ owner: ME, mint: 'SOL', decimals: 9, delta: -500_000_000n }] });
     expect(rules(out)).toContainEqual(['unexplained-outflow', 'danger']);
+    const tokens = input([unknown], { balanceChanges: [{ owner: ME, mint: OTHER, decimals: 6, delta: -1n }] });
+    expect(rules(tokens)).toContainEqual(['unexplained-outflow', 'danger']);
+  });
+
+  it('treats unknown balance changes as a possible outflow', () => {
+    const out = input([ix({ programId: OTHER })], {
+      balanceChanges: null,
+      issues: [{ stage: 'simulate', message: 'Simulation failed: custom error 1' }],
+    });
+    expect(rules(out)).toContainEqual(['unexplained-outflow', 'danger']);
+  });
+
+  it('does not count the fee or a little rent as an outflow', () => {
+    const fee = estimateFee(1, 200_000, 50_000n);
+    const sol = (delta: bigint) => [{ owner: ME, mint: 'SOL' as const, decimals: 9, delta }];
+    const unknown = [ix({ programId: OTHER })];
+    expect(rules(input(unknown, { balanceChanges: sol(-fee), fee, feePayer: ME }))).toEqual([['unknown-program', 'warn']]);
+    expect(rules(input(unknown, { balanceChanges: sol(-fee - 2_039_280n), fee, feePayer: ME }))).toEqual([['unknown-program', 'warn']]);
+    expect(rules(input(unknown, { balanceChanges: sol(-fee - 500_000_000n), fee, feePayer: ME }))).toContainEqual([
+      'unexplained-outflow',
+      'danger',
+    ]);
+  });
+
+  it('estimates fees from signatures and priority price', () => {
+    expect(estimateFee(1)).toBe(5000n);
+    expect(estimateFee(2, 200_000, 1n)).toBe(10_001n);
+    expect(estimateFee(1, 1_400_000, 1000n)).toBe(6400n);
   });
 
   it('applies token rules to Token-2022 too', () => {

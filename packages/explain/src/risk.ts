@@ -1,12 +1,27 @@
 import type { Address } from '@solana/kit';
 import { PLUMBING_PROGRAMS, SYSTEM_PROGRAM, TOKEN_PROGRAMS, U64_MAX } from './registry';
 import type { StateChange } from './state-changes';
-import type { ExplainedTransaction, NamedAccount, Warning } from './types';
+import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
 export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' | 'balanceChanges' | 'issues' | 'me'> & {
   /** Authority changes seen in pre/post account state (simulation), however they were made. */
   stateChanges?: StateChange[];
+  /** Expected network fee in lamports (see `estimateFee`), paid by `feePayer`. */
+  fee?: bigint;
+  feePayer?: Address;
 };
+
+/**
+ * SOL losses up to this much (0.01 SOL) are not treated as an outflow: they cover the rent of a few new
+ * accounts (an ATA costs ~0.002 SOL) that ordinary transactions create, and that rent stays recoverable.
+ */
+export const RENT_SLACK = 10_000_000n;
+
+/** Base fee (5000 lamports per signature) plus priority fee: ceil(cuLimit * microLamportsPerCu / 1e6). */
+export function estimateFee(numSignatures: number, cuLimit?: number, microLamportsPerCu?: bigint): bigint {
+  const priority = cuLimit === undefined || microLamportsPerCu === undefined ? 0n : BigInt(cuLimit) * microLamportsPerCu;
+  return 5000n * BigInt(numSignatures) + (priority + 999_999n) / 1_000_000n;
+}
 
 const isToken = (p: string) => TOKEN_PROGRAMS.has(p);
 /** Undefined when the account is absent, or its name is unknown because the IDL's names were ambiguous. */
@@ -91,9 +106,20 @@ export function evaluateRisks(input: RiskInput): Warning[] {
   }
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));
-  const outflow = (input.balanceChanges ?? []).some((c) => me.has(c.owner as Address) && c.delta < 0n);
-  if (unexplained && outflow) {
+  if (unexplained && possibleOutflow(input, me)) {
     warn('unexplained-outflow', 'danger', 'Funds leave your wallet in a transaction Clef cannot fully explain.');
   }
   return warnings;
 }
+
+/** Your outflows: any token decrease, or a SOL loss beyond the fee (if you pay it) plus `RENT_SLACK`. */
+function outflows(input: RiskInput, me: ReadonlySet<string>): BalanceChange[] {
+  const allowance = (owner: string) => (owner === input.feePayer ? (input.fee ?? 0n) : 0n) + RENT_SLACK;
+  return (input.balanceChanges ?? []).filter(
+    (c) => me.has(c.owner) && (c.mint === 'SOL' ? -c.delta > allowance(c.owner) : c.delta < 0n),
+  );
+}
+
+/** Unknown balance changes (no meta, no successful simulation) count as a possible outflow. */
+const possibleOutflow = (input: RiskInput, me: ReadonlySet<string>) =>
+  input.balanceChanges === null || outflows(input, me).length > 0;
