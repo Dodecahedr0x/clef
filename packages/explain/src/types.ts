@@ -85,4 +85,8 @@ export type ExplainContext = {
   /** Addresses that belong to the user. */
   me: readonly Address[];
   addressBook?: Readonly<Record<string, string>>;
+  /** USD per whole unit, keyed by mint or 'SOL': lets the sweep rule weigh what comes back. */
+  prices?: Readonly<Record<string, number>>;
+  /** Mints the user values besides Clef's known ones: receiving them counts as an inflow. */
+  valuedMints?: ReadonlySet<string>;
 };
