@@ -1,6 +1,6 @@
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -218,10 +218,10 @@ const onCurve = (a: Address) => {
 };
 
 /**
- * Funds go to wallets (on-curve addresses) that are neither yours nor in your address book, and nothing of value
- * comes back: two or more assets (`sweep`, danger), or (almost) a whole holding (`send-entire-balance`, warn).
- * Judged on balance changes alone, so it holds whichever IDLs decoded the transaction. Program-owned
- * destinations (deposits into vaults) and partial single-asset sends are not flagged.
+ * Funds go to wallets that are neither yours nor in your address book, and nothing of value comes back: two or
+ * more assets (`sweep`, danger), or (almost) a whole holding (`send-entire-balance`, warn). Judged on balance
+ * changes alone, so it holds whichever IDLs decoded the transaction. Deposits into program-owned accounts by a
+ * non-core program, and partial single-asset sends, are not flagged.
  */
 function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warning['severity'], string][] {
   const changes = input.balanceChanges;
@@ -234,9 +234,15 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   );
   if (received) return [];
 
+  // Program-owned (off-curve) recipients are exempt only when some non-core program runs: that program may be
+  // depositing into its own vault. With only core programs, a transfer to a PDA is just a transfer.
+  const deposits = input.instructions.some((ix) => !CORE_PROGRAMS.has(ix.programId));
   // Rent-sized SOL amounts (e.g. a validator tip) don't count as landing on a wallet.
   const toWallet = (c: BalanceChange) =>
-    (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) && !me.has(c.owner) && !input.addressBook?.has(c.owner) && onCurve(c.owner);
+    (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n) &&
+    !me.has(c.owner) &&
+    !input.addressBook?.has(c.owner) &&
+    (!deposits || onCurve(c.owner));
   const recipient = (mint: string) => changes.find((c) => c.mint === mint && toWallet(c))?.owner;
   const out = outflows(input, me).filter((c) => recipient(c.mint));
   if (new Set(out.map((c) => c.mint)).size >= 2) {

@@ -18,11 +18,8 @@ export const SENSITIVE_PROGRAMS: ReadonlySet<string> = new Set([STAKE_PROGRAM, V
 /** Programs whose instructions are never "the point" of a transaction. */
 export const PLUMBING_PROGRAMS: ReadonlySet<string> = new Set([COMPUTE_BUDGET_PROGRAM, MEMO_PROGRAM, MEMO_V4_PROGRAM]);
 
-/**
- * Programs whose behavior Clef knows independently of any IDL they publish. Security-sensitive: an IDL for a
- * program outside this set is the program describing itself. Review every addition.
- */
-export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
+/** Native programs: a transaction made only of these can't legitimately be depositing into another program. */
+export const CORE_PROGRAMS: ReadonlySet<string> = new Set([
   SYSTEM_PROGRAM,
   TOKEN_PROGRAM,
   TOKEN_2022_PROGRAM,
@@ -30,6 +27,14 @@ export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
   COMPUTE_BUDGET_PROGRAM,
   MEMO_PROGRAM,
   MEMO_V4_PROGRAM,
+]);
+
+/**
+ * Programs whose behavior Clef knows independently of any IDL they publish. Security-sensitive: an IDL for a
+ * program outside this set is the program describing itself. Review every addition.
+ */
+export const TRUSTED_PROGRAMS: ReadonlySet<string> = new Set([
+  ...CORE_PROGRAMS,
   // reviewed: Jupiter v6 aggregator; swap outflows are expected; balance/sweep rules still apply
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
 ]);

@@ -319,6 +319,16 @@ describe('evaluateRisks', () => {
       );
     });
 
+    it('treats program-owned recipients as wallets when only core programs run', async () => {
+      const [pda] = await getProgramDerivedAddress({ programAddress: DRAINER, seeds: ['vault'] });
+      const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const transferChecked = ix({ index: 1, name: 'transferChecked', idl: curated });
+      const balanceChanges = [change(ME, 'SOL', -2n * SOL), change(pda, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(pda, USDC, 100n)];
+      expect(rules(input([transferSol, transferChecked], { balanceChanges }))).toEqual([['sweep', 'danger']]);
+      const deposit = ix({ index: 2, programId: DRAINER, name: 'deposit', idl: curated });
+      expect(rules(input([transferSol, transferChecked, deposit], { balanceChanges }))).toEqual([]);
+    });
+
     it('does not let an airdrop of an unknown token defuse a sweep', () => {
       const JUNK = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
       const swept = [change(ME, 'SOL', -2n * SOL), change(OTHER, 'SOL', 2n * SOL), change(ME, USDC, -100n), change(OTHER, USDC, 100n)];
