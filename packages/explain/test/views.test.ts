@@ -6,7 +6,7 @@ import { getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address } from '@solana/kit';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { explain, shortAddress, viewFor, TOKEN_PROGRAM, type ExplainedTransaction } from '../src';
-import { buildWire, ME, OTHER, simulateWith, tokenAccountData } from './helpers';
+import { buildV1Wire, buildWire, ME, OTHER, simulateWith, tokenAccountData } from './helpers';
 
 const MINT_X = address('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
@@ -75,6 +75,31 @@ describe('viewFor', () => {
     expect(t.warnings[0]!.severity).not.toBe('info');
     // Unknown (no successful simulation): null, not "no changes".
     expect(viewFor({ ...t, stateChanges: null }, 'expert').stateChanges).toBeNull();
+  });
+
+  it('expert shows a v1 transaction\'s version and config, never compute budget instruction values', async () => {
+    const wire = buildV1Wire(
+      [
+        getSetComputeUnitLimitInstruction({ units: 999 }),
+        getSetComputeUnitPriceInstruction({ microLamports: 77n }),
+        getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 1n }),
+      ],
+      { config: { computeUnitLimit: 300_000, priorityFeeLamports: 1000n, loadedAccountsDataSizeLimit: 65_536, heapSize: 64 * 1024 } },
+    );
+    const t = await explain({ wire }, { reader: new MemoryChainReader(), idls: new IdlResolver([createBundledSource()]), me: [ME] });
+    const v = viewFor(t, 'expert');
+    expect(v).toMatchObject({ version: '1', computeUnitLimit: 300_000, priorityFeeLamports: '1000', loadedAccountsDataSizeLimit: 65_536, heapSize: 65_536, fee: '0.000006 SOL' });
+    expect(v).not.toHaveProperty('computeUnitPrice');
+    // Unset fields are absent.
+    const bare = await explain(
+      { wire: buildV1Wire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: 1n })], { config: { computeUnitLimit: 5 } }) },
+      { reader: new MemoryChainReader(), idls: new IdlResolver([createBundledSource()]), me: [ME] },
+    );
+    const bv = viewFor(bare, 'expert');
+    expect(bv.computeUnitLimit).toBe(5);
+    for (const k of ['priorityFeeLamports', 'loadedAccountsDataSizeLimit', 'heapSize', 'computeUnitPrice']) expect(bv).not.toHaveProperty(k);
+    // Legacy and v0 never carry v1-only fields.
+    for (const k of ['priorityFeeLamports', 'loadedAccountsDataSizeLimit', 'heapSize']) expect(viewFor(ex, 'expert')).not.toHaveProperty(k);
   });
 
   it('never includes verification-only fields, even if the input carries them', () => {

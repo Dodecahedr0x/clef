@@ -100,6 +100,14 @@ describe('renderView', () => {
     for (const s of ['Fee payer', 'Blockhash', 'Issues:', 'State changes', 'Relations:', 'data:']) expect(lower).not.toContain(s);
   });
 
+  it('renders a v1 transaction config', () => {
+    const { computeUnitPrice: _price, ...rest } = expert;
+    const out = renderView({ ...rest, version: '1', computeUnitLimit: 300000, priorityFeeLamports: '1000', loadedAccountsDataSizeLimit: 65536, heapSize: 65536 });
+    expect(out).toContain(['Version: 1', 'Fee payer: AAAA', 'Blockhash: H', 'Compute unit limit: 300000', 'Priority fee: 1000 lamports',
+      'Loaded accounts data size limit: 65536 bytes', 'Heap size: 65536 bytes'].join('\n'));
+    expect(out).not.toContain('Compute unit price');
+  });
+
   it('says when an expert fee or state changes are unknown', () => {
     const out = renderView({ ...expert, fee: null, stateChanges: null });
     expect(out).toContain('Network fee: unknown');

@@ -55,6 +55,9 @@ export function renderView(view: AnyView): string {
     lines.push(`Version: ${clean(view.version)}`, `Fee payer: ${clean(view.feePayer)}`, `Blockhash: ${clean(view.recentBlockhash)}`);
     if (view.computeUnitLimit !== undefined) lines.push(`Compute unit limit: ${clean(view.computeUnitLimit)}`);
     if (view.computeUnitPrice !== undefined) lines.push(`Compute unit price: ${clean(view.computeUnitPrice)} micro-lamports`);
+    if (view.priorityFeeLamports !== undefined) lines.push(`Priority fee: ${clean(view.priorityFeeLamports)} lamports`);
+    if (view.loadedAccountsDataSizeLimit !== undefined) lines.push(`Loaded accounts data size limit: ${clean(view.loadedAccountsDataSizeLimit)} bytes`);
+    if (view.heapSize !== undefined) lines.push(`Heap size: ${clean(view.heapSize)} bytes`);
     lines.push('');
   }
 

@@ -38,7 +38,14 @@ export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   feePayer: string;
   recentBlockhash: string;
   computeUnitLimit?: number;
+  /** Legacy and v0: micro-lamports per compute unit, from a curated compute budget instruction. */
   computeUnitPrice?: string;
+  /** v1 only, from the transaction config: the total priority fee in lamports. */
+  priorityFeeLamports?: string;
+  /** v1 only, from the transaction config. */
+  loadedAccountsDataSizeLimit?: number;
+  /** v1 only, from the transaction config. */
+  heapSize?: number;
   relations: RelationEdge[];
   issues: Issue[];
   /** Null when unknown (no successful simulation). */
@@ -138,11 +145,13 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     return { level, ...common, ...highFee, instructions: ex.instructions.filter((ix) => !PLUMBING_PROGRAMS.has(ix.programId)).map((ix) => instructionView(ex, ix)) };
   }
 
-  // Compute budget values only from the curated IDL, as the fee estimate does.
+  // v1: the transaction config (a protocol field); compute budget instructions are no-ops there. Otherwise,
+  // compute budget values only from the curated IDL, as the fee estimate does.
+  const config = ex.tx.version === 1 ? (ex.tx.config ?? {}) : undefined;
   const budget = (name: string) =>
     ex.instructions.find((ix) => ix.programId === COMPUTE_BUDGET_PROGRAM && ix.name === name && ix.idl?.trust === 'curated')?.args;
-  const limit = toNumber(budget('setComputeUnitLimit')?.units);
-  const price = toBigint(budget('setComputeUnitPrice')?.microLamports);
+  const limit = config ? config.computeUnitLimit : toNumber(budget('setComputeUnitLimit')?.units);
+  const price = config ? undefined : toBigint(budget('setComputeUnitPrice')?.microLamports);
   return {
     level,
     ...common,
@@ -152,6 +161,9 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     recentBlockhash: ex.tx.recentBlockhash,
     ...(limit !== undefined && { computeUnitLimit: limit }),
     ...(price !== undefined && { computeUnitPrice: price.toString() }),
+    ...(config?.priorityFeeLamports !== undefined && { priorityFeeLamports: config.priorityFeeLamports.toString() }),
+    ...(config?.loadedAccountsDataSizeLimit !== undefined && { loadedAccountsDataSizeLimit: config.loadedAccountsDataSizeLimit }),
+    ...(config?.heapSize !== undefined && { heapSize: config.heapSize }),
     relations: ex.relations.map((r) => ({ ...r, ...(r.seeds && { seeds: r.seeds.map((seed) => ({ ...seed })) }) })),
     issues: ex.issues.map((i) => ({ ...i })),
     stateChanges: ex.stateChanges && ex.stateChanges.map(stateChangeView),
