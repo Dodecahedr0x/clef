@@ -1,4 +1,6 @@
 export * from './types';
+export { IdlDecodeError } from './errors';
+export { inflateCapped, MAX_IDL_BYTES } from './inflate';
 export * from './anchor-extras';
 export * from './normalize';
 export * from './static-source';
