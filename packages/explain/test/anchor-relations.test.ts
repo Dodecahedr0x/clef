@@ -208,6 +208,40 @@ describe('verifyAnchorExtras', () => {
     ]);
   });
 
+  describe('hostile IDL text', () => {
+    const EVIL = 'h\u001b[2J\u202eolder';
+    const CLEAN = 'h[2Jolder';
+
+    it('sanitizes IDL names in labels, seeds and details', async () => {
+      const accounts = await vaultAddresses();
+      const ix = await identifyInstruction(await depositInstruction(accounts), vaultResolver(), []);
+      const idl = ix.resolvedIdl!;
+      const hostile = {
+        ...ix,
+        rawArgs: { ...ix.rawArgs, [EVIL]: ME },
+        resolvedIdl: {
+          ...idl,
+          anchorExtras: { deposit: { mint: { relations: [{ holder: EVIL, field: EVIL }], nestedSeeds: [{ kind: 'arg' as const, path: [EVIL] }] } } },
+        },
+      };
+      const edges = await verifyAnchorExtras(hostile, new AccountCache(new MemoryChainReader()));
+      expect(edges.map((e) => [e.label, e.detail])).toEqual([
+        [`${CLEAN}.${CLEAN}`, `${CLEAN} not identified`],
+        [`PDA(${CLEAN})`, expect.stringMatching(/^expected /)],
+      ]);
+      expect(edges[1]!.seeds).toEqual([{ kind: 'arg', display: CLEAN }]);
+    });
+
+    it('sanitizes a decoded string field quoted in a mismatch', async () => {
+      const json = anchorIdl([{ name: 'pool' }, { name: 'authority', relations: ['pool'] }]);
+      json.types[0]!.type.fields[1] = { name: 'authority', type: 'string' } as never;
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: ME, owner: PROG, data: await poolData(json, USDC, EVIL as Address) });
+      const edges = await verifyAnchorExtras(await customIx(json, [ME, OTHER]), new AccountCache(reader));
+      expect(edges).toEqual([expect.objectContaining({ label: 'pool.authority', status: 'mismatch', detail: `pool.authority is ${CLEAN}` })]);
+    });
+  });
+
   describe('absent optional accounts (passed as the program id)', () => {
     it('reports a has_one with an absent holder as not provided', async () => {
       const json = anchorIdl([{ name: 'pool', optional: true }, { name: 'mint', relations: ['pool'] }]);

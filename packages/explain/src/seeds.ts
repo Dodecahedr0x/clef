@@ -17,6 +17,19 @@ export function errorDetail(e: unknown): string {
 }
 
 /**
+ * A relation edge with every IDL-derived string (label, detail, seed displays) sanitized and bounded: names and
+ * decoded values come from the IDL or account data, both untrusted.
+ */
+export function sanitizeEdge(edge: RelationEdge): RelationEdge {
+  return {
+    ...edge,
+    label: sanitizeText(edge.label, 200),
+    ...(edge.detail !== undefined && { detail: sanitizeText(edge.detail, 200) }),
+    ...(edge.seeds && { seeds: edge.seeds.map((s) => ({ ...s, display: sanitizeText(s.display, 100) })) }),
+  };
+}
+
+/**
  * Status of a re-derived PDA. A match under an untrusted program (one the transaction chose) proves nothing.
  * `getProgramDerivedAddress` finds the canonical bump only: an account created with a non-canonical bump shows
  * as a mismatch.

@@ -121,7 +121,7 @@ export async function identifyInstruction(
         resolvedIdl: idl,
       };
     } catch (e) {
-      issues.push({ stage: 'parse', instructionIndex: ix.index, message: `${idl.source} IDL failed to decode: ${message(e)}` });
+      issues.push({ stage: 'parse', instructionIndex: ix.index, message: sanitizeText(`${idl.source} IDL failed to decode: ${message(e)}`, 200) });
     }
   }
   if (unmatched.length) {

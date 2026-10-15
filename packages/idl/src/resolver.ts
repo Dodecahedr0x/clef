@@ -16,9 +16,15 @@ export type IdlResolverOptions = {
 
 const MAX_MESSAGE_LENGTH = 200;
 
-/** Error text can come from the network: strip control characters and bound its length. */
+/**
+ * Same character class as `UNSAFE` in packages/explain/src/text.ts (`sanitizeText`), duplicated because @clef/idl
+ * cannot depend on @clef/explain: keep the two in sync.
+ */
+const UNSAFE = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}\u115f\u1160\u3164\uffa0\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
+
+/** Error text can come from the network: strip control, invisible and bidi characters and bound its length. */
 function sanitize(message: string): string {
-  return message.replace(/[\u0000-\u001f\u007f-\u009f]/g, '').slice(0, MAX_MESSAGE_LENGTH);
+  return Array.from(message.replace(UNSAFE, '')).slice(0, MAX_MESSAGE_LENGTH).join('');
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {

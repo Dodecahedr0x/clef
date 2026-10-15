@@ -7,7 +7,7 @@ import { decodeTokenAccount, type AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
 import { isAbsent, isTrustedProgram, programs } from './idl-lookup';
 import { TOKEN_PROGRAMS } from './registry';
-import { displayBytes, errorDetail, pdaStatus, Unresolvable } from './seeds';
+import { displayBytes, errorDetail, pdaStatus, sanitizeEdge, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
 /** Positive evidence of substitution: reported as `mismatch` rather than `unverified`. */
@@ -140,7 +140,7 @@ export async function verifyAnchorExtras(
       edges.push(await verifyNestedSeeds(ix, idl.root, target, targetAddress, extra.nestedSeeds, extra.seedProgram, byName, decode));
     }
   }
-  return edges;
+  return edges.map(sanitizeEdge);
 }
 
 async function verifyNestedSeeds(

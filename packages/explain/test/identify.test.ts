@@ -103,6 +103,18 @@ describe('identifyInstruction', () => {
     expect(issues[0]!.message).toMatch(/^user IDL failed to decode: /);
   });
 
+  it('sanitizes and bounds the decode error, which can quote IDL names', async () => {
+    const user = new UserIdlSource();
+    const evil = `mi\u001b[2Jss\u202eing${'x'.repeat(300)}`;
+    user.set(UNKNOWN, root(UNKNOWN, 'broken', { name: 'boom', discriminators: [{ kind: 'fieldDiscriminatorNode', name: evil, offset: 0 }] }));
+    const issues: Issue[] = [];
+    await identifyInstruction({ index: 0, programId: UNKNOWN, accounts: [], data: new Uint8Array([1]) }, new IdlResolver([user]), issues);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.message).toMatch(/^user IDL failed to decode: /);
+    expect(issues[0]!.message).not.toMatch(/[\u001b\u202e]/);
+    expect(issues[0]!.message.length).toBeLessThanOrEqual(200);
+  });
+
   it('ignores non-curated IDLs for programs Clef bundles a curated IDL for', async () => {
     const user = new UserIdlSource();
     // Token discriminator 4 is approve: a user IDL must not rename it.

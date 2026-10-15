@@ -4,7 +4,7 @@ import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/vi
 import { getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { IdentifiedInstruction } from './identify';
 import { instructionNodes, isAbsent, isTrustedProgram, programs } from './idl-lookup';
-import { displayBytes, errorDetail, pdaStatus, Unresolvable } from './seeds';
+import { displayBytes, errorDetail, pdaStatus, sanitizeEdge, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
 
 type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
@@ -134,5 +134,5 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
       });
     }
   }
-  return edges;
+  return edges.map(sanitizeEdge);
 }

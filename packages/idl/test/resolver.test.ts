@@ -113,4 +113,11 @@ describe('IdlResolver', () => {
     expect(message.startsWith('ab[31mc')).toBe(true);
     expect(message).toHaveLength(200);
   });
+
+  it('strips bidi overrides and invisible characters from error messages, like sanitizeText', async () => {
+    const load = vi.fn().mockRejectedValue(new Error('evil\u202egnp.exe \u200bzero\u2066iso\u2069 \u2028line'));
+    const onError = vi.fn();
+    await all(new IdlResolver([{ kind: 'anchor-onchain', load }]), VAULT, onError);
+    expect((onError.mock.calls[0]![0] as { message: string }).message).toBe('evilgnp.exe zeroiso line');
+  });
 });

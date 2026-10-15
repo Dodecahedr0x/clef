@@ -2,6 +2,7 @@ import { address, getAddressEncoder, getProgramDerivedAddress, getU64Encoder, ge
 import { describe, expect, it } from 'vitest';
 import {
   argumentValueNode,
+  type CamelCaseString,
   bytesTypeNode,
   bytesValueNode,
   constantPdaSeedNodeFromProgramId,
@@ -21,6 +22,7 @@ import {
   rootNode,
   variablePdaSeedNode,
 } from '@codama/nodes';
+import type { ResolvedIdl } from '@clef/idl';
 import type { Address } from '@solana/kit';
 import { identifyInstruction, toHex, verifyCodamaPdas, type IdentifiedInstruction } from '../src';
 import { anchorIdl, bytesValue, customIx, IX_DISC, PROG } from './custom-idl';
@@ -219,6 +221,29 @@ describe('verifyCodamaPdas with Codama-native IDLs', () => {
       [OTHER, 'unverified', 'PDA'],
     ]);
     expect(edges[2]!.detail).toBe('argument "missing" is missing');
+  });
+});
+
+describe('verifyCodamaPdas with hostile IDL text', () => {
+  it('sanitizes seed names in seeds and labels', async () => {
+    // Raw Codama JSON keeps names as written: an argument name can carry terminal escapes and bidi overrides.
+    const EVIL = 'n\u001b[2J\u202eame';
+    const seed = { ...pdaSeedValueNode('s', argumentValueNode('x')), value: { ...argumentValueNode('x'), name: EVIL as CamelCaseString } };
+    const pda = pdaValueNode(pdaNode({ name: 'p', seeds: [variablePdaSeedNode('s', numberTypeNode('u8'))] }), [seed]);
+    const node = instructionNode({ name: 'go', accounts: [instructionAccountNode({ name: 'p', isWritable: false, isSigner: false, defaultValue: pda })] });
+    const root = rootNode(programNode({ name: 'p', publicKey: PROG, instructions: [node] }));
+    const [p] = await getProgramDerivedAddress({ programAddress: PROG, seeds: [new Uint8Array([7])] });
+    const ix: IdentifiedInstruction = {
+      index: 0,
+      programId: PROG,
+      name: 'go',
+      data: new Uint8Array(),
+      accounts: [{ address: p, signer: false, writable: false, mine: false, name: 'p' }],
+      rawArgs: { [EVIL]: 7 },
+      resolvedIdl: { root, programId: PROG, source: 'user', trust: 'user', hash: 'h' } as ResolvedIdl,
+    };
+    const [edge] = await verifyCodamaPdas(ix);
+    expect(edge).toMatchObject({ status: 'verified', label: 'PDA(n[2Jame)', seeds: [{ kind: 'arg', display: 'n[2Jame' }] });
   });
 });
 
