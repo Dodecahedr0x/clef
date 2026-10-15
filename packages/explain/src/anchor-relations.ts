@@ -1,10 +1,11 @@
 import type { AnchorSeed } from '@clef/idl';
 import { parseAccountData } from '@codama/dynamic-parsers';
+import { isNode, type RootNode } from '@codama/nodes';
 import { getLastNodeFromPath } from '@codama/visitors-core';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import { decodeTokenAccount, type AccountCache } from './accounts';
 import type { IdentifiedInstruction } from './identify';
-import { isAbsent, isTrustedProgram } from './idl-lookup';
+import { isAbsent, isTrustedProgram, programs } from './idl-lookup';
 import { TOKEN_PROGRAMS } from './registry';
 import { displayBytes, errorDetail, pdaStatus, Unresolvable } from './seeds';
 import type { RelationEdge, SeedInfo } from './types';
@@ -13,8 +14,36 @@ import type { RelationEdge, SeedInfo } from './types';
 class Foreign extends Error {}
 
 /** An account's decoded fields, or why they cannot be used. */
-type Read = { data: Record<string, unknown> } | { status: 'unverified' | 'mismatch'; detail: string };
+/** `token`: the account is an SPL token account (not the program's own state), fields `owner`, `mint`, `delegate`. */
+type Read = { data: Record<string, unknown>; token?: true } | { status: 'unverified' | 'mismatch'; detail: string };
 type Decode = (name: string) => Promise<Read>;
+
+/** Anchor seed `account` types that are SPL token accounts (`Account` is the token-interface name). */
+const TOKEN_ACCOUNT_TYPES = new Set(['TokenAccount', 'Account']);
+
+/**
+ * Whether one of the program's own account types (with discriminators) may store `field`. If so, a token
+ * account passed as an untyped holder may be standing in for that type, so its fields prove nothing.
+ */
+function programTypeHasField(root: RootNode, field: string): boolean {
+  return programs(root).some((program) =>
+    (program.accounts ?? []).some((account) => {
+      if (!(account.discriminators ?? []).length) return false;
+      // Anything but a plain struct could hold the field somewhere: treat it as ambiguous.
+      if (!isNode(account.data, 'structTypeNode')) return true;
+      return (account.data.fields ?? []).some((f) => f.name === field);
+    }),
+  );
+}
+
+/** Token-account fields only count when the holder's expected type is a token account. */
+function tokenHolderProblem(root: RootNode, holder: string, field: string | undefined, accountType?: string): string | undefined {
+  if (accountType !== undefined) {
+    return TOKEN_ACCOUNT_TYPES.has(accountType) ? undefined : `${holder} is a token account, expected ${accountType}`;
+  }
+  if (field === undefined || programTypeHasField(root, field)) return `${holder} type unknown; token account not accepted`;
+  return undefined;
+}
 
 const failed = (read: Read): read is Exclude<Read, { data: unknown }> => !('data' in read);
 
@@ -55,7 +84,7 @@ export async function verifyAnchorExtras(
       }
       // Anchor programs commonly constrain SPL token accounts (`has_one = owner`, seeds on `tok.mint`).
       const token = TOKEN_PROGRAMS.has(account.owner) ? decodeTokenAccount(account) : null;
-      if (token) return { data: { owner: token.owner, mint: token.mint, delegate: token.delegate } };
+      if (token) return { data: { owner: token.owner, mint: token.mint, delegate: token.delegate }, token: true };
       return { status: 'unverified', detail: `${name} is owned by ${account.owner}` };
     }
     const parsed = parseAccountData(idl.root, account.data, { programAddress: ix.programId });
@@ -89,6 +118,11 @@ export async function verifyAnchorExtras(
           edges.push({ ...base, status: result.status, detail: result.detail });
           continue;
         }
+        const problem = result.token ? tokenHolderProblem(idl.root, holder, field) : undefined;
+        if (problem) {
+          edges.push({ ...base, status: 'unverified', detail: problem });
+          continue;
+        }
         const value = result.data[field];
         edges.push(
           value === targetAddress
@@ -101,7 +135,7 @@ export async function verifyAnchorExtras(
     }
 
     if (extra.nestedSeeds) {
-      edges.push(await verifyNestedSeeds(ix, target, targetAddress, extra.nestedSeeds, extra.seedProgram, byName, decode));
+      edges.push(await verifyNestedSeeds(ix, idl.root, target, targetAddress, extra.nestedSeeds, extra.seedProgram, byName, decode));
     }
   }
   return edges;
@@ -109,6 +143,7 @@ export async function verifyAnchorExtras(
 
 async function verifyNestedSeeds(
   ix: IdentifiedInstruction,
+  root: RootNode,
   target: string,
   targetAddress: Address,
   seeds: AnchorSeed[],
@@ -131,6 +166,8 @@ async function verifyNestedSeeds(
     else {
       const result = await decode(head!);
       if (failed(result)) throw result.status === 'mismatch' ? new Foreign(result.detail) : new Unresolvable(result.detail);
+      const problem = result.token ? tokenHolderProblem(root, head!, fields[0], seed.accountType) : undefined;
+      if (problem) throw new Unresolvable(problem);
       value = result.data;
     }
     for (const field of fields) value = (value as Record<string, unknown> | null | undefined)?.[field];

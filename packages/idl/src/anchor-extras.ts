@@ -5,7 +5,10 @@ type V01LeafAccount = { name: string; relations?: string[]; pda?: { seeds: V01Se
 type V01Account = V01LeafAccount | { name: string; accounts: V01Account[] };
 type V01Idl = { metadata?: { spec?: string }; instructions: { name: string; accounts?: V01Account[] }[] };
 
-export type AnchorSeed = { kind: 'const'; bytes: number[] } | { kind: 'arg' | 'account'; path: string[] };
+export type AnchorSeed =
+  | { kind: 'const'; bytes: number[] }
+  /** `accountType`: the Anchor seed's `account` (the type of the path's head account), raw as in the IDL. */
+  | { kind: 'arg' | 'account'; path: string[]; accountType?: string };
 
 export type AnchorRelation = { holder: string; field: string };
 
@@ -67,7 +70,8 @@ function toSeed(seed: V01Seed, prefix?: string): AnchorSeed {
   const [first = '', ...rest] = seed.path.split('.');
   // Like Codama's `pdaSeedNodeFromAnchorV01`: only account seeds get the prefix, on their first segment.
   const head = seed.kind === 'account' ? sibling(first, prefix) : camelCase(first);
-  return { kind: seed.kind, path: [head, ...rest.map((p) => camelCase(p))] };
+  const path = [head, ...rest.map((p) => camelCase(p))];
+  return seed.account === undefined ? { kind: seed.kind, path } : { kind: seed.kind, path, accountType: seed.account };
 }
 
 /** Recovers what `rootNodeFromAnchor` drops: has_one relations and nested-path PDA seeds. */

@@ -97,6 +97,31 @@ describe('verifyAnchorExtras', () => {
       expect(edges.map((e) => [e.label, e.status])).toEqual([['PDA("x", tok.mint)', 'verified']]);
     });
 
+    it('rejects a token account where the IDL expects its own account type', async () => {
+      // Probe case 12: `pool: Account<Pool>` replaced by an SPL token account whose `mint` matches.
+      const json = anchorIdl([
+        { name: 'pool' },
+        { name: 'mint', relations: ['pool'] },
+        { name: 'p', pda: { seeds: [{ kind: 'account', path: 'pool.mint', account: 'Pool' }] } },
+      ]);
+      const [p] = await getProgramDerivedAddress({ programAddress: PROG, seeds: [getAddressEncoder().encode(USDC)] });
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: TOK, owner: TOKEN, data: tokenAccountData(OTHER, USDC) });
+      const edges = await verifyAnchorExtras(await customIx(json, [TOK, USDC, p]), new AccountCache(reader));
+      expect(edges.map((e) => [e.label, e.status, e.detail])).toEqual([
+        ['pool.mint', 'unverified', 'pool type unknown; token account not accepted'],
+        ['PDA of p', 'unverified', 'pool is a token account, expected Pool'],
+      ]);
+    });
+
+    it('rejects a token account for an untyped nested seed when an IDL type has that field', async () => {
+      const json = anchorIdl([{ name: 'pool' }, { name: 'p', pda: { seeds: [{ kind: 'account', path: 'pool.mint' }] } }]);
+      const reader = new MemoryChainReader();
+      reader.setAccount({ address: TOK, owner: TOKEN, data: tokenAccountData(OTHER, USDC) });
+      const edges = await verifyAnchorExtras(await customIx(json, [TOK, OTHER]), new AccountCache(reader));
+      expect(edges).toEqual([expect.objectContaining({ status: 'unverified', detail: 'pool type unknown; token account not accepted' })]);
+    });
+
     it('leaves other foreign holders unverified', async () => {
       const json = anchorIdl([{ name: 'pool' }, { name: 'mint', relations: ['pool'] }]);
       const reader = new MemoryChainReader();

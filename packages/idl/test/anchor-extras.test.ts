@@ -13,7 +13,7 @@ describe('extractAnchorExtras', () => {
           relations: [],
           nestedSeeds: [
             { kind: 'const', bytes: [112, 111, 115] },
-            { kind: 'account', path: ['pool', 'mint'] },
+            { kind: 'account', path: ['pool', 'mint'], accountType: 'Pool' },
             { kind: 'account', path: ['user'] },
           ],
         },
