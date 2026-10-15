@@ -13,11 +13,14 @@ import {
   none,
   pipe,
   some,
+  setTransactionMessageConfig,
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
   type Blockhash,
   type Instruction,
+  type V1CompiledTransactionMessage,
+  type V1TransactionConfig,
 } from '@solana/kit';
 import type { MemoryChainReader, RawAccount } from '@clef/rpc';
 import { AccountState, getTokenEncoder } from '@solana-program/token';
@@ -41,6 +44,32 @@ export function buildWire(
     ? compressTransactionMessageUsingAddressLookupTables(message, opts.lookupTables)
     : message;
   return new Uint8Array(getTransactionEncoder().encode(compileTransaction(compressed)));
+}
+
+/** Builds an unsigned v1 wire transaction (message first, then signatures) from kit instructions. */
+export function buildV1Wire(
+  instructions: Instruction[],
+  opts: { feePayer?: Address; config?: V1TransactionConfig } = {},
+): Uint8Array {
+  const message = pipe(
+    createTransactionMessage({ version: 1 }),
+    (m) => setTransactionMessageFeePayer(opts.feePayer ?? ME, m),
+    (m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: BLOCKHASH, lastValidBlockHeight: 0n }, m),
+    (m) => appendTransactionMessageInstructions(instructions, m),
+    (m) => (opts.config ? setTransactionMessageConfig(opts.config, m) : m),
+  );
+  return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
+}
+
+export type V1Message = V1CompiledTransactionMessage & { lifetimeToken: string };
+
+/** Like `rewire`, for v1 wires: re-encodes the edited message, then zeroed signatures (v1 puts them last). */
+export function rewireV1(wire: Uint8Array, mutate: (m: V1Message) => V1Message, trailing: number[] = []): Uint8Array {
+  const decoded = getCompiledTransactionMessageDecoder().decode(getTransactionDecoder().decode(wire).messageBytes);
+  if (decoded.version !== 1) throw new Error('rewireV1 supports v1 only');
+  const msg = mutate(decoded as V1Message);
+  const messageBytes = getCompiledTransactionMessageEncoder().encode(msg);
+  return new Uint8Array([...messageBytes, ...trailing, ...new Uint8Array(64 * msg.header.numSignerAccounts)]);
 }
 
 export const LOOKUP_TABLE_PROGRAM = address('AddressLookupTab1e1111111111111111111111111');

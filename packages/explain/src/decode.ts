@@ -4,8 +4,9 @@ import {
   getCompiledTransactionMessageDecoder,
   getTransactionDecoder,
   type Address,
+  type V1CompiledTransactionMessage,
 } from '@solana/kit';
-import type { AccountRef, DecodedTransaction } from './types';
+import type { AccountRef, DecodedTransaction, V1Config } from './types';
 
 const LOOKUP_TABLE_PROGRAM = 'AddressLookupTab1e1111111111111111111111111';
 const LOOKUP_TABLE_META_SIZE = 56;
@@ -15,7 +16,7 @@ const LOOKUP_TABLE_DISCRIMINATOR = 1;
 type Lookup = { lookupTableAddress: Address; writableIndexes: readonly number[]; readonlyIndexes: readonly number[] };
 type Loaded = { writable: Address[]; readonly: Address[] };
 type Header = { numSignerAccounts: number; numReadonlySignerAccounts: number; numReadonlyNonSignerAccounts: number };
-type CompiledInstruction = { programAddressIndex: number; accountIndices?: readonly number[] };
+type CompiledInstruction = { programAddressIndex: number; accountIndices?: readonly number[]; data?: Uint8Array | ArrayLike<number> };
 
 async function resolveLookups(lookups: readonly Lookup[], reader: ChainReader): Promise<Loaded> {
   const tables = await reader.getAccounts(lookups.map((l) => l.lookupTableAddress));
@@ -79,15 +80,84 @@ function sanitizeMessage(
 }
 
 /**
+ * v1 config fields by mask bit, in `configValues` order (SIMD-0385; kit's `decompileTransactionConfig`). The
+ * priority fee takes bits 0 and 1 (both or neither) and one u64 value; every other field one bit and one u32.
+ */
+const PRIORITY_FEE_BITS = 0b11;
+const V1_FIELDS = [
+  { name: 'priorityFeeLamports', bits: PRIORITY_FEE_BITS, kind: 'u64' },
+  { name: 'computeUnitLimit', bits: 0b100, kind: 'u32' },
+  { name: 'loadedAccountsDataSizeLimit', bits: 0b1000, kind: 'u32' },
+  { name: 'heapSize', bits: 0b10000, kind: 'u32' },
+] as const;
+const KNOWN_CONFIG_BITS = V1_FIELDS.reduce((mask, f) => mask | f.bits, 0);
+/** The runtime's heap frame bounds: a requested size must be a multiple of 1 KiB within them. */
+const MIN_HEAP = 32 * 1024;
+const MAX_HEAP = 256 * 1024;
+
+const popcount = (n: number) => {
+  let count = 0;
+  for (let v = n >>> 0; v; v >>>= 1) count += v & 1;
+  return count;
+};
+
+/**
+ * A v1 message's config and instructions, checked for consistency: the counts the message declares must match
+ * what it carries, and the config may only use bits Clef (and kit) know. Exported for tests: kit's decoder
+ * builds consistent counts from wire bytes, so only hand-made messages can break them.
+ */
+export function flattenV1(msg: Omit<V1CompiledTransactionMessage, 'version'>): { config: V1Config; instructions: CompiledInstruction[] } {
+  if (msg.numStaticAccounts !== msg.staticAccounts.length) throw malformed('static account count mismatch');
+  const mask = msg.configMask >>> 0;
+  if (mask & ~KNOWN_CONFIG_BITS) throw malformed(`unknown config bits 0x${(mask & ~KNOWN_CONFIG_BITS).toString(16)}`);
+  const fee = mask & PRIORITY_FEE_BITS;
+  if (fee !== 0 && fee !== PRIORITY_FEE_BITS) throw malformed('priority fee needs both config bits');
+  // Each value is one 4-byte word per mask bit.
+  const words = msg.configValues.reduce((n, v) => n + (v.kind === 'u64' ? 2 : 1), 0);
+  if (words !== popcount(mask)) throw malformed('config value count does not match the config mask');
+  const config: Record<string, number | bigint> = {};
+  let at = 0;
+  for (const field of V1_FIELDS) {
+    if (!(mask & field.bits)) continue;
+    const value = msg.configValues[at++];
+    if (!value || value.kind !== field.kind) throw malformed(`config ${field.name} is not a ${field.kind}`);
+    config[field.name] = value.value;
+  }
+  const heap = config.heapSize;
+  if (typeof heap === 'number' && (heap % 1024 !== 0 || heap < MIN_HEAP || heap > MAX_HEAP)) {
+    throw malformed(`invalid heap size ${heap}`);
+  }
+
+  if (msg.numInstructions !== msg.instructionHeaders.length || msg.numInstructions !== msg.instructionPayloads.length) {
+    throw malformed('instruction count mismatch');
+  }
+  const instructions = msg.instructionHeaders.map((header, i) => {
+    const payload = msg.instructionPayloads[i]!;
+    if (payload.instructionAccountIndices.length !== header.numInstructionAccounts) {
+      throw malformed(`instruction ${i}: account count mismatch`);
+    }
+    if (payload.instructionData.length !== header.numInstructionDataBytes) {
+      throw malformed(`instruction ${i}: data length mismatch`);
+    }
+    return { programAddressIndex: header.programAccountIndex, accountIndices: payload.instructionAccountIndices, data: payload.instructionData };
+  });
+  return { config: config as V1Config, instructions };
+}
+
+/**
  * Decodes a wire transaction into a flat account list and instructions.
  * `loaded` (from tx meta) takes precedence over fetching lookup tables, which may have changed since.
  */
 export async function decodeTransaction(wire: Uint8Array, reader: ChainReader, loaded?: Loaded): Promise<DecodedTransaction> {
   const tx = getTransactionDecoder().decode(wire);
-  const msg = getCompiledTransactionMessageDecoder().decode(tx.messageBytes);
-  if (msg.version !== 'legacy' && msg.version !== 0) {
-    throw new Error(`Unsupported transaction version ${String(msg.version)}`);
+  const [msg, end] = getCompiledTransactionMessageDecoder().read(tx.messageBytes, 0);
+  if (msg.version !== 'legacy' && msg.version !== 0 && msg.version !== 1) {
+    throw new Error(`Unsupported transaction version ${String((msg as { version: unknown }).version)}`);
   }
+  // v1 forbids trailing data; kit's envelope decoder would hand it over as message bytes.
+  if (msg.version === 1 && end !== tx.messageBytes.length) throw malformed('trailing bytes after the message');
+  const v1 = msg.version === 1 ? flattenV1(msg) : undefined;
+  const compiled: readonly CompiledInstruction[] = msg.version === 1 ? v1!.instructions : msg.instructions;
 
   // Same order as kit's decompiler and the runtime's `loadedAddresses`: every table's writable
   // addresses (in lookup order), then every table's readonly addresses.
@@ -99,7 +169,7 @@ export async function decodeTransaction(wire: Uint8Array, reader: ChainReader, l
   if (resolved.writable.length !== writableTables.length || resolved.readonly.length !== readonlyTables.length) {
     throw new Error('lookup table address count mismatch');
   }
-  sanitizeMessage(msg, [...resolved.writable, ...resolved.readonly]);
+  sanitizeMessage({ header: msg.header, staticAccounts: msg.staticAccounts, instructions: compiled }, [...resolved.writable, ...resolved.readonly]);
 
   const { numSignerAccounts, numReadonlySignerAccounts, numReadonlyNonSignerAccounts } = msg.header;
   const statics = msg.staticAccounts;
@@ -127,7 +197,8 @@ export async function decodeTransaction(wire: Uint8Array, reader: ChainReader, l
     feePayer: statics[0]!,
     recentBlockhash: msg.lifetimeToken,
     accounts,
-    instructions: msg.instructions.map((ix, index) => ({
+    ...(v1 && { config: v1.config }),
+    instructions: compiled.map((ix, index) => ({
       index,
       programId: account(ix.programAddressIndex).address,
       accounts: (ix.accountIndices ?? []).map(account),

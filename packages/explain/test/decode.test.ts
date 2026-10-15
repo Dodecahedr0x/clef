@@ -2,8 +2,8 @@ import { MemoryChainReader } from '@clef/rpc';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { AccountRole, address, createNoopSigner, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { decodeTransaction } from '../src';
-import { BLOCKHASH, buildWire, LOOKUP_TABLE_PROGRAM, ME, OTHER, rewire, setLookupTable, USDC } from './helpers';
+import { decodeTransaction, flattenV1 } from '../src';
+import { BLOCKHASH, buildV1Wire, buildWire, LOOKUP_TABLE_PROGRAM, ME, OTHER, rewire, rewireV1, setLookupTable, USDC, type V1Message } from './helpers';
 
 const SYSTEM = address('11111111111111111111111111111111');
 const TABLE = address('2immgwYNHBbyVQKVGCEkgWpi53bLwWNRMB5G2nbgYV17');
@@ -198,6 +198,140 @@ describe('decodeTransaction', () => {
         instructions: m.instructions.map((ix) => ({ ...ix, accountIndices: [0, 50] })),
       }));
       await expect(decode(wire)).rejects.toThrow('malformed transaction: account index 50 out of range');
+    });
+  });
+
+  describe('v1 transactions', () => {
+    const decode = (wire: Uint8Array) => decodeTransaction(wire, new MemoryChainReader());
+    const memo = {
+      programAddress: address('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
+      accounts: [{ address: THIRD, role: AccountRole.READONLY_SIGNER }, { address: USDC, role: AccountRole.WRITABLE }],
+      data: new Uint8Array([104, 105]),
+    };
+    const v1 = () => buildV1Wire([transfer(), memo]);
+    const v1Message = (wire: Uint8Array) => {
+      let out: V1Message | undefined;
+      rewireV1(wire, (m) => (out = m));
+      return out!;
+    };
+
+    it('round-trips a v1 wire built with kit: accounts, flags, instructions', async () => {
+      const wire = v1();
+      expect(wire[0]).toBe(0x81);
+      const tx = await decode(wire);
+      expect(tx).toMatchObject({ version: 1, feePayer: ME, recentBlockhash: BLOCKHASH, config: {} });
+      expect(tx.instructions.map((ix) => ix.programId)).toEqual([SYSTEM, memo.programAddress]);
+      expect(tx.instructions[0]!.accounts).toEqual([
+        { address: ME, signer: true, writable: true },
+        { address: OTHER, signer: false, writable: true },
+      ]);
+      expect(tx.instructions[1]!.accounts).toEqual([
+        { address: THIRD, signer: true, writable: false },
+        { address: USDC, signer: false, writable: true },
+      ]);
+      expect(tx.instructions[1]!.data).toEqual(new Uint8Array([104, 105]));
+      expect(tx.accounts.every((a) => a.lookupTable === undefined)).toBe(true);
+    });
+
+    it('decodes every config field', async () => {
+      const config = { priorityFeeLamports: 123_456n, computeUnitLimit: 300_000, loadedAccountsDataSizeLimit: 65_536, heapSize: 64 * 1024 };
+      const tx = await decode(buildV1Wire([transfer()], { config }));
+      expect(tx.config).toEqual(config);
+      const some = await decode(buildV1Wire([transfer()], { config: { computeUnitLimit: 5 } }));
+      expect(some.config).toEqual({ computeUnitLimit: 5 });
+    });
+
+    it('legacy and v0 transactions carry no config', async () => {
+      expect((await decode(buildWire([transfer()]))).config).toBeUndefined();
+    });
+
+    it('applies the same sanitization rules', async () => {
+      await expect(decode(rewireV1(v1(), (m) => ({ ...m, header: { ...m.header, numReadonlySignerAccounts: 2 } })))).rejects.toThrow(
+        'malformed transaction: fee payer is not writable',
+      );
+      await expect(
+        decode(rewireV1(v1(), (m) => ({ ...m, staticAccounts: m.staticAccounts.map((a, i) => (i === 1 ? ME : a)) }))),
+      ).rejects.toThrow(`malformed transaction: duplicate account ${ME}`);
+      await expect(
+        decode(rewireV1(v1(), (m) => ({ ...m, instructionHeaders: m.instructionHeaders.map((h) => ({ ...h, programAccountIndex: 0 })) }))),
+      ).rejects.toThrow('malformed transaction: invalid program index 0');
+      await expect(
+        decode(
+          rewireV1(v1(), (m) => ({
+            ...m,
+            instructionPayloads: m.instructionPayloads.map((p) => ({ ...p, instructionAccountIndices: p.instructionAccountIndices.map(() => 40) })),
+          })),
+        ),
+      ).rejects.toThrow('malformed transaction: account index 40 out of range');
+    });
+
+    it('rejects unknown config bits', async () => {
+      const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask: 0b100000 }));
+      await expect(decode(wire)).rejects.toThrow('malformed transaction: unknown config bits 0x20');
+    });
+
+    it('rejects a priority fee with only one of its two bits', async () => {
+      const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask: 0b01 }));
+      await expect(decode(wire)).rejects.toThrow();
+      expect(() => flattenV1({ ...v1Message(buildV1Wire([transfer()])), configMask: 0b10, configValues: [{ kind: 'u32', value: 1 }] })).toThrow(
+        'malformed transaction: priority fee needs both config bits',
+      );
+    });
+
+    it('rejects a heap size the runtime refuses', async () => {
+      for (const heapSize of [16 * 1024, 300 * 1024, 33_000]) {
+        const wire = rewireV1(buildV1Wire([transfer()]), (m) => ({ ...m, configMask: 0b10000, configValues: [{ kind: 'u32', value: heapSize }] }));
+        await expect(decode(wire)).rejects.toThrow(`malformed transaction: invalid heap size ${heapSize}`);
+      }
+    });
+
+    it('rejects trailing bytes between the message and the signatures', async () => {
+      await expect(decode(rewireV1(v1(), (m) => m, [0]))).rejects.toThrow('malformed transaction: trailing bytes after the message');
+    });
+
+    describe('declared counts (hand-made messages)', () => {
+      const msg = () => v1Message(buildV1Wire([transfer(), memo], { config: { computeUnitLimit: 7 } }));
+
+      it('accepts a consistent message', () => {
+        expect(flattenV1(msg()).config).toEqual({ computeUnitLimit: 7 });
+      });
+
+      it('rejects a static account count that does not match', () => {
+        expect(() => flattenV1({ ...msg(), numStaticAccounts: 9 })).toThrow('malformed transaction: static account count mismatch');
+      });
+
+      it('rejects an instruction count that does not match', () => {
+        expect(() => flattenV1({ ...msg(), numInstructions: 3 })).toThrow('malformed transaction: instruction count mismatch');
+        const m = msg();
+        expect(() => flattenV1({ ...m, instructionPayloads: m.instructionPayloads.slice(1) })).toThrow('malformed transaction: instruction count mismatch');
+      });
+
+      it('rejects payloads whose lengths do not match their headers', () => {
+        const m = msg();
+        const headers = (patch: object) => m.instructionHeaders.map((h, i) => (i === 1 ? { ...h, ...patch } : h));
+        expect(() => flattenV1({ ...m, instructionHeaders: headers({ numInstructionAccounts: 1 }) })).toThrow(
+          'malformed transaction: instruction 1: account count mismatch',
+        );
+        expect(() => flattenV1({ ...m, instructionHeaders: headers({ numInstructionDataBytes: 9 }) })).toThrow(
+          'malformed transaction: instruction 1: data length mismatch',
+        );
+      });
+
+      it('rejects config values that do not match the mask', () => {
+        const m = msg();
+        expect(() => flattenV1({ ...m, configValues: [] })).toThrow('malformed transaction: config value count does not match the config mask');
+        expect(() => flattenV1({ ...m, configValues: [{ kind: 'u32', value: 1 }, { kind: 'u32', value: 2 }] })).toThrow(
+          'malformed transaction: config value count does not match the config mask',
+        );
+        // Right word count, wrong kinds: a u64 where the limit's u32 belongs.
+        expect(() => flattenV1({ ...m, configMask: 0b1100, configValues: [{ kind: 'u64', value: 1n }] })).toThrow(
+          'malformed transaction: config computeUnitLimit is not a u32',
+        );
+        // The priority fee is one u64 over two bits.
+        expect(() => flattenV1({ ...m, configMask: 0b11, configValues: [{ kind: 'u32', value: 1 }, { kind: 'u32', value: 2 }] })).toThrow(
+          'malformed transaction: config priorityFeeLamports is not a u64',
+        );
+      });
     });
   });
 });

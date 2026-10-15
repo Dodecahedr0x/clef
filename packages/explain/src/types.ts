@@ -19,8 +19,22 @@ export type AccountRef = { address: Address; signer: boolean; writable: boolean;
 
 export type DecodedInstruction = { index: number; programId: Address; accounts: AccountRef[]; data: Uint8Array };
 
+/**
+ * A v1 transaction's config (SIMD-0385): protocol fields read straight from the message. Unlike legacy and v0,
+ * the priority fee is a total in lamports, and an absent compute unit limit or loaded accounts data size limit
+ * means zero, not a default.
+ */
+export type V1Config = {
+  priorityFeeLamports?: bigint;
+  computeUnitLimit?: number;
+  loadedAccountsDataSizeLimit?: number;
+  heapSize?: number;
+};
+
 export type DecodedTransaction = {
-  version: 'legacy' | 0;
+  version: 'legacy' | 0 | 1;
+  /** v1 only. */
+  config?: V1Config;
   feePayer: Address;
   recentBlockhash: string;
   accounts: AccountRef[];
