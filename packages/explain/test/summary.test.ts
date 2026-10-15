@@ -6,8 +6,11 @@ import {
   shortAddress,
   summarize,
   COMPUTE_BUDGET_PROGRAM,
+  CLOCK_SYSVAR,
+  STAKE_PROGRAM,
   SYSTEM_PROGRAM,
   TOKEN_PROGRAM,
+  U64_MAX,
   type ExplainedInstruction,
   type Warning,
 } from '../src';
@@ -163,12 +166,82 @@ describe('summarize', () => {
     ];
     const sweep: Warning[] = [{ rule: 'sweep', severity: 'danger', message: 'm' }];
     // The template would only describe the instruction; the summary must state what actually leaves.
-    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: sweep })).toBe(`Send 1.5 SOL to ${shortAddress(OTHER)}`);
+    expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: sweep })).toBe(`Send 1.5 SOL to ${shortAddress(OTHER)} -- m`);
     const highFee: Warning[] = [{ rule: 'high-fee', severity: 'warn', message: 'm' }];
     expect(summarize({ instructions: [transferSol()], balanceChanges, me: [ME], warnings: highFee })).not.toMatch(/Alice/);
     const unexplained: Warning[] = [{ rule: 'unexplained-outflow', severity: 'danger', message: 'm' }];
     expect(summarize({ instructions: [transferSol()], balanceChanges: null, me: [ME], warnings: unexplained })).toBe(
-      'Interact with System Program (balance changes unknown)',
+      'Interact with System Program (balance changes unknown) -- m',
     );
+  });
+});
+
+describe('summary templates for authority-moving instructions', () => {
+  const DELEGATE = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
+  const acc = (name: string | undefined, a: Address, over: { mine?: boolean; label?: string } = {}) =>
+    ({ name, address: a, signer: false, writable: true, mine: over.mine ?? false, ...(over.label && { label: over.label }) });
+  const token = (name: string, accounts: ReturnType<typeof acc>[], args: Record<string, unknown> = {}, over: Partial<ExplainedInstruction> = {}): ExplainedInstruction =>
+    ({ ...base, index: 0, programId: address(TOKEN_PROGRAM), name, idl: curated, accounts, args, ...over });
+  const usdc = { symbol: 'USDC', decimals: 6 };
+  const src = acc('source', SRC, { mine: true, label: 'Your USDC token account' });
+  const approve = (amount: bigint) =>
+    token('approve', [src, acc('delegate', DELEGATE), acc('owner', ME, { mine: true })], { amount }, { amountUnit: usdc });
+  const one = (ix: ExplainedInstruction, over: Partial<Parameters<typeof summarize>[0]> = {}) =>
+    summarize({ instructions: [ix], balanceChanges: [], me: [ME], ...over });
+
+  it('approve: unlimited, entire balance, or an amount', () => {
+    const d = shortAddress(DELEGATE);
+    expect(one(approve(U64_MAX))).toBe(`Let ${d} spend UNLIMITED USDC from Your USDC token account`);
+    const tokenBalances = { [SRC]: { owner: ME, mint: USDC, amount: 5_000_000n } };
+    expect(one(approve(5_000_000n), { tokenBalances })).toBe(`Let ${d} spend your entire USDC from Your USDC token account`);
+    expect(one(approve(1_000_000n), { tokenBalances })).toBe(`Let ${d} spend 1 USDC from Your USDC token account`);
+    // Unknown balance and unknown unit.
+    const raw = token('approve', [src, acc('delegate', DELEGATE), acc('owner', ME)], { amount: 7n });
+    expect(one(raw)).toBe(`Let ${d} spend 7 (raw units) tokens from Your USDC token account`);
+  });
+
+  it('revoke, setAuthority, closeAccount', () => {
+    expect(one(token('revoke', [src, acc('owner', ME)]))).toBe('Revoke the delegate of Your USDC token account');
+    const set = (newAuthority: unknown) => token('setAuthority', [{ ...src, name: 'owned' }, acc('owner', ME)], { authorityType: 3, newAuthority });
+    expect(one(set({ __option: 'Some', value: DELEGATE }))).toBe(`Set the close account authority of Your USDC token account to ${shortAddress(DELEGATE)}`);
+    expect(one(set({ __option: 'None' }))).toBe('Revoke the close account authority of Your USDC token account');
+    expect(one(set('garbage'))).toBe('Interact with Token Program');
+    const close = token('closeAccount', [{ ...src, name: 'account' }, acc('destination', DELEGATE, { label: 'Bob' }), acc('owner', ME)]);
+    expect(one(close)).toBe('Close Your USDC token account and send its rent to Bob');
+  });
+
+  it('stake authorize, withdraw and delegate (accounts by position)', () => {
+    const STAKE = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+    const stake = (name: string, accounts: ReturnType<typeof acc>[], args: Record<string, unknown> = {}): ExplainedInstruction =>
+      ({ ...base, index: 0, programId: address(STAKE_PROGRAM), name, idl: curated, accounts, args });
+    const s = shortAddress(STAKE);
+    const d = shortAddress(DELEGATE);
+    const withdrawer = { __kind: 'Withdrawer', __discriminator: 1 };
+    expect(one(stake('authorize', [acc('stake', STAKE), acc(undefined, address(CLOCK_SYSVAR))], { arg0: DELEGATE, arg1: withdrawer }))).toBe(
+      `Make ${d} the withdrawer of stake account ${s}`,
+    );
+    // authorizeChecked, legacy layout [stake, clock, old, new]: names were omitted, positions still work.
+    const legacy = [acc('stake', STAKE), acc(undefined, address(CLOCK_SYSVAR)), acc(undefined, ME), acc(undefined, DELEGATE)];
+    expect(one(stake('authorizeChecked', legacy, { stakeAuthorize: { __kind: 'Staker', __discriminator: 0 } }))).toBe(
+      `Make ${d} the staker of stake account ${s}`,
+    );
+    expect(one(stake('withdraw', [acc('stake', STAKE), acc('recipient', DELEGATE)], { args: 2_000_000_000n }))).toBe(
+      `Withdraw 2 SOL from stake account ${s} to ${d}`,
+    );
+    expect(one(stake('delegateStake', [acc('stake', STAKE), acc('vote', DELEGATE)]))).toBe(`Delegate stake account ${s} to vote account ${d}`);
+  });
+
+  it('appends the first danger the summary does not express', () => {
+    const delegation = { rule: 'delegation', severity: 'danger' as const, message: 'Lets a delegate spend ALL of the tokens in your token account.', instructionIndex: 0 };
+    // The approve template expresses its own delegation danger.
+    expect(one(approve(U64_MAX), { warnings: [delegation] })).toBe(`Let ${shortAddress(DELEGATE)} spend UNLIMITED USDC from Your USDC token account`);
+    // A danger the summary doesn't express is appended, shortened.
+    const cpi = { ...delegation, instructionIndex: undefined };
+    const unknown: ExplainedInstruction = { ...base, index: 0, programId: OTHER };
+    expect(one(unknown, { warnings: [{ rule: 'unknown-program', severity: 'warn', message: 'x' }, cpi] })).toBe(
+      `Interact with ${shortAddress(OTHER)} -- lets a delegate spend ALL of the tokens in your token account`,
+    );
+    const long = { rule: 'x', severity: 'danger' as const, message: `${'a'.repeat(200)}.` };
+    expect(one(unknown, { warnings: [long] })).toBe(`Interact with ${shortAddress(OTHER)} -- ${'a'.repeat(99)}\u2026`);
   });
 });

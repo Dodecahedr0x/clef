@@ -75,7 +75,8 @@ const isToken = (p: string) => TOKEN_PROGRAMS.has(p);
 /** Undefined when the account is absent, or its name is unknown because the IDL's names were ambiguous. */
 const account = (ix: RiskInput['instructions'][number], name: string) => ix.accounts.find((a) => a.name === name);
 const RANK = { info: 0, warn: 1, danger: 2 } as const;
-const HALF_U64 = 1n << 63n;
+/** Approvals of at least this much are treated as unlimited. */
+export const HALF_U64 = 1n << 63n;
 
 /**
  * Rules key on instruction names. For programs Clef bundles a curated IDL for, only that IDL's names count: any
@@ -284,7 +285,7 @@ function stakeRisks(ix: RiskInput['instructions'][number], mine: (a: string | un
 }
 
 /** The decoded `StakeAuthorize` enum (`{ __kind: 'Staker', __discriminator: 0 }` / Withdrawer, 1); undefined if unreadable. */
-function stakeRole(v: unknown): 'staker' | 'withdrawer' | undefined {
+export function stakeRole(v: unknown): 'staker' | 'withdrawer' | undefined {
   if (v === null || typeof v !== 'object') return undefined;
   const { __kind, __discriminator } = v as { __kind?: unknown; __discriminator?: unknown };
   if (__kind === 'Staker' && __discriminator === 0) return 'staker';
@@ -296,7 +297,7 @@ function stakeRole(v: unknown): 'staker' | 'withdrawer' | undefined {
  * A decoded `option<address>` arg: the address, null for None, undefined when the shape is unexpected.
  * Codama decodes options as `{ __option: 'Some', value }` / `{ __option: 'None' }`.
  */
-function authorityArg(v: unknown): string | null | undefined {
+export function authorityArg(v: unknown): string | null | undefined {
   if (v === null) return null;
   if (typeof v !== 'object') return undefined;
   const o = v as { __option?: unknown; value?: unknown };

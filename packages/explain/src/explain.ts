@@ -252,7 +252,7 @@ export async function explain(
   const warnings = evaluateRisks(risk);
   const balanceChanges = simulated.balanceChanges;
   const summary = summarize({
-    instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners,
+    instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances,
   });
   return { tx, instructions, relations, balanceChanges, fee, issues, me, warnings, summary };
 }
