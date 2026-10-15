@@ -199,6 +199,21 @@ describe('evaluateRisks', () => {
       expect(outflowRule(input([router], { balanceChanges: move, prices, me: [ME, ME2] }))?.severity).toBe('danger');
     });
 
+    it('never downgrades when the SOL coming back may be your own: another account loses lamports', () => {
+      const STAKE_ACCOUNT = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
+      // A stake withdrawal (or a lending position, a nonce account...) funds the "payback".
+      const withdraw = [usdc(-100_000_000n), sol(-1_000_000_000n, STAKE_ACCOUNT), sol(1_000_000_000n)];
+      expect(outflowRule(input([router], { balanceChanges: withdraw, prices }))?.severity).toBe('danger');
+      // A decrease within the rent slack (e.g. a closed account's rent) is ignored.
+      const rent = [usdc(-100_000_000n), sol(-2_000_000n, STAKE_ACCOUNT), usdt(95_000_000n)];
+      expect(outflowRule(input([router], { balanceChanges: rent, prices }))?.severity).toBe('warn');
+      // So is the fee paid by a fee payer who isn't you (sponsored), up to the allowed fee.
+      const sponsored = [usdc(-100_000_000n), sol(-20_000_000n, STAKE_ACCOUNT), usdt(95_000_000n)];
+      const fee = { feePayer: STAKE_ACCOUNT, fee: 10_005_000n, baseFee: 5000n };
+      expect(outflowRule(input([router], { balanceChanges: sponsored, prices, ...fee }))?.severity).toBe('warn');
+      expect(outflowRule(input([router], { balanceChanges: sponsored, prices }))?.severity).toBe('danger');
+    });
+
     it('stays danger without a price for every outflow and inflow', () => {
       const swap = [usdc(-100_000_000n), usdt(99_000_000n)];
       expect(outflowRule(input([router], { balanceChanges: swap }))?.severity).toBe('danger');
@@ -523,6 +538,18 @@ describe('evaluateRisks', () => {
       // Nor is moving 2 SOL from one of your wallets to another.
       const move = [...twoOut, { owner: ME, mint: 'SOL', decimals: 9, delta: -2n * SOL }, { owner: ME2, mint: 'SOL', decimals: 9, delta: 2n * SOL }];
       expect(rules(input([otc], { balanceChanges: move as BalanceChange[], prices, me: [ME, ME2] }))).toEqual([['sweep', 'danger']]);
+    });
+
+    it('never lets SOL from another account (e.g. your stake) count as value coming back', () => {
+      const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+      const STAKE_ACCOUNT = address('3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh');
+      const otc = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const prices = { SOL: 150, [USDC]: 1, [USDT]: 1 };
+      const twoOut = [change(ME, USDC, -100_000_000n), change(OTHER, USDC, 100_000_000n), change(ME, USDT, -100_000_000n), change(OTHER, USDT, 100_000_000n)];
+      const back = [change(STAKE_ACCOUNT, 'SOL', -2n * SOL), change(ME, 'SOL', 2n * SOL)];
+      expect(rules(input([otc], { balanceChanges: [...twoOut, ...back], prices }))).toEqual([['sweep', 'danger']]);
+      // The same payback from nowhere else defuses it.
+      expect(rules(input([otc], { balanceChanges: [...twoOut, change(ME, 'SOL', 2n * SOL)], prices }))).toEqual([]);
     });
 
     it('never exempts the recipients of top-level transfers, whatever else runs', async () => {

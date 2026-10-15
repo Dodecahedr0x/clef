@@ -357,7 +357,8 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
   const { inflows, outflows: netOut } = netFlows(input, me, valued);
   const priced = isPriced(input, [...netOut, ...inflows]);
-  const fairExchange = priced ? usdTotal(input, inflows) >= usdTotal(input, netOut) / 2 : undefined;
+  // SOL drawn from another account (your stake, a position) may be your own coming back: never fair then.
+  const fairExchange = priced ? !foreignSolSource(input, me) && usdTotal(input, inflows) >= usdTotal(input, netOut) / 2 : undefined;
 
   // Program-owned (off-curve) recipients are exempt only when reached through a non-core program, which may be
   // depositing into its own vault. Recipients of top-level core transfers are never exempt: a decoy program
@@ -436,6 +437,18 @@ function usdValue(input: RiskInput, n: NetChange): number | undefined {
 const isPriced = (input: RiskInput, ns: NetChange[]) => input.prices !== undefined && ns.every((n) => usdValue(input, n) !== undefined);
 const usdTotal = (input: RiskInput, ns: NetChange[]) => ns.reduce((total, n) => total + usdValue(input, n)!, 0);
 
+/**
+ * Whether an account that isn't yours loses lamports (beyond `RENT_SLACK`, plus the allowed fee for the fee
+ * payer): a stake, vote or nonce account, a program-owned position, or any other wallet. SOL arriving in your
+ * wallet may then be your own funds (e.g. a stake withdrawal), not value given back for what leaves. Read from
+ * the balance changes: a non-token account's SOL change is keyed by its own address; a token account's rent is
+ * keyed by its owner, and stays within `RENT_SLACK`.
+ */
+function foreignSolSource(input: RiskInput, me: ReadonlySet<string>): boolean {
+  const allowance = (owner: string) => (owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
+  return (input.balanceChanges ?? []).some((c) => c.mint === 'SOL' && !me.has(c.owner) && -c.delta > allowance(c.owner));
+}
+
 /** At least this share of what leaves must come back for an undecodable outflow to be only a warning. */
 const COMPARABLE_VALUE = 0.9;
 
@@ -447,6 +460,7 @@ const COMPARABLE_VALUE = 0.9;
 function comparableValueBack(input: RiskInput, me: ReadonlySet<string>): boolean {
   const { inflows, outflows: out } = netFlows(input, me, (mint) => mint in KNOWN_MINTS);
   if (!inflows.length || !out.length || !isPriced(input, [...inflows, ...out])) return false;
+  if (foreignSolSource(input, me)) return false;
   return usdTotal(input, inflows) >= usdTotal(input, out) * COMPARABLE_VALUE;
 }
 
