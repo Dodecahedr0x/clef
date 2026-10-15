@@ -2,7 +2,7 @@ import { createBundledSource, IdlResolver } from '@clef/idl';
 import { MemoryChainReader } from '@clef/rpc';
 import { getSetComputeUnitLimitInstruction, getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import { getTransferSolInstruction } from '@solana-program/system';
-import { AuthorityType, getApproveInstruction, getSetAuthorityInstruction, getTransferCheckedInstruction } from '@solana-program/token';
+import { AuthorityType, getApproveInstruction, getCloseAccountInstruction, getSetAuthorityInstruction, getTransferCheckedInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { explain, shortAddress, viewFor, TOKEN_PROGRAM, U64_MAX } from '../src';
@@ -54,6 +54,19 @@ describe('basic view golden summaries for hostile transactions', () => {
     ]);
     expect(v.summary).toBe(`Set the close account authority of Your USDC token account to ${A}`);
     expect(v.warnings.map((w) => [w.rule, w.severity])).toEqual([['authority-change', 'danger']]);
+  });
+
+  it('wrapped SOL closed to an attacker (scenario G)', async () => {
+    const WSOL = address('So11111111111111111111111111111111111111112');
+    const reader = chain();
+    reader.setAccount({ address: ATTACKER, owner: SYS, lamports: SOL, data: new Uint8Array() });
+    reader.setAccount({ address: MY_USDC, owner: address(TOKEN_PROGRAM), lamports: 50n * SOL + 2_039_280n, data: tokenAccountData(ME, WSOL, 50n * SOL) });
+    simulateWith(reader, { [ATTACKER]: { lamports: 51n * SOL + 2_039_280n }, [MY_USDC]: { lamports: 0n, data: new Uint8Array(), owner: SYS } });
+    const v = await basic(reader, [getCloseAccountInstruction({ account: MY_USDC, destination: ATTACKER, owner: me })]);
+    expect(v.summary).toBe(`Close Your wSOL token account and send its 50.00203928 SOL (50 wrapped) to ${A}`);
+    const danger = v.warnings.find((w) => w.severity === 'danger')!;
+    expect(danger).toMatchObject({ rule: 'close-to-third-party', message: 'Closes a wrapped SOL account and sends its 50.00203928 SOL to an address you do not own.' });
+    expect(v.warnings.map((w) => w.rule)).toContain('send-entire-balance');
   });
 
   it('CPI drainer setting a delegate', async () => {

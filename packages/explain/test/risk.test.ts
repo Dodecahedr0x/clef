@@ -76,6 +76,16 @@ describe('evaluateRisks', () => {
   it('flags closing an account to someone else', () => {
     const close = ix({ name: 'closeAccount', accounts: [named('account', ME, true), named('destination', OTHER)] });
     expect(rules(input([close]))).toEqual([['close-to-third-party', 'danger']]);
+    // Closing wrapped SOL hands over everything it holds: the message says how much.
+    const WSOL_ACC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+    const closeWsol = ix({ name: 'closeAccount', accounts: [named('account', WSOL_ACC, true), named('destination', OTHER)] });
+    const wsol = {
+      tokenBalances: { [WSOL_ACC]: { owner: ME, mint: address('So11111111111111111111111111111111111111112'), amount: 50_000_000_000n } },
+      accountLamports: { [WSOL_ACC]: 50_002_039_280n },
+    };
+    expect(evaluateRisks(input([closeWsol], wsol))[0]!.message).toBe(
+      'Closes a wrapped SOL account and sends its 50.00203928 SOL to an address you do not own.',
+    );
   });
 
   it('flags durable nonces, unknown programs, failed simulation and relation mismatches', () => {
@@ -383,6 +393,17 @@ describe('evaluateRisks', () => {
       expect(evaluateRisks(input([send], { balanceChanges: usdc, tokenBalances, labels: { [OTHER]: 'Bob' } }))[0]!.message).toBe(
         'Sends (almost) your entire USDC balance to Bob.',
       );
+    });
+
+    it('counts SOL received as the wrapped SOL you lose', () => {
+      const WSOL = address('So11111111111111111111111111111111111111112');
+      const WSOL_ACC = address('FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B');
+      const close = ix({ name: 'closeAccount', idl: curated });
+      const closed = [{ ...change(ME, WSOL, -50n * SOL), symbol: 'wSOL', decimals: 9 }, change(ME, 'SOL', -2_039_280n), change(OTHER, 'SOL', 50n * SOL + 2_039_280n)];
+      const tokenBalances = { [WSOL_ACC]: { owner: ME, mint: WSOL, amount: 50n * SOL } };
+      expect(evaluateRisks(input([close], { balanceChanges: closed, tokenBalances })).map((w) => [w.rule, w.message])).toContainEqual([
+        'send-entire-balance', `Sends (almost) your entire wSOL balance to ${shortAddress(OTHER)}.`,
+      ]);
     });
 
     it('names the recipients of a sweep', () => {

@@ -1,7 +1,7 @@
 import { formatUnits, programDisplay } from './format';
 import { shortAddress } from './labels';
 import { authorityArg, feeAllowance, HALF_U64, stakeRole } from './risk';
-import { CLOCK_SYSVAR, PLUMBING_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, TOKEN_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, NATIVE_MINTS, PLUMBING_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import type { BalanceChange, ExplainedInstruction, ExplainedTransaction } from './types';
 
 export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceChanges' | 'me'> &
@@ -16,13 +16,15 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
     /** Owner wallet of each token account (pre-state, else post-state), keyed by token account. */
     tokenOwners?: Readonly<Record<string, string>>;
     /** Pre-transaction token balances, keyed by token account (see `RiskInput.tokenBalances`). */
-    tokenBalances?: Readonly<Record<string, { amount: bigint }>>;
+    tokenBalances?: Readonly<Record<string, { amount: bigint; mint?: string }>>;
+    /** Pre-transaction lamports by account (see `RiskInput.accountLamports`). */
+    accountLamports?: Readonly<Record<string, bigint>>;
   };
 
 /** Warnings under which a one-instruction template would mislead: the summary states the balance changes instead. */
 const NO_TEMPLATE_RULES: ReadonlySet<string> = new Set(['sweep', 'unexplained-outflow', 'high-fee', 'transaction-failed']);
 
-type Context = Pick<SummaryInput, 'labels' | 'tokenOwners' | 'tokenBalances'>;
+type Context = Pick<SummaryInput, 'labels' | 'tokenOwners' | 'tokenBalances' | 'accountLamports'>;
 type Template = (ix: ExplainedInstruction, ctx: Context) => string | null;
 type Account = ExplainedInstruction['accounts'][number];
 
@@ -96,10 +98,18 @@ const setAuthority: Template = (ix, ctx) => {
     : `Set the ${kind} authority of ${who(owned)} to ${named(next, ctx)}`;
 };
 
-const closeAccount: Template = (ix) => {
+const closeAccount: Template = (ix, ctx) => {
   const account = ix.accounts.find((a) => a.name === 'account');
   const destination = ix.accounts.find((a) => a.name === 'destination');
-  return account && destination ? `Close ${who(account)} and send its rent to ${who(destination)}` : null;
+  if (!account || !destination) return null;
+  // Wrapped SOL: all of the account's lamports go, not just rent.
+  const held = ctx.tokenBalances?.[account.address];
+  const lamports = ctx.accountLamports?.[account.address];
+  if (held?.mint !== undefined && NATIVE_MINTS.has(held.mint)) {
+    if (lamports === undefined) return null;
+    return `Close ${who(account)} and send its ${formatUnits(lamports, 9)} SOL (${formatUnits(held.amount, 9)} wrapped) to ${who(destination)}`;
+  }
+  return `Close ${who(account)} and send its rent to ${who(destination)}`;
 };
 
 /**

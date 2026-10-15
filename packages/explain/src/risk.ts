@@ -2,7 +2,7 @@ import { BUNDLED_PROGRAM_IDS } from '@clef/idl';
 import { isOffCurveAddress, type Address } from '@solana/kit';
 import { formatUnits } from './format';
 import { shortAddress } from './labels';
-import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
+import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, KNOWN_PROGRAMS, NATIVE_MINTS, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS } from './registry';
 import type { StateChange } from './state-changes';
 import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
 
@@ -24,6 +24,8 @@ export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' 
   valuedMints?: ReadonlySet<string>;
   /** Post-transaction owners of token accounts created in the transaction, keyed by token account address. */
   postTokenOwners?: Readonly<Record<string, Address>>;
+  /** Pre-transaction lamports of the accounts the transaction touches, keyed by address. */
+  accountLamports?: Readonly<Record<string, bigint>>;
   /** Display labels from trusted sources (see `Labeler`), keyed by address: used to name recipients. */
   labels?: Readonly<Record<string, string>>;
   /** USD per whole unit, keyed by mint or 'SOL'. Lets the sweep rule weigh what comes back against what leaves. */
@@ -151,7 +153,15 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       if (yours) warn('authority-change', 'danger', 'Reassigns ownership of your account to another program.', i, target?.address);
     }
     if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination'))) {
-      warn('close-to-third-party', 'danger', 'Closes an account and sends its rent to an address you do not own.', i);
+      // A wrapped SOL account holds its whole balance as lamports: closing it hands over all of them.
+      const closed = account(ix, 'account')?.address;
+      const held = closed === undefined ? undefined : input.tokenBalances?.[closed];
+      const lamports = closed === undefined ? undefined : input.accountLamports?.[closed];
+      const message =
+        held && NATIVE_MINTS.has(held.mint)
+          ? `Closes a wrapped SOL account and sends its ${lamports === undefined ? 'entire balance' : `${formatUnits(lamports, 9)} SOL`} to an address you do not own.`
+          : 'Closes an account and sends its rent to an address you do not own.';
+      warn('close-to-third-party', 'danger', message, i);
     }
     if (ix.programId === SYSTEM_PROGRAM && ix.name === 'authorizeNonceAccount') {
       const next = ix.args?.newNonceAuthority;
@@ -345,7 +355,9 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
     !me.has(c.owner) &&
     !input.addressBook?.has(c.owner) &&
     (!deposits || direct.unknown || direct.owners.has(c.owner) || onCurve(c.owner));
-  const recipient = (mint: string) => changes.find((c) => c.mint === mint && toWallet(c))?.owner;
+  // Wrapped SOL you lose arrives as plain SOL when its account is closed or unwrapped.
+  const sameAsset = (c: BalanceChange, mint: string) => c.mint === mint || (c.mint === 'SOL' && NATIVE_MINTS.has(mint));
+  const recipient = (mint: string) => changes.find((c) => sameAsset(c, mint) && toWallet(c))?.owner;
   const allOut = outflows(input, me);
   const out = allOut.filter((c) => recipient(c.mint));
 

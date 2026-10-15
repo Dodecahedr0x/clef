@@ -286,6 +286,7 @@ export async function explain(
 
   const tokenBalances: Record<string, TokenHolding> = {};
   const solBalances: Record<string, bigint> = {};
+  const accountLamports: Record<string, bigint> = {};
   let simulated: Simulated;
   if (!input.meta) {
     simulated = await fromSimulation(await simulation!, writable, labeler, issues, load);
@@ -298,6 +299,10 @@ export async function explain(
       const account = cache.get(wallet);
       if (account !== undefined) solBalances[wallet] = account?.lamports ?? 0n;
     }
+    for (const a of addresses) {
+      const account = cache.get(a);
+      if (account !== undefined) accountLamports[a] = account?.lamports ?? 0n;
+    }
   } else {
     const meta = input.meta;
     if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
@@ -309,6 +314,10 @@ export async function explain(
       const owner = at && (t.owner ?? ownerOf(at));
       if (at && owner) tokenBalances[at] = { owner, mint: t.mint, amount: t.amount };
     }
+    addresses.forEach((a, i) => {
+      const lamports = meta.preBalances[i];
+      if (lamports !== undefined) accountLamports[a] = lamports;
+    });
     for (const wallet of ctx.me) {
       const i = addresses.indexOf(wallet);
       const lamports = i >= 0 ? meta.preBalances[i] : undefined;
@@ -340,6 +349,7 @@ export async function explain(
     solBalances,
     addressBook: new Set(Object.keys(ctx.addressBook ?? {})),
     labels,
+    accountLamports,
     ...(simulated.stateChanges && { stateChanges: simulated.stateChanges }),
     ...(simulated.postTokenOwners && { postTokenOwners: simulated.postTokenOwners }),
     ...(ctx.valuedMints && { valuedMints: ctx.valuedMints }),
@@ -356,7 +366,7 @@ export async function explain(
   let summary: string;
   try {
     summary = summarize({
-      instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances,
+      instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances, accountLamports,
     });
   } catch {
     const danger = warnings.find((w) => w.severity === 'danger');
