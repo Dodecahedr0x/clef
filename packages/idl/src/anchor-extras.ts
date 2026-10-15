@@ -7,9 +7,14 @@ type V01Idl = { metadata?: { spec?: string }; instructions: { name: string; acco
 
 export type AnchorSeed = { kind: 'const'; bytes: number[] } | { kind: 'arg' | 'account'; path: string[] };
 
+export type AnchorRelation = { holder: string; field: string };
+
 export type AnchorAccountExtras = {
-  /** Accounts that hold a field (named like this account) which must equal this account — Anchor `has_one`. */
-  relations: string[];
+  /**
+   * Anchor `has_one`: `holder` (the sibling account, named as Codama names it, i.e. prefixed inside duplicate
+   * composites) stores this account's address in its struct field `field` (this account's own unprefixed name).
+   */
+  relations: AnchorRelation[];
   /**
    * Only set when a seed or the seed program uses a nested path (`pool.mint`), which Codama cannot represent.
    * When set, consumers must ignore Codama's `pdaValueNode` default for this account: it is either absent
@@ -73,7 +78,8 @@ export function extractAnchorExtras(idl: unknown): AnchorExtras {
   for (const ix of v.instructions) {
     const entries: Record<string, AnchorAccountExtras> = {};
     for (const { account: acc, prefix } of flatten(ix.accounts ?? [])) {
-      const relations = (acc.relations ?? []).map((r) => sibling(r, prefix));
+      const field = camelCase(acc.name);
+      const relations = (acc.relations ?? []).map((r) => ({ holder: sibling(r, prefix), field }));
       const seeds = acc.pda?.seeds ?? [];
       const program = acc.pda?.program;
       const nested = seeds.some(isNested) || (program !== undefined && isNested(program));

@@ -8,7 +8,7 @@ describe('normalizeIdl', () => {
     const n = await normalizeIdl(vault);
     expect(n.root.program.publicKey).toBe('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS');
     expect(n.root.program.instructions?.map((i) => i.name)).toEqual(['deposit']);
-    expect(n.anchorExtras?.deposit?.mint?.relations).toEqual(['pool']);
+    expect(n.anchorExtras?.deposit?.mint?.relations).toEqual([{ holder: 'pool', field: 'mint' }]);
     expect(n.hash).toMatch(/^[0-9a-f]{64}$/);
   });
 

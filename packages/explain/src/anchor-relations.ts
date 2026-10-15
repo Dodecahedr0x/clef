@@ -51,9 +51,10 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
     const targetAddress = byName.get(target);
     if (!targetAddress) continue;
 
-    for (const holder of extra.relations) {
+    for (const { holder, field } of extra.relations) {
       const holderAddress = byName.get(holder) ?? targetAddress;
-      const base = { kind: 'has_one' as const, from: targetAddress, to: holderAddress, label: `${holder}.${target}`, instructionIndex: ix.index };
+      const label = `${holder}.${field}`;
+      const base = { kind: 'has_one' as const, from: targetAddress, to: holderAddress, label, instructionIndex: ix.index };
       const read = await decode(holder);
       if ('failure' in read) {
         edges.push(
@@ -63,11 +64,11 @@ export async function verifyAnchorExtras(ix: IdentifiedInstruction, cache: Accou
         );
         continue;
       }
-      const field = read.data[target];
+      const value = read.data[field];
       edges.push(
-        field === targetAddress
+        value === targetAddress
           ? { ...base, status: 'verified' }
-          : { ...base, status: 'mismatch', detail: `${holder}.${target} is ${String(field)}` },
+          : { ...base, status: 'mismatch', detail: `${label} is ${String(value)}` },
       );
     }
 

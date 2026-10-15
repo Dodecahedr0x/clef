@@ -2,6 +2,8 @@ import { MemoryChainReader } from '@clef/rpc';
 import type { Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { AccountCache, identifyInstruction, verifyAnchorExtras } from '../src';
+import { anchorIdl, customIx, poolData, PROG } from './custom-idl';
+import { ME, USDC } from './helpers';
 import { AUTHORITY, OTHER, VAULT, depositInstruction, setPool, vaultAddresses, vaultResolver } from './vault';
 
 async function run(poolFields: Partial<{ mint: Address; authority: Address }> = {}, owner: Address = VAULT) {
@@ -43,5 +45,19 @@ describe('verifyAnchorExtras', () => {
     for (const edge of edges) {
       expect(edge).toMatchObject({ status: 'mismatch', detail: 'pool is not owned by the program' });
     }
+  });
+
+  it('reads has_one fields by the target account name inside duplicate composites', async () => {
+    const side = (name: string) => ({ name, accounts: [{ name: 'pool' }, { name: 'mint', relations: ['pool'] }] });
+    const json = anchorIdl([side('from'), side('to')]);
+    const reader = new MemoryChainReader();
+    reader.setAccount({ address: ME, owner: PROG, data: await poolData(json, USDC, AUTHORITY) });
+    reader.setAccount({ address: OTHER, owner: PROG, data: await poolData(json, USDC, AUTHORITY) });
+    const ix = await customIx(json, [ME, USDC, OTHER, USDC]);
+    const edges = await verifyAnchorExtras(ix, new AccountCache(reader));
+    expect(edges.map((e) => [e.label, e.status, e.to])).toEqual([
+      ['fromPool.mint', 'verified', ME],
+      ['toPool.mint', 'verified', OTHER],
+    ]);
   });
 });

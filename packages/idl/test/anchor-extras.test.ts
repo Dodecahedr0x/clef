@@ -7,8 +7,8 @@ describe('extractAnchorExtras', () => {
   it('keeps relations and nested-path PDA seeds, camelCased like Codama', () => {
     expect(extractAnchorExtras(vault)).toEqual({
       deposit: {
-        mint: { relations: ['pool'] },
-        authority: { relations: ['pool'] },
+        mint: { relations: [{ holder: 'pool', field: 'mint' }] },
+        authority: { relations: [{ holder: 'pool', field: 'authority' }] },
         userPosition: {
           relations: [],
           nestedSeeds: [
@@ -105,8 +105,9 @@ describe('extractAnchorExtras', () => {
     const extras = extractAnchorExtras(idl).swap ?? {};
     for (const key of Object.keys(extras)) expect(codamaNames).toContain(key);
     expect(extras).toEqual({
-      pool: { relations: ['poolAuthority'] },
-      sourceSideMint: { relations: ['sourceSidePool'] },
+      pool: { relations: [{ holder: 'poolAuthority', field: 'pool' }] },
+      // The holder is the prefixed sibling; the field is the target's own (unprefixed) name in the holder struct.
+      sourceSideMint: { relations: [{ holder: 'sourceSidePool', field: 'mint' }] },
       sourceSidePosition: {
         relations: [],
         nestedSeeds: [
