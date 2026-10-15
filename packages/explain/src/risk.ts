@@ -63,6 +63,21 @@ export function feeAllowance(fee: bigint | undefined, baseFee = 0n): bigint {
   return fee < baseFee + PRIORITY_FEE_LIMIT ? fee : baseFee + PRIORITY_FEE_LIMIT;
 }
 
+type FeeInput = { fee?: bigint; baseFee?: bigint; feePayer?: string };
+
+/** The part of the network fee `owner` may lose as expected spend: `feeAllowance`, for the fee payer only. */
+export function feeAllowanceFor(input: FeeInput, owner: string | undefined): bigint {
+  return owner !== undefined && owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n;
+}
+
+/**
+ * How much SOL `owner` may lose before it counts as an outflow: its fee allowance plus `RENT_SLACK`. The one
+ * definition every value rule (and the summary's fee) uses, so they can't drift.
+ */
+export function solAllowance(input: FeeInput, owner: string | undefined): bigint {
+  return feeAllowanceFor(input, owner) + RENT_SLACK;
+}
+
 /** The runtime's default compute limit per instruction (legacy and v0). */
 const DEFAULT_CU_PER_INSTRUCTION = 200_000;
 
@@ -444,7 +459,8 @@ function netFlows(input: RiskInput, me: ReadonlySet<string>, counts: (mint: stri
     const prev = net.get(mint);
     net.set(mint, prev ? { mint, decimals: prev.decimals === null || decimals === null ? null : prev.decimals, delta: prev.delta + c.delta } : { mint, decimals, delta: c.delta });
   }
-  const allowance = (input.feePayer !== undefined && me.has(input.feePayer) ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
+  // Net over all your wallets: the fee allowance applies when one of them pays the fee.
+  const allowance = solAllowance(input, input.feePayer !== undefined && me.has(input.feePayer) ? input.feePayer : undefined);
   const all = [...net.values()];
   return {
     inflows: all.filter((n) => (n.mint === 'SOL' ? n.delta > RENT_SLACK : n.delta > 0n && counts(n.mint))),
@@ -483,7 +499,6 @@ const NONCE_ACCOUNT_SIZE = 80;
  * account's rent is keyed by its owner, and stays within `RENT_SLACK`.
  */
 function foreignSolSource(input: RiskInput, me: ReadonlySet<string>): boolean {
-  const allowance = (owner: string) => (owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
   const plausiblyYours = (address: string) => {
     const info = input.accountInfo && (Object.hasOwn(input.accountInfo, address) ? input.accountInfo[address] : undefined);
     if (!info) return true;
@@ -491,7 +506,7 @@ function foreignSolSource(input: RiskInput, me: ReadonlySet<string>): boolean {
     return info.owner === SYSTEM_PROGRAM && (info.dataLength === NONCE_ACCOUNT_SIZE || info.signer);
   };
   return (input.balanceChanges ?? []).some(
-    (c) => c.mint === 'SOL' && !me.has(c.owner) && -c.delta > allowance(c.owner) && plausiblyYours(c.owner),
+    (c) => c.mint === 'SOL' && !me.has(c.owner) && -c.delta > solAllowance(input, c.owner) && plausiblyYours(c.owner),
   );
 }
 
@@ -539,9 +554,8 @@ function directRecipients(input: RiskInput): { owners: Set<string>; unknown: boo
 
 /** Your outflows: any token decrease, or a SOL loss beyond the allowed fee (if you pay it) plus `RENT_SLACK`. */
 function outflows(input: RiskInput, me: ReadonlySet<string>): BalanceChange[] {
-  const allowance = (owner: string) => (owner === input.feePayer ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
   return (input.balanceChanges ?? []).filter(
-    (c) => me.has(c.owner) && (c.mint === 'SOL' ? -c.delta > allowance(c.owner) : c.delta < 0n),
+    (c) => me.has(c.owner) && (c.mint === 'SOL' ? -c.delta > solAllowance(input, c.owner) : c.delta < 0n),
   );
 }
 

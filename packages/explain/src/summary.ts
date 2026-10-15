@@ -1,6 +1,6 @@
 import { formatUnits, programDisplay } from './format';
 import { shortAddress } from './labels';
-import { authorityArg, feeAllowance, HALF_U64, RENT_SLACK, stakeRole } from './risk';
+import { authorityArg, feeAllowanceFor, HALF_U64, RENT_SLACK, stakeRole } from './risk';
 import { CLOCK_SYSVAR, NATIVE_MINTS, PLUMBING_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import type { BalanceChange, ExplainedInstruction, ExplainedTransaction } from './types';
 
@@ -209,7 +209,7 @@ function describe(input: SummaryInput, meaningful: readonly ExplainedInstruction
   const me = new Set<string>(input.me);
   // A high fee is stated as a fee (see `summarize`), so all of it comes out; otherwise only the allowed part.
   const highFee = (input.warnings ?? []).some((w) => w.rule === 'high-fee');
-  const fee = input.fee === undefined ? 0n : highFee ? input.fee : feeAllowance(input.fee, input.baseFee);
+  const fee = input.fee === undefined ? 0n : highFee ? input.fee : feeAllowanceFor(input, input.feePayer);
   const mine = (input.balanceChanges ?? [])
     .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, fee) : c))
     .filter((c) => me.has(c.owner) && c.delta !== 0n);
