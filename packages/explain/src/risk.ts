@@ -229,11 +229,10 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));
   if (unexplained && possibleOutflow(input, me)) {
-    // An ordinary swap through a router Clef can't decode: priced value comes back. Only known balance changes,
-    // with a price for every asset in and out, can show that.
-    const exchange = input.balanceChanges && valueExchange(input, me);
-    if (exchange?.fairExchange && exchange.inflows.length > 0) {
-      warn('unexplained-outflow', 'warn', "Funds leave your wallet through a program Clef can't decode; you receive comparable value back.");
+    // An ordinary swap through a router Clef can't decode: about the same value comes back, in SOL or a major
+    // stablecoin. Only known balance changes, with a price for everything in and out, can show that.
+    if (input.balanceChanges && comparableValueBack(input, me)) {
+      warn('unexplained-outflow', 'warn', "Funds leave your wallet through a program Clef can't decode; you receive about the same value back in SOL/major stablecoins.");
     } else {
       warn('unexplained-outflow', 'danger', 'Funds leave your wallet in a transaction Clef cannot fully explain.');
     }
@@ -353,7 +352,13 @@ const onCurve = (a: Address) => {
 function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warning['severity'], string][] {
   const changes = input.balanceChanges;
   if (!changes) return [];
-  const { inflows, allOut, priced, fairExchange } = valueExchange(input, me);
+  const allOut = outflows(input, me);
+  // Weighed on the net change of all your wallets: your own churn (unwrapping your wSOL, moving SOL between
+  // your wallets) is neither value leaving nor value coming back.
+  const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
+  const { inflows, outflows: netOut } = netFlows(input, me, valued);
+  const priced = isPriced(input, [...netOut, ...inflows]);
+  const fairExchange = priced ? usdTotal(input, inflows) >= usdTotal(input, netOut) / 2 : undefined;
 
   // Program-owned (off-curve) recipients are exempt only when reached through a non-core program, which may be
   // depositing into its own vault. Recipients of top-level core transfers are never exempt: a decoy program
@@ -397,28 +402,53 @@ function sweepWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warn
   });
 }
 
+/** One asset's net change over all your wallets. Wrapped SOL counts as SOL. */
+type NetChange = { mint: string; decimals: number | null; delta: bigint };
+
 /**
- * What you receive against what leaves. `inflows`: only something of value counts as received: SOL beyond rent
- * refunds, or a known or priced token (an airdrop of an unknown token is free to mint and must not count).
- * `priced`: `prices` cover every outflow and inflow; then `fairExchange` says whether what comes back is worth
- * at least half of what leaves (undefined otherwise).
+ * Your net inflows and outflows, one per asset over all your wallets (wrapped SOL as SOL), so that moving your
+ * own funds around never counts as value leaving or coming back. Inflows: SOL beyond `RENT_SLACK`, or a token
+ * `counts` accepts (an airdrop of an unknown token is free to mint and must not count). Outflows: any token
+ * decrease, or a SOL loss beyond the allowed fee (if you pay it) plus `RENT_SLACK`.
  */
-function valueExchange(
-  input: RiskInput,
-  me: ReadonlySet<string>,
-): { inflows: BalanceChange[]; allOut: BalanceChange[]; priced: boolean; fairExchange: boolean | undefined } {
-  const valued = (mint: string) => mint in KNOWN_MINTS || !!input.valuedMints?.has(mint);
-  const inflows = (input.balanceChanges ?? []).filter(
-    (c) => me.has(c.owner) && (c.mint === 'SOL' ? c.delta > RENT_SLACK : c.delta > 0n && valued(c.mint)),
-  );
-  const allOut = outflows(input, me);
-  const usd = (c: BalanceChange) => {
-    const price = input.prices?.[c.mint];
-    return price === undefined || c.decimals === null ? undefined : (Math.abs(Number(c.delta)) / 10 ** c.decimals) * price;
+function netFlows(input: RiskInput, me: ReadonlySet<string>, counts: (mint: string) => boolean): { inflows: NetChange[]; outflows: NetChange[] } {
+  const net = new Map<string, NetChange>();
+  for (const c of input.balanceChanges ?? []) {
+    if (!me.has(c.owner)) continue;
+    const sol = c.mint === 'SOL' || NATIVE_MINTS.has(c.mint);
+    const mint = sol ? 'SOL' : c.mint;
+    const decimals = sol ? 9 : c.decimals;
+    const prev = net.get(mint);
+    net.set(mint, prev ? { mint, decimals: prev.decimals === null || decimals === null ? null : prev.decimals, delta: prev.delta + c.delta } : { mint, decimals, delta: c.delta });
+  }
+  const allowance = (input.feePayer !== undefined && me.has(input.feePayer) ? feeAllowance(input.fee, input.baseFee) : 0n) + RENT_SLACK;
+  const all = [...net.values()];
+  return {
+    inflows: all.filter((n) => (n.mint === 'SOL' ? n.delta > RENT_SLACK : n.delta > 0n && counts(n.mint))),
+    outflows: all.filter((n) => (n.mint === 'SOL' ? -n.delta > allowance : n.delta < 0n)),
   };
-  const sum = (cs: BalanceChange[]) => cs.reduce((total, c) => total + usd(c)!, 0);
-  const priced = input.prices !== undefined && [...allOut, ...inflows].every((c) => usd(c) !== undefined);
-  return { inflows, allOut, priced, fairExchange: priced ? sum(inflows) >= sum(allOut) / 2 : undefined };
+}
+
+/** USD value of a net change, undefined without a price or decimals. */
+function usdValue(input: RiskInput, n: NetChange): number | undefined {
+  const price = input.prices?.[n.mint];
+  return price === undefined || n.decimals === null ? undefined : (Math.abs(Number(n.delta)) / 10 ** n.decimals) * price;
+}
+const isPriced = (input: RiskInput, ns: NetChange[]) => input.prices !== undefined && ns.every((n) => usdValue(input, n) !== undefined);
+const usdTotal = (input: RiskInput, ns: NetChange[]) => ns.reduce((total, n) => total + usdValue(input, n)!, 0);
+
+/** At least this share of what leaves must come back for an undecodable outflow to be only a warning. */
+const COMPARABLE_VALUE = 0.9;
+
+/**
+ * Whether what leaves your wallets comes back as about the same value (`COMPARABLE_VALUE`), counting only SOL
+ * and `KNOWN_MINTS` (never tokens priced or valued by the caller: those are the easiest to fake), with a price
+ * for everything in and out.
+ */
+function comparableValueBack(input: RiskInput, me: ReadonlySet<string>): boolean {
+  const { inflows, outflows: out } = netFlows(input, me, (mint) => mint in KNOWN_MINTS);
+  if (!inflows.length || !out.length || !isPriced(input, [...inflows, ...out])) return false;
+  return usdTotal(input, inflows) >= usdTotal(input, out) * COMPARABLE_VALUE;
 }
 
 const TOKEN_TRANSFERS: ReadonlySet<string> = new Set(['transfer', 'transferChecked', 'transferCheckedWithFee']);

@@ -155,25 +155,48 @@ describe('evaluateRisks', () => {
 
   describe('unexplained outflows with prices', () => {
     const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+    const WSOL = address('So11111111111111111111111111111111111111112');
+    const ME2 = address('8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR');
+    const SCAM = address('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
     const router = ix({ programId: OTHER, idl: undefined });
-    const usdc = (delta: bigint): BalanceChange => ({ owner: ME, mint: USDC, decimals: 6, delta });
-    const usdt = (delta: bigint): BalanceChange => ({ owner: ME, mint: USDT, decimals: 6, delta });
-    const sol = (delta: bigint): BalanceChange => ({ owner: ME, mint: 'SOL', decimals: 9, delta });
-    const prices = { SOL: 150, [USDC]: 1, [USDT]: 1 };
+    const tok = (mint: Address, delta: bigint, owner: Address = ME, decimals = 6): BalanceChange => ({ owner, mint, decimals, delta });
+    const usdc = (delta: bigint) => tok(USDC, delta);
+    const usdt = (delta: bigint) => tok(USDT, delta);
+    const sol = (delta: bigint, owner: Address = ME): BalanceChange => ({ owner, mint: 'SOL', decimals: 9, delta });
+    const prices = { SOL: 150, [USDC]: 1, [USDT]: 1, [WSOL]: 150, [SCAM]: 1 };
     const outflowRule = (i: RiskInput) => evaluateRisks(i).find((w) => w.rule === 'unexplained-outflow');
+    const DOWNGRADED = "Funds leave your wallet through a program Clef can't decode; you receive about the same value back in SOL/major stablecoins.";
 
-    it('downgrades to warn when what comes back is worth at least half of what leaves', () => {
-      // $100 of USDC out through an undecodable router, $99 of USDT back.
-      const w = outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(99_000_000n)], prices }));
-      expect(w).toMatchObject({ severity: 'warn', message: "Funds leave your wallet through a program Clef can't decode; you receive comparable value back." });
-      // 2 SOL ($300) out, $150 back: exactly half.
-      expect(outflowRule(input([router], { balanceChanges: [sol(-2_000_000_000n), usdc(150_000_000n)], prices }))?.severity).toBe('warn');
+    it('downgrades to warn when about the same value comes back in SOL or a major stablecoin', () => {
+      // $100 of USDC out through an undecodable router, $95 of USDT back.
+      const w = outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(95_000_000n)], prices }));
+      expect(w).toMatchObject({ severity: 'warn', message: DOWNGRADED });
+      // 1 SOL ($150) out, $140 of USDC back.
+      expect(outflowRule(input([router], { balanceChanges: [sol(-1_000_000_000n), usdc(140_000_000n)], prices }))?.severity).toBe('warn');
     });
 
-    it('stays danger for a priced drain with a dust payback', () => {
+    it('stays danger when much less comes back', () => {
       const w = outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(1_000_000n)], prices }));
       expect(w).toMatchObject({ severity: 'danger', message: 'Funds leave your wallet in a transaction Clef cannot fully explain.' });
-      expect(outflowRule(input([router], { balanceChanges: [sol(-2_000_000_000n), usdc(149_000_000n)], prices }))?.severity).toBe('danger');
+      // A 60% payback in SOL.
+      expect(outflowRule(input([router], { balanceChanges: [usdc(-250_000_000n), sol(1_000_000_000n)], prices }))?.severity).toBe('danger');
+      expect(outflowRule(input([router], { balanceChanges: [usdc(-100_000_000n), usdt(89_000_000n)], prices }))?.severity).toBe('danger');
+    });
+
+    it('never counts a payback in other tokens, even priced or valued ones', () => {
+      const scam = [usdc(-100_000_000n), tok(SCAM, 1_000_000_000n)];
+      expect(outflowRule(input([router], { balanceChanges: scam, prices }))?.severity).toBe('danger');
+      expect(outflowRule(input([router], { balanceChanges: scam, prices, valuedMints: new Set([SCAM]) }))?.severity).toBe('danger');
+    });
+
+    it('nets the user\'s own churn: unwrapping your own wSOL is not a payback', () => {
+      const unwrap = [usdc(-100_000_000n), tok(WSOL, -1_000_000_000n, ME, 9), sol(1_000_000_000n)];
+      expect(outflowRule(input([router], { balanceChanges: unwrap, prices }))?.severity).toBe('danger');
+    });
+
+    it('nets the user\'s own churn: moving SOL between your wallets is not a payback', () => {
+      const move = [usdc(-100_000_000n), sol(-1_000_000_000n), sol(1_000_000_000n, ME2)];
+      expect(outflowRule(input([router], { balanceChanges: move, prices, me: [ME, ME2] }))?.severity).toBe('danger');
     });
 
     it('stays danger without a price for every outflow and inflow', () => {
@@ -484,6 +507,22 @@ describe('evaluateRisks', () => {
       expect(rules(input([otc], { balanceChanges: back(200n), prices }))).toEqual([]);
       // A missing price falls back to the price-less rule.
       expect(rules(input([otc], { balanceChanges: back(200n), prices: { SOL: 150, [USDT]: 1 } }))).toEqual([['sweep', 'danger']]);
+    });
+
+    it('nets the user\'s own churn before weighing what comes back', () => {
+      const USDT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+      const WSOL = address('So11111111111111111111111111111111111111112');
+      const ME2 = address('8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR');
+      const otc = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
+      const prices = { SOL: 150, [USDC]: 1, [USDT]: 1, [WSOL]: 150 };
+      // $100 of USDC and $100 of USDT leave to OTHER.
+      const twoOut = [change(ME, USDC, -100_000_000n), change(OTHER, USDC, 100_000_000n), change(ME, USDT, -100_000_000n), change(OTHER, USDT, 100_000_000n)];
+      // Unwrapping your own 2 wSOL ($300) into SOL is not value coming back.
+      const unwrap = [...twoOut, { owner: ME, mint: WSOL, decimals: 9, delta: -2n * SOL }, { owner: ME, mint: 'SOL', decimals: 9, delta: 2n * SOL }];
+      expect(rules(input([otc], { balanceChanges: unwrap as BalanceChange[], prices }))).toEqual([['sweep', 'danger']]);
+      // Nor is moving 2 SOL from one of your wallets to another.
+      const move = [...twoOut, { owner: ME, mint: 'SOL', decimals: 9, delta: -2n * SOL }, { owner: ME2, mint: 'SOL', decimals: 9, delta: 2n * SOL }];
+      expect(rules(input([otc], { balanceChanges: move as BalanceChange[], prices, me: [ME, ME2] }))).toEqual([['sweep', 'danger']]);
     });
 
     it('never exempts the recipients of top-level transfers, whatever else runs', async () => {
