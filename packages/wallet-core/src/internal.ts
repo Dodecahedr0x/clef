@@ -232,7 +232,13 @@ export class InternalApi {
         // continue on the path this phrase's accounts were last added with
         const last = (await accounts.list()).filter((a) => a.kind === 'hd' && a.secretId === secretId).at(-1);
         const scheme = last?.kind === 'hd' ? last.scheme : undefined;
-        await this.addHdAccount(secretId, await accounts.nextHdIndex(secretId, scheme), scheme);
+        let index = await accounts.nextHdIndex(secretId, scheme);
+        // an index the old import flow stored as a keypair account is taken; never retry it forever
+        while (await accounts.get(await vault.withPrivateKey({ secretId, index, ...(scheme && { scheme }) }, async (_k, a) => a))) {
+          if (index === MAX_INDEX) throw new Error('No free account index');
+          index++;
+        }
+        await this.addHdAccount(secretId, index, scheme);
         return {};
       }
       case 'accounts:importMnemonic': {
@@ -244,8 +250,9 @@ export class InternalApi {
         const seed = await mnemonicToSeed(mnemonic);
         try {
           for (const index of indexes) {
-            if (await accounts.get(await addressAt(seed, index, scheme))) continue;
-            await this.addHdAccount(secretId, index, scheme);
+            const existing = await accounts.get(await addressAt(seed, index, scheme));
+            if (!existing) await this.addHdAccount(secretId, index, scheme);
+            else if (existing.kind === 'imported') await this.upgradeImported(existing, secretId, index, scheme);
           }
         } finally {
           zeroize(seed);
@@ -400,6 +407,13 @@ export class InternalApi {
     const id = (await this.phraseIds())[n - 1];
     if (!id) throw new Error('No recovery phrase in this wallet');
     return id;
+  }
+
+  /** A key the old flow imported from this phrase becomes an HD account; its keypair secret goes once unused. */
+  private async upgradeImported(a: Extract<Account, { kind: 'imported' }>, secretId: string, index: number, scheme?: DerivationScheme): Promise<void> {
+    const { accounts, vault } = this.deps;
+    await accounts.replace({ kind: 'hd', address: a.address, label: a.label, secretId, index, ...(scheme && { scheme }) });
+    if (!(await accounts.list()).some((x) => 'secretId' in x && x.secretId === a.secretId)) await vault.removeSecret(a.secretId);
   }
 
   private async addHdAccount(secretId: string, index: number, scheme?: DerivationScheme): Promise<void> {

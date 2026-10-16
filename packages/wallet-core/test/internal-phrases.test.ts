@@ -160,6 +160,38 @@ describe('InternalApi with several recovery phrases', () => {
     expect((await state()).accounts).toMatchObject([{ phrase: 2, index: 0 }]);
   });
 
+  it('re-importing a phrase whose keys the old flow stored as imported upgrades them to HD accounts', async () => {
+    const { call, vault, accounts, state, local } = api();
+    await call('vault:create', { password: PASSWORD, mnemonic: ABANDON });
+    const zoo0 = await addressFor(ZOO, [44, 501, 0, 0]);
+    const keyId = await vault.addSecret({ kind: 'keypair', privateKey: deriveEd25519(await mnemonicToSeed(ZOO), [44, 501, 0, 0]) });
+    await accounts.add({ kind: 'imported', address: zoo0, label: 'Savings', secretId: keyId });
+    await new PermissionStore(local).grant('https://dapp.example', [zoo0]);
+
+    expect(await call('accounts:importMnemonic', { mnemonic: ZOO, indexes: [0] })).toEqual({ phrase: 2 });
+    expect((await state()).accounts).toMatchObject([{ kind: 'hd', address: A }, { kind: 'hd', address: zoo0, label: 'Savings', index: 0, phrase: 2 }]);
+    expect((await vault.list()).map((s) => s.kind)).toEqual(['mnemonic', 'mnemonic']);
+    const upgraded = (await accounts.get(zoo0))!;
+    expect(await vault.withPrivateKey(keyRef(upgraded as Extract<Account, { kind: 'hd' }>), async (_k, a) => a)).toBe(zoo0);
+    expect((await new PermissionStore(local).get('https://dapp.example'))?.accounts).toEqual([zoo0]);
+
+    await call('accounts:derive', { phrase: 2 });
+    expect((await state()).accounts.at(-1)).toMatchObject({ address: await addressFor(ZOO, [44, 501, 1, 0]), index: 1, phrase: 2 });
+  });
+
+  it('derive skips an index whose address is already stored, so it never gets stuck', async () => {
+    const { call, vault, accounts, state } = api();
+    await call('vault:create', { password: PASSWORD, mnemonic: ABANDON });
+    const zoo1 = await addressFor(ZOO, [44, 501, 1, 0]);
+    const keyId = await vault.addSecret({ kind: 'keypair', privateKey: deriveEd25519(await mnemonicToSeed(ZOO), [44, 501, 1, 0]) });
+    await accounts.add({ kind: 'imported', address: zoo1, label: 'Imported 1', secretId: keyId });
+    await call('accounts:importMnemonic', { mnemonic: ZOO, indexes: [0] });
+    await call('accounts:derive', { phrase: 2 });
+    const s = await state();
+    expect(s.accounts.map((a) => [a.kind, a.index, a.phrase])).toEqual([['hd', 0, 1], ['imported', undefined, undefined], ['hd', 0, 2], ['hd', 2, 2]]);
+    expect(await vault.list()).toHaveLength(3);
+  });
+
   it('omits phrase numbers while locked', async () => {
     const { call, state } = await twoPhrases();
     await call('vault:lock');

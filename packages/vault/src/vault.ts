@@ -105,6 +105,15 @@ export class Vault {
     return stored.id;
   }
 
+  async removeSecret(id: string): Promise<void> {
+    const { key, env } = await this.open();
+    try {
+      await this.write(key, env.kdf, (await this.read(key, env)).filter((s) => s.id !== id));
+    } finally {
+      zeroize(key);
+    }
+  }
+
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     assertPassword(newPassword);
     const env = await this.envelope();

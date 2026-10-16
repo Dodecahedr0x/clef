@@ -39,6 +39,13 @@ export class AccountStore {
     await this.store.set(KEY, [...all, account]);
   }
 
+  /** Replaces the stored account with the same address, keeping its position. */
+  async replace(account: Account): Promise<void> {
+    const all = await this.list();
+    if (!all.some((a) => a.address === account.address)) throw new Error('Unknown account');
+    await this.store.set(KEY, all.map((a) => (a.address === account.address ? account : a)));
+  }
+
   async rename(address: string, label: string): Promise<void> {
     const clean = label.trim().slice(0, MAX_LABEL);
     if (!clean) throw new Error('Label required');
