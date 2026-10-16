@@ -23,7 +23,7 @@ describe('WalletService signTransaction', () => {
     for (const signed of res.result.signedTransactions) {
       expect(getTransactionDecoder().decode(fromBase64(signed)).signatures[A]).toBeTruthy();
     }
-    expect(approvals.at(-1)).toEqual({ kind: 'signTransactions', origin: ORIGIN, account: A, chain: 'solana:mainnet', transactions: wires, send: false });
+    expect(approvals.at(-1)).toEqual({ kind: 'signTransactions', origin: ORIGIN, phishing: null, account: A, chain: 'solana:mainnet', transactions: wires, send: false, signer: { kind: 'software' } });
   });
 
   it('refuses unconnected origins, wrong chains and watch-only accounts before prompting', async () => {
@@ -88,7 +88,7 @@ describe('WalletService signMessage', () => {
     }>;
     expect(fromBase64(res.result.signedMessage)).toEqual(message);
     expect(fromBase64(res.result.signature)).toHaveLength(64);
-    expect(approvals.at(-1)).toEqual({ kind: 'signMessage', origin: ORIGIN, account: A, message });
+    expect(approvals.at(-1)).toEqual({ kind: 'signMessage', origin: ORIGIN, phishing: null, account: A, message, signer: { kind: 'software' } });
   });
 
   it('requires a connected account', async () => {
@@ -110,7 +110,7 @@ describe('WalletService signIn', () => {
     expect(res.ok).toBe(true);
     expect(res.result.account).toBe(A);
     expect(new TextDecoder().decode(fromBase64(res.result.signedMessage))).toContain('dapp.example wants you to sign in with your Solana account');
-    expect(approvals.at(-1)).toEqual({ kind: 'signIn', origin: ORIGIN, account: null, input: { statement: 'Welcome', nonce: 'abc12345', domain: 'dapp.example' } });
+    expect(approvals.at(-1)).toEqual({ kind: 'signIn', origin: ORIGIN, phishing: null, account: null, input: { statement: 'Welcome', nonce: 'abc12345', domain: 'dapp.example' }, signer: null });
     const verified = verifySignIn(
       { domain: 'dapp.example', statement: 'Welcome', nonce: 'abc12345', address: A },
       {

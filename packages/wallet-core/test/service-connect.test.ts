@@ -15,7 +15,7 @@ describe('WalletService connect', () => {
   it('interactive connect asks, grants, emits and returns the chosen accounts', async () => {
     const { service, approvals, events } = await setup(approveA);
     expect(await service.handle(ORIGIN, req('connect'))).toEqual({ id: 'r', ok: true, result: { accounts: [A] } });
-    expect(approvals).toEqual([{ kind: 'connect', origin: ORIGIN }]);
+    expect(approvals).toEqual([{ kind: 'connect', origin: ORIGIN, phishing: null }]);
     expect(events).toEqual([{ origin: ORIGIN, accounts: [A] }]);
     expect(await service.handle(ORIGIN, req('connect', { silent: true }))).toMatchObject({ result: { accounts: [A] } });
     expect(await service.handle(ORIGIN, req('connect'))).toMatchObject({ result: { accounts: [A] } });

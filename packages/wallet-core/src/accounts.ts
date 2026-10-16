@@ -4,9 +4,16 @@ import type { Address } from '@solana/kit';
 export type Account =
   | { kind: 'hd'; address: Address; label: string; secretId: string; index: number }
   | { kind: 'imported'; address: Address; label: string; secretId: string }
-  | { kind: 'watch'; address: Address; label: string };
+  | { kind: 'watch'; address: Address; label: string }
+  | { kind: 'ledger'; address: Address; label: string; path: string }
+  | { kind: 'keystone'; address: Address; label: string; path: string; xfp: string }
+  | { kind: 'squads'; address: Address /* vault PDA */; label: string; multisig: Address; vaultIndex: number; member: Address };
+
+/** Accounts whose own key (in the vault or on a device) signs. */
+export const isKeyAccount = (a: Account): boolean => a.kind === 'hd' || a.kind === 'imported' || a.kind === 'ledger' || a.kind === 'keystone';
 
 const KEY = 'accounts';
+const ACTIVE = 'activeAccount';
 const MAX_LABEL = 32;
 
 export class AccountStore {
@@ -36,9 +43,25 @@ export class AccountStore {
     await this.store.set(KEY, (await this.list()).filter((a) => a.address !== address));
   }
 
+  /** A squads vault signs through its member, which must itself hold a key. */
   async canSign(address: string): Promise<boolean> {
-    const a = await this.get(address);
-    return a !== undefined && a.kind !== 'watch';
+    const all = await this.list();
+    const a = all.find((x) => x.address === address);
+    if (!a) return false;
+    if (a.kind !== 'squads') return isKeyAccount(a);
+    const member = all.find((x) => x.address === a.member);
+    return member !== undefined && isKeyAccount(member);
+  }
+
+  async active(): Promise<Address | null> {
+    const all = await this.list();
+    const chosen = await this.store.get<string>(ACTIVE);
+    return (all.find((a) => a.address === chosen) ?? all[0])?.address ?? null;
+  }
+
+  async select(address: string): Promise<void> {
+    if (!(await this.get(address))) throw new Error('Unknown account');
+    await this.store.set(ACTIVE, address);
   }
 
   async nextHdIndex(secretId: string): Promise<number> {

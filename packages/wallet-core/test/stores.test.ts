@@ -12,14 +12,14 @@ describe('SettingsStore', () => {
     expect(await s.get()).toEqual(DEFAULT_SETTINGS);
     await s.update({ network: 'devnet', autoLockMinutes: 5 });
     const devnet = await s.get();
-    expect(chainFor(devnet.network)).toBe('solana:devnet');
+    expect(chainFor(devnet)).toBe('solana:devnet');
     expect(devnet.rpcUrl).toBe('https://api.devnet.solana.com');
     await expect(s.update({ autoLockMinutes: 0 })).rejects.toThrow();
     await expect(s.update({ rpcUrl: 'javascript:alert(1)' })).rejects.toThrow(/https/);
     await expect(s.update({ rpcUrl: 'http://rpc.example.com' })).rejects.toThrow(/https/);
     await expect(s.update({ rpcUrl: 'not a url' })).rejects.toThrow();
     await expect(s.update({ network: 'testnet' as never })).rejects.toThrow();
-    expect(await s.update({ rpcUrl: 'http://127.0.0.1:8899' })).toMatchObject({ rpcUrl: 'http://127.0.0.1:8899' });
+    expect(await s.update({ network: 'localnet', rpcUrl: 'http://127.0.0.1:8899' })).toMatchObject({ rpcUrl: 'http://127.0.0.1:8899' });
     expect((await s.get()).autoLockMinutes).toBe(5);
   });
 });
