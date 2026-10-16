@@ -29,9 +29,9 @@ const hybrid = {
 describe('hybrid Anchor IDLs', () => {
   it('reads the new layout with legacy publicKey type names', async () => {
     const r = await resolveIdl(EMBER, 'program-metadata', 'authority', hybrid);
-    const ix = r.root.program.instructions[0]!;
-    expect(ix.name).toBe('init');
-    expect(ix.arguments.filter((a) => a.name !== 'discriminator').map((a) => a.name)).toEqual(['authority', 'maybe', 'list', 'fixed']);
+    const ix = r.root.program.instructions?.[0];
+    expect(ix?.name).toBe("init");
+    expect((ix?.arguments ?? []).filter((a) => a.name !== 'discriminator').map((a) => a.name)).toEqual(['authority', 'maybe', 'list', 'fixed']);
   });
 
   it('renames publicKey only where a type is named', () => {
