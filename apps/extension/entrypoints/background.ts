@@ -1,3 +1,4 @@
+import '../lib/node-globals';
 import { KitChainReader, KitPortfolioReader } from '@clef/rpc';
 import { buildProposeTransaction, fetchMultisig } from '@clef/squads';
 import { Vault } from '@clef/vault';
