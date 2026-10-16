@@ -93,3 +93,48 @@ describe('parseDecision', () => {
     },
   );
 });
+
+describe('decision log', () => {
+  const LOG = {
+    summary: 'Send 1 SOL to Hx…3k',
+    dangerRules: ['owner-change', 'unknown-program'],
+    snapshot: { level: 'expert', summary: 'Send 1 SOL', balanceChanges: [{ owner: 'you', asset: 'SOL', amount: '-1' }] },
+  } as const;
+  const wire = (d: unknown) => JSON.parse(JSON.stringify(d));
+
+  it('round-trips with a log on approve and on reject', () => {
+    const approve = { approved: true as const, signatures: [sig(3)], log: LOG };
+    expect(parseDecision(wire(serializeDecision(approve as never)))).toEqual(approve);
+    const reject = { approved: false as const, log: { summary: 'Blocked site', snapshot: { ...LOG.snapshot, balanceChanges: null } } };
+    expect(parseDecision(wire(serializeDecision(reject as never)))).toEqual(reject);
+  });
+
+  it('drops invalid fields without blocking the decision', () => {
+    expect(parseDecision({ approved: false, log: 'nope' })).toEqual({ approved: false });
+    expect(parseDecision({ approved: true, log: { summary: 5, dangerRules: ['Bad Rule!'], snapshot: { level: 'wizard', summary: 'x', balanceChanges: null } } })).toEqual({
+      approved: true,
+    });
+    expect(parseDecision({ approved: true, log: { summary: 'ok', dangerRules: 'owner-change' } })).toEqual({ approved: true, log: { summary: 'ok' } });
+    expect(
+      parseDecision({ approved: true, log: { snapshot: { level: 'basic', summary: 'x', balanceChanges: [{ owner: 1, asset: 'SOL', amount: '1' }] } } }),
+    ).toEqual({ approved: true });
+  });
+
+  it('trims oversize strings, strips control characters and drops oversize lists', () => {
+    const d = parseDecision({
+      approved: true,
+      log: {
+        summary: `a\u0000b\u001b[31m${'x'.repeat(400)}`,
+        dangerRules: Array.from({ length: 33 }, () => 'rule'),
+        snapshot: { level: 'basic', summary: 'y'.repeat(300), balanceChanges: Array.from({ length: 65 }, () => ({ owner: 'o', asset: 'a', amount: '1' })) },
+      },
+    });
+    expect(d.log?.summary).toHaveLength(280);
+    expect(d.log?.summary).toMatch(/^ab\[31mx+$/);
+    expect(d.log?.dangerRules).toBeUndefined();
+    expect(d.log?.snapshot).toBeUndefined();
+    expect(parseDecision({ approved: true, log: { dangerRules: ['x'.repeat(65)] } })).toEqual({ approved: true });
+    const long = parseDecision({ approved: true, log: { snapshot: { level: 'basic', summary: 'y'.repeat(300), balanceChanges: [{ owner: 'o'.repeat(129), asset: 'a', amount: '1' }] } } });
+    expect(long.log?.snapshot).toEqual({ level: 'basic', summary: 'y'.repeat(280), balanceChanges: [{ owner: 'o'.repeat(128), asset: 'a', amount: '1' }] });
+  });
+});
