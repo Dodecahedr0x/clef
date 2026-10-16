@@ -1,6 +1,8 @@
 /// <reference types="chrome" />
 import type { BrowserContext, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+// Unlock runs Argon2id at production cost; under parallel load it can take longer than the default 5 s.
+const KDF_TIMEOUT = 20_000;
 import { fund, rpcCall } from './surfpool';
 
 const PASSWORD = 'a long password';
@@ -74,10 +76,10 @@ test('create, lock and unlock, connect, send at every detail level, reject', asy
   expect((await internal<{ unlocked: boolean }>(popup, { type: 'state' })).value.unlocked).toBe(false);
   await popup.getByLabel('Password', { exact: true }).fill('wrong password');
   await popup.getByRole('button', { name: 'Unlock' }).click();
-  await expect(popup.getByText('Wrong password')).toBeVisible();
+  await expect(popup.getByText('Wrong password')).toBeVisible({ timeout: KDF_TIMEOUT });
   await popup.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await popup.getByRole('button', { name: 'Unlock' }).click();
-  await expect(popup.getByRole('button', { name: 'Switch account' }).first()).toBeVisible();
+  await expect(popup.getByRole('button', { name: 'Switch account' }).first()).toBeVisible({ timeout: KDF_TIMEOUT });
   expect((await internal<{ unlocked: boolean }>(popup, { type: 'state' })).value.unlocked).toBe(true);
 
   // 3. Connect from the dApp (real blockhashes from the validator).
