@@ -47,7 +47,7 @@ const PROG = 'AzzkBZvWX8xXeQ27ZDGz4ZDu8W8ngQcMhPe7dFdfaJjd';
 
 let nav: Nav & { go: ReturnType<typeof vi.fn>; back: ReturnType<typeof vi.fn>; reset: ReturnType<typeof vi.fn> };
 let hasDas: () => Promise<boolean>;
-let getHealth: ReturnType<typeof vi.fn>;
+let getHealth: ReturnType<typeof vi.fn<() => Promise<{ slot: bigint; latencyMs: number }>>>;
 let contacts: { address: string; name: string; kind: 'contact' | 'label'; note?: string; createdAt: number }[];
 let idls: { programId: string; network: string; name: string; json: string; hash: string; addedAt: number }[];
 
