@@ -1,0 +1,17 @@
+{
+  "name": "@clef/portfolio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@clef/explain": "workspace:*",
+    "@clef/rpc": "workspace:*",
+    "@solana-program/system": "^0.15.0",
+    "@solana-program/token": "^0.17.0",
+    "@solana-program/token-2022": "^0.19.0",
+    "@solana/kit": "^8.5.0"
+  }
+}
