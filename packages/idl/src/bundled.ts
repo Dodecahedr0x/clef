@@ -2,6 +2,7 @@ import { instructionNode, sizeDiscriminatorNode, type InstructionNode, type Root
 import ata from '../idls/associated-token-account.json' with { type: 'json' };
 import computeBudget from '../idls/compute-budget.json' with { type: 'json' };
 import memo from '../idls/memo.json' with { type: 'json' };
+import squadsV4 from '../idls/squads-v4.json' with { type: 'json' };
 import stake from '../idls/stake.json' with { type: 'json' };
 import system from '../idls/system.json' with { type: 'json' };
 import token2022 from '../idls/token-2022.json' with { type: 'json' };
@@ -42,6 +43,7 @@ const BUNDLED: { program: { publicKey: string } }[] = [
   memo,
   memoV3,
   stake,
+  squadsV4,
 ];
 
 /**
