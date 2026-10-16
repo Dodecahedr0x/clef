@@ -58,7 +58,7 @@ function errorText(e: unknown): string {
 export function ImportScreen() {
   const nav = useNav();
   const draft = useOnboardingDraft();
-  const { state } = useWallet();
+  const { state, refresh } = useWallet();
   const hasVault = state?.hasVault ?? false;
   const [tab, setTab] = useState<Tab>('phrase');
   const [busy, setBusy] = useState(false);
@@ -82,6 +82,7 @@ export function ImportScreen() {
     try {
       await work();
       draft.clear();
+      await refresh(); // the router must see the new vault before it routes home
       nav.reset({ name: 'home' });
     } catch (e) {
       setError(errorText(e));

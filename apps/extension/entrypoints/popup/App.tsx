@@ -53,6 +53,8 @@ const SCREENS: Record<RouteName, () => JSX.Element> = {
 };
 
 const ONBOARDING = new Set<RouteName>(['welcome', 'create-password', 'recovery-phrase', 'confirm-phrase', 'import']);
+/** Screens that only make sense before a wallet exists ('import' also adds accounts to an existing wallet). */
+const CREATE_ONLY = new Set<RouteName>(['welcome', 'create-password', 'recovery-phrase', 'confirm-phrase']);
 
 function entryRoute(state: FullState): Route {
   if (!state.hasVault) return { name: 'welcome' };
@@ -60,13 +62,14 @@ function entryRoute(state: FullState): Route {
   return { name: 'home' };
 }
 
-/** Keeps the route consistent with the wallet: no vault -> onboarding, locked (e.g. auto-lock) -> unlock. */
+/** Keeps the route consistent with the wallet: no vault -> onboarding, locked (e.g. auto-lock) -> unlock, unlocked -> never back on create-only screens. */
 function Guard({ state }: { state: FullState }) {
   const nav = useNav();
   const name = nav.route.name;
   useEffect(() => {
     if (!state.hasVault && !ONBOARDING.has(name)) nav.reset({ name: 'welcome' });
     else if (state.hasVault && !state.unlocked && name !== 'unlock') nav.reset({ name: 'unlock' });
+    else if (state.hasVault && state.unlocked && (CREATE_ONLY.has(name) || name === 'unlock')) nav.reset({ name: 'home' });
   }, [state.hasVault, state.unlocked, name, nav]);
   return null;
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '../../../components';
 import { call } from '../../../lib/api';
+import { useWallet } from '../../../lib/hooks';
 import { useNav, useOnboardingDraft } from '../../../lib/nav';
 import { OnboardingFrame, OnboardingHeader } from './CreatePassword';
 
@@ -35,6 +36,7 @@ function makeQuiz(words: string[]) {
 }
 
 export function ConfirmPhraseScreen() {
+  const { refresh } = useWallet();
   const nav = useNav();
   const draft = useOnboardingDraft();
   const words = useMemo(() => draft.mnemonic?.split(' ') ?? [], [draft.mnemonic]);
@@ -61,6 +63,7 @@ export function ConfirmPhraseScreen() {
     try {
       await call({ type: 'vault:create', password: draft.password, mnemonic: draft.mnemonic });
       draft.clear();
+      await refresh(); // the router must see the new vault before it routes home
       nav.reset({ name: 'home' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the wallet');

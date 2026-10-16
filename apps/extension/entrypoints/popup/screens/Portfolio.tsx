@@ -229,11 +229,11 @@ function BasicPortfolio() {
           type="button"
           aria-label="Switch account"
           onClick={() => nav.go({ name: 'accounts' })}
-          className="ml-1.5 flex-1 min-w-0 h-9 flex items-center gap-2 px-2.5 bg-surface border border-line rounded-[10px] text-ink"
+          className="ml-1.5 flex-1 min-w-0 h-9 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
         >
           <span className="w-[18px] h-[18px] rounded-full bg-info-dot shrink-0" />
           <span className="text-[14px] font-medium truncate">{account?.label ?? 'No account'}</span>
-          {account && <span className="font-mono text-[12px] text-muted">{shortAddress(account.address)}</span>}
+          {account && <span className="font-mono text-[12px] text-muted whitespace-nowrap shrink-0">{shortAddress(account.address)}</span>}
           <span className="ml-auto text-muted"><Icon name="chevron-down" size={14} /></span>
         </button>
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-11 h-11 flex items-center justify-center bg-transparent border-0 rounded-[10px] text-muted">

@@ -65,7 +65,10 @@ async function createWallet(context: BrowserContext, base: string, rpc: string |
   await page.goto(`${base}/popup.html`);
   const { mnemonic } = (await internal(page, { type: 'mnemonic:generate' })) as { mnemonic: string };
   await internal(page, { type: 'vault:create', password: 'screenshots-only-password', mnemonic });
-  if (rpc) await internal(page, { type: 'settings:update', patch: { rpcUrl: rpc } });
+  if (rpc) {
+    const local = ['localhost', '127.0.0.1'].includes(new URL(rpc).hostname);
+    await internal(page, { type: 'settings:update', patch: local ? { network: 'localnet', rpcUrl: rpc } : { network: 'custom', rpcUrl: rpc } });
+  }
   await page.close();
 }
 
