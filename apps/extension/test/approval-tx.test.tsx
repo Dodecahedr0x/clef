@@ -155,7 +155,7 @@ describe('Basic', () => {
     expect(screen.getByText(/Requests 3 signatures · Main/)).toBeTruthy();
     expect(hooks.useExplainBatch).toHaveBeenLastCalledWith(expect.any(Array), 'basic');
     await user.click(screen.getByRole('button', { name: 'Sign all 3' }));
-    expect(onDecide).toHaveBeenCalledWith({ approved: true });
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: true, log: expect.objectContaining({ summary: combined.summary, dangerRules: [] }) }));
   });
 
   it('lists warnings in the panel and says when balance changes are unknown', () => {
@@ -326,7 +326,7 @@ describe('Danger', () => {
     await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
     expect(sign.disabled).toBe(false);
     await user.click(reject);
-    expect(onDecide).toHaveBeenCalledWith({ approved: false });
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: false, log: expect.objectContaining({ dangerRules: ['phishing', 'owner-change'] }) }));
   });
 
   it('an explanation failure fails closed', async () => {
@@ -336,6 +336,28 @@ describe('Danger', () => {
     expect(screen.getByText(/rpc down/)).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  for (const level of ['basic', 'intermediate', 'expert'] as const) {
+    it(`${level}: steps without a view or not simulated are danger even with no engine warning`, async () => {
+      explainWith((l) => {
+        const v = batchView(l);
+        v.steps[1] = { ...v.steps[1]!, status: 'failed', view: null as any };
+        v.steps[2] = { ...v.steps[2]!, status: 'not-simulated' };
+        return v;
+      });
+      const { onDecide, user } = setup(level);
+      const danger = screen.getAllByRole('region', { name: 'Danger' })[0]!;
+      expect(within(danger).getByText(/Clef could not explain transaction 2/)).toBeTruthy();
+      expect(within(danger).getByText(/Clef could not explain transaction 3/)).toBeTruthy();
+      const sign = screen.getByRole('button', { name: 'Sign all 3 anyway' }) as HTMLButtonElement;
+      expect(sign.disabled).toBe(true);
+      expect(screen.getByRole('button', { name: 'Reject all' }).className).toMatch(/bg-primary/);
+      await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
+      expect(sign.disabled).toBe(false);
+      await user.click(sign);
+      expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: true, log: expect.objectContaining({ dangerRules: ['unexplained-step'] }) }));
+    });
+  }
 
   it('nothing can be signed while the explanation loads', () => {
     hooks.useExplainBatch.mockImplementation(() => ({ status: 'loading' }));
@@ -359,7 +381,7 @@ describe('Batch simulation and hardware', () => {
     const { onDecide, user, request } = setup('basic', { signer: { kind: 'ledger', address: ME, path: "44'/501'/0'/0'" } }, onSign);
     await user.click(screen.getByRole('button', { name: 'Sign all 3' }));
     expect(onSign).toHaveBeenCalledWith(request.transactions);
-    await waitFor(() => expect(onDecide).toHaveBeenCalledWith({ approved: true, signatures: sigs }));
+    await waitFor(() => expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: true, signatures: sigs })));
   });
 
   it('hardware signer: a cancelled device step keeps the window open with the error', async () => {

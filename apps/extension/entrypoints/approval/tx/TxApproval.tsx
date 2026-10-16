@@ -1,5 +1,5 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
-import { DEFAULT_RPC, type ApprovalDecision, type ApprovalRequest } from '@clef/wallet-core';
+import { DEFAULT_RPC, type ApprovalDecision, type ApprovalRequest, type DecisionLog } from '@clef/wallet-core';
 import { useEffect, useMemo, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner } from '../../../components';
@@ -65,13 +65,30 @@ export function TxApproval({
   const danger = request.phishing !== null || result.status === 'failed' || hasDanger(warnings);
   const canSign = (ready || result.status === 'failed') && (!danger || ack) && !busy;
 
+  // What the user saw, for the local request log (validated again by the background).
+  const dangerRules = [
+    ...new Set([
+      ...(request.phishing ? ['phishing'] : []),
+      ...(result.status === 'failed' ? ['could-not-explain'] : []),
+      ...warnings.filter((w) => w.severity === 'danger').map((w) => w.rule.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 64)),
+    ]),
+  ].slice(0, 32);
+  const summary = (view?.combined.summary ?? (result.status === 'failed' ? 'Clef could not explain this request' : 'Not explained yet')).slice(0, 280);
+  const log: DecisionLog = {
+    summary,
+    dangerRules,
+    ...(view && {
+      snapshot: { level: view.level, summary, balanceChanges: view.combined.balanceChanges && view.combined.balanceChanges.slice(0, 64).map((c) => ({ owner: c.owner, asset: c.asset, amount: c.amount })) },
+    }),
+  };
+
   const approve = async () => {
     setError(null);
-    if (!onSign) return onDecide({ approved: true });
+    if (!onSign) return onDecide({ approved: true, log });
     setBusy(true);
     try {
       const signatures = await onSign(request.transactions);
-      onDecide({ approved: true, signatures });
+      onDecide({ approved: true, signatures, log });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -147,7 +164,7 @@ export function TxApproval({
       width={expert ? 760 : 400}
       footer={
         <DecisionFooter
-          onReject={() => onDecide({ approved: false })}
+          onReject={() => onDecide({ approved: false, log })}
           onApprove={() => void approve()}
           approveLabel={approveLabel}
           rejectLabel={n > 1 ? 'Reject all' : 'Reject'}

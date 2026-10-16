@@ -22,13 +22,27 @@ export function batchWarnings(view: BatchView): Warning[] {
       out.push(w);
     }
   };
+  for (const s of view.steps) if (unexplained(s)) add({ rule: UNEXPLAINED_RULE, severity: 'danger', message: unexplainedMessage(s) });
   view.combined.warnings.forEach(add);
   for (const s of view.steps) s.view?.warnings.forEach(add);
   return out;
 }
 
+export const UNEXPLAINED_RULE = 'unexplained-step';
+
+/** Fails closed: a step without a view, or one the simulation did not reach, counts as danger whatever the engine says. */
+export const unexplained = (s: BatchView['steps'][number]) => !s.view || s.status === 'failed' || s.status === 'not-simulated';
+
+function unexplainedMessage(s: BatchView['steps'][number]): string {
+  const why = !s.view ? 'it could not be decoded' : s.status === 'failed' ? 'its simulation failed' : 'it was not simulated';
+  return `Clef could not explain transaction ${s.index + 1}: ${why}. Signing what you cannot see can lose funds.`;
+}
+
 /** 'owner-change' -> 'Owner change'. */
+const RULE_TITLES: Record<string, string> = { 'unexplained-step': 'Could not explain', 'could-not-explain': 'Could not explain' };
+
 export const ruleTitle = (rule: string) => {
+  if (RULE_TITLES[rule]) return RULE_TITLES[rule];
   const t = rule.replace(/[-_]+/g, ' ').trim();
   return t.charAt(0).toUpperCase() + t.slice(1);
 };

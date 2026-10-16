@@ -3,7 +3,7 @@ import { useMemo, useState, type MouseEvent } from 'react';
 import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
-import { edgeKey, expertSteps, networkName, type Tab } from './model';
+import { edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, type Tab } from './model';
 import { DangerCards, Deltas, TxTabs, WarnCards } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
@@ -131,7 +131,7 @@ export function ExpertBody(p: {
     return null;
   };
 
-  const shownWarnings = sv ? sv.warnings : p.warnings;
+  const shownWarnings = sv ? [...p.warnings.filter((w) => w.rule === UNEXPLAINED_RULE), ...sv.warnings] : p.warnings;
   const dangers = shownWarnings.filter((w) => w.severity === 'danger');
   const others = shownWarnings.filter((w) => w.severity !== 'danger');
   const title = sv?.summary ?? view.combined.summary;

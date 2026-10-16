@@ -2,7 +2,7 @@ import type { BatchView, InstructionView, IntermediateView, Warning } from '@cle
 import { useState } from 'react';
 import { Icon, Pill } from '../../../components';
 import { shortAddress } from '../../../lib/format';
-import { stepStatusLabel, TRUST_LABEL, type Tab } from './model';
+import { stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
 import { AllClear, DangerCards, Deltas, TxTabs, UNKNOWN_CHANGES, WarnCards } from './parts';
 
 const SHOWN_ACCOUNTS = 5;
@@ -166,7 +166,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
   const summary = sv?.summary ?? view.combined.summary;
   const changes = sv ? sv.balanceChanges : view.combined.balanceChanges;
   const fee = sv ? (sv.fee ?? (single ? view.combined.fee : null)) : view.combined.fee;
-  const shown = sv ? sv.warnings : warnings;
+  const shown = sv ? [...warnings.filter((w) => w.rule === UNEXPLAINED_RULE), ...sv.warnings] : warnings;
   const dangers = shown.filter((w) => w.severity === 'danger');
   const others = shown.filter((w) => w.severity !== 'danger');
 
