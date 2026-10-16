@@ -8,7 +8,7 @@ export type Route =
   | { name: 'history/tx'; signature: string; origin?: string }
   | { name: 'settings' }
   | { name: 'settings/sites' }
-  | { name: 'settings/idls' }
+  | { name: 'settings/idls'; addFor?: string }
   | { name: 'settings/contacts' }
   | { name: 'settings/network' }
   | { name: 'settings/security' }

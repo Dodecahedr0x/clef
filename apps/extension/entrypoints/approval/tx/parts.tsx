@@ -2,6 +2,7 @@ import type { ChangeView, Warning } from '@clef/explain';
 import type { PhishingHit } from '@clef/wallet-core';
 import { Icon } from '../../../components';
 import { direction, displayAmount, listSteps, ruleTitle, type Tab } from './model';
+import { useIdlAdder } from './source';
 
 export function PhishingBanner({ hit }: { hit: PhishingHit }) {
   return (
@@ -33,6 +34,7 @@ export function DangerCards({ warnings }: { warnings: Warning[] }) {
 }
 
 export function WarnCards({ warnings }: { warnings: Warning[] }) {
+  const addIdl = useIdlAdder();
   if (!warnings.length) return null;
   return (
     <section aria-label="Warnings" className="flex flex-col gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-xs text-warn-ink">
@@ -40,6 +42,11 @@ export function WarnCards({ warnings }: { warnings: Warning[] }) {
         <div key={i} className="flex items-start gap-2">
           <span className={`flex-none rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
           <span className="min-w-0 break-words [overflow-wrap:anywhere]">{w.message}</span>
+          {w.programId && addIdl && (
+            <button type="button" onClick={() => addIdl(w.programId!)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold whitespace-nowrap text-info underline">
+              Add IDL
+            </button>
+          )}
         </div>
       ))}
     </section>

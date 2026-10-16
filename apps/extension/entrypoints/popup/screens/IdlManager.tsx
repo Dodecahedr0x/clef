@@ -42,8 +42,8 @@ function embeddedProgramId(json: unknown): string | null {
   return typeof id === 'string' && isAddress(id) ? id : null;
 }
 
-function AddIdlForm({ defaultNetwork, onDone, onCancel }: { defaultNetwork: IdlNetwork; onDone: () => void; onCancel: () => void }) {
-  const [programId, setProgramId] = useState('');
+function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }: { defaultNetwork: IdlNetwork; defaultProgramId?: string; onDone: () => void; onCancel: () => void }) {
+  const [programId, setProgramId] = useState(defaultProgramId);
   const [network, setNetwork] = useState<IdlNetwork>(defaultNetwork);
   const [name, setName] = useState('');
   const [json, setJson] = useState('');
@@ -133,7 +133,9 @@ export function IdlManagerScreen() {
   const idls = useCall<UserIdl[]>('idls:list');
   const [query, setQuery] = useState('');
   const [tier, setTier] = useState<Tier | 'all'>('all');
-  const [adding, setAdding] = useState(false);
+  // Opened from an undecodable instruction: the form is ready for that program, and saving goes back to it.
+  const addFor = (nav.route as { addFor?: string }).addFor;
+  const [adding, setAdding] = useState(Boolean(addFor));
   const [error, setError] = useState<string | null>(null);
   const known = useMemo(knownRows, []);
 
@@ -173,8 +175,10 @@ export function IdlManagerScreen() {
       {adding && (
         <AddIdlForm
           defaultNetwork={defaultNetwork}
-          onCancel={() => setAdding(false)}
+          defaultProgramId={addFor}
+          onCancel={() => (addFor ? nav.back() : setAdding(false))}
           onDone={() => {
+            if (addFor) return nav.back(); // back to the transaction, which explains again with the new IDL
             setAdding(false);
             idls.reload();
           }}

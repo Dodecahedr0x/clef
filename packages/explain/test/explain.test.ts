@@ -394,7 +394,7 @@ describe('explain', () => {
     const stale: Instruction = { programAddress: VAULT, accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }], data: new Uint8Array([9, 9, 9, 9, 9, 9, 9, 9]) };
     const ex = await explain({ wire: buildWire([stale]) }, ctx(new MemoryChainReader(), { idls: new IdlResolver([user]) }));
     const w = ex.warnings.find((x) => x.rule === 'unknown-program');
-    expect(w?.message).toMatch(/published doesn't list this instruction, so it is probably out of date/);
+    expect(w).toMatchObject({ message: "Can't decode instruction #1: its program's IDL is out of date.", programId: VAULT });
     expect(viewFor(ex, 'intermediate').instructions[0]).toMatchObject({ name: 'Unknown instruction', idlOutdated: true });
   });
 

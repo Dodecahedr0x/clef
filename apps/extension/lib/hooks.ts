@@ -138,9 +138,18 @@ const HISTORY_PAGE = 20;
 function useExplainExtras(): ExplainExtras | null {
   const contacts = useCall<Contact[]>('contacts:list');
   const idls = useCall<UserIdl[]>('idls:list');
-  if (contacts.loading || idls.loading) return null;
+  const reloadIdls = idls.reload;
+  // An IDL added elsewhere (Settings, the Add IDL link) applies to explanations on screen right away.
+  useEffect(() => {
+    const onChange = (changes: Record<string, unknown>, area: string) => {
+      if (area === 'local' && 'userIdls' in changes) reloadIdls();
+    };
+    browser.storage?.onChanged?.addListener(onChange);
+    return () => browser.storage?.onChanged?.removeListener(onChange);
+  }, [reloadIdls]);
+  const loading = contacts.loading || idls.loading;
   // Labels and user IDLs are optional: explain without them rather than not at all.
-  return { contacts: contacts.data ?? [], userIdls: idls.data ?? [] };
+  return useMemo(() => (loading ? null : { contacts: contacts.data ?? [], userIdls: idls.data ?? [] }), [loading, contacts.data, idls.data]);
 }
 
 export function useHistory(owner: Address | null): { items: HistoryItem[]; loading: boolean; error: string | null; loadMore(): void; hasMore: boolean } {
@@ -248,7 +257,7 @@ export function useExplainBatch(wires: Uint8Array[] | null, level: DetailLevel):
       live = false;
     };
     // Re-explain on new wires or a new RPC endpoint, not on unrelated state refetches.
-  }, [wires, clients, Boolean(ready)]);
+  }, [wires, clients, Boolean(ready), extras?.userIdls]);
 
   return useMemo<ExplainBatchResult>(() => {
     if (!batch || batch.wires !== wires) return { status: 'loading' };
@@ -288,7 +297,7 @@ export function useExplainLanded(signature: string, level: DetailLevel): LandedR
     return () => {
       live = false;
     };
-  }, [signature, clients, Boolean(ready)]);
+  }, [signature, clients, Boolean(ready), extras?.userIdls]);
 
   return useMemo<LandedResult>(() => {
     if (!run) return { status: 'loading' };

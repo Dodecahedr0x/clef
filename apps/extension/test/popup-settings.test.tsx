@@ -297,6 +297,20 @@ describe('IdlManagerScreen', () => {
     expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull();
   });
 
+  it('opened from an undecodable instruction: the form is ready for that program and saving goes back', async () => {
+    const user = userEvent.setup();
+    api.handlers['idls:add'] = (c) => ({ programId: c.programId, network: c.network, name: 'gpl_session', json: c.json, hash: 'x', addedAt: 3 });
+    nav.route = { name: 'settings/idls', addFor: ALICE } as never;
+    renderScreen(<IdlManagerScreen />);
+    const form = within(await screen.findByRole('region', { name: 'Add IDL' }));
+    expect(form.getByLabelText('Program ID')).toHaveValue(ALICE);
+    await user.click(form.getByLabelText('IDL JSON'));
+    await user.paste(JSON.stringify({ metadata: { name: 'gpl_session' }, instructions: [] }));
+    await user.click(form.getByRole('button', { name: 'Add IDL' }));
+    await waitFor(() => expect(nav.back).toHaveBeenCalled());
+    expect(api.calls.filter((c) => c.type === 'idls:add').at(-1)).toMatchObject({ programId: ALICE });
+  });
+
   it('adds an IDL from pasted JSON, showing validation errors', async () => {
     const user = userEvent.setup();
     let reject = true;

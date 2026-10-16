@@ -166,10 +166,13 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
         unknownPrograms.add(ix.programId);
         // An IDL was found but none of its instructions match: it was published before the program changed.
         const stale = input.issues.some((x) => x.stage === 'parse' && x.instructionIndex === i && x.message.startsWith('no instruction in'));
-        const why = stale
-          ? " The IDL this program published doesn't list this instruction, so it is probably out of date; you can add a newer one in Expert."
-          : '';
-        warn('unknown-program', 'warn', `Clef can't decode instruction #${i + 1} (program ${ix.programId}).${why}`, i);
+        warn(
+          'unknown-program',
+          'warn',
+          stale ? `Can't decode instruction #${i + 1}: its program's IDL is out of date.` : `Can't decode instruction #${i + 1} (program ${shortAddress(ix.programId)}).`,
+          i,
+        );
+        warnings[warnings.length - 1]!.programId = ix.programId;
       }
       continue;
     }

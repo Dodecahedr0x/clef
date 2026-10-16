@@ -13,7 +13,14 @@ export type Issue = {
   instructionIndex?: number;
 };
 
-export type Warning = { rule: string; severity: Severity; message: string; instructionIndex?: number };
+export type Warning = {
+  rule: string;
+  severity: Severity;
+  message: string;
+  instructionIndex?: number;
+  /** The program a decode warning is about, so the UI can offer to add its IDL. */
+  programId?: Address;
+};
 
 export type AccountRef = { address: Address; signer: boolean; writable: boolean; lookupTable?: Address };
 

@@ -1,6 +1,6 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
 import { DEFAULT_RPC, type ApprovalDecision, type ApprovalRequest, type DecisionLog } from '@clef/wallet-core';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
@@ -12,6 +12,7 @@ import { ExpertBody } from './ExpertBody';
 import { IntermediateBody } from './IntermediateBody';
 import { accountLabel, batchWarnings, hasDanger, toBase64, type Tab } from './model';
 import { Acknowledge, DangerCards, IncompleteNotice, PhishingBanner } from './parts';
+import { IdlAdder } from './source';
 
 type Request = Extract<ApprovalRequest, { kind: 'signTransactions' }>;
 
@@ -48,6 +49,25 @@ export function TxApproval({
   const result = useExplainBatch(wires, level);
   const n = request.transactions.length;
   const host = useApprovalHost();
+  // "Add IDL" on an undecodable instruction: pick the JSON file here, then explain the request again.
+  const idlFile = useRef<HTMLInputElement>(null);
+  const idlFor = useRef<string | null>(null);
+  const addIdl = (programId: string) => {
+    idlFor.current = programId;
+    idlFile.current?.click();
+  };
+  const onIdlFile = async (file: File | undefined) => {
+    const programId = idlFor.current;
+    if (!file || !programId) return;
+    setError(null);
+    try {
+      const s = state.settings;
+      await call({ type: 'idls:add', programId, network: s.network === 'custom' ? s.customCluster : s.network, json: await file.text() });
+      setNonce((x) => x + 1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   useEffect(() => {
     if (host === 'window') void resizeWindow(level === 'expert' ? 760 : 400);
@@ -158,6 +178,11 @@ export function TxApproval({
   }
 
   return (
+    <IdlAdder.Provider value={addIdl}>
+    <input ref={idlFile} type="file" accept=".json,application/json" className="sr-only" aria-label="IDL file" onChange={(e) => {
+      void onIdlFile(e.target.files?.[0]);
+      e.target.value = '';
+    }} />
     <ApprovalFrame
       site={{ origin: request.origin }}
       subtitle={subtitle}
@@ -196,5 +221,6 @@ export function TxApproval({
         )}
       </div>
     </ApprovalFrame>
+    </IdlAdder.Provider>
   );
 }

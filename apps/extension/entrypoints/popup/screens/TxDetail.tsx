@@ -11,7 +11,7 @@ import { ExpertBody } from '../../approval/tx/ExpertBody';
 import { IntermediateBody } from '../../approval/tx/IntermediateBody';
 import { batchWarnings, hasDanger, type Tab } from '../../approval/tx/model';
 import { DangerCards } from '../../approval/tx/parts';
-import { ExplainSource } from '../../approval/tx/source';
+import { ExplainSource, IdlAdder } from '../../approval/tx/source';
 
 function explorerUrl(state: FullState, signature: string): string | null {
   const s = state.settings;
@@ -42,6 +42,7 @@ export function TxDetailScreen() {
 }
 
 function Detail({ state, signature, origin, onBack }: { state: FullState; signature: string; origin: string | null; onBack: () => void }) {
+  const nav = useNav();
   const [level, setLevel] = useState<DetailLevel>(state.settings.detailLevel);
   const [tab, setTab] = useState<Tab>('all');
   const [copied, setCopied] = useState(false);
@@ -100,6 +101,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
 
   return (
     <ExplainSource.Provider value="chain">
+      <IdlAdder.Provider value={(programId) => nav.go({ name: 'settings/idls', addFor: programId })}>
       <ApprovalFrame
         site={{ origin: origin ?? 'Transaction' }}
         subtitle={subtitle}
@@ -121,6 +123,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
       >
         <div className={`flex flex-col ${expert ? 'min-h-0 flex-1' : 'min-h-full pb-4'}`}>{body}</div>
       </ApprovalFrame>
+      </IdlAdder.Provider>
     </ExplainSource.Provider>
   );
 }
