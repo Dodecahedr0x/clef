@@ -130,7 +130,8 @@ function formatArgs(ix: ExplainedInstruction): Record<string, string> {
 function badges(ex: ExplainedTransaction, ix: ExplainedInstruction, address: string): string[] {
   return ex.relations
     .filter((r) => r.from === address && (r.instructionIndex === undefined || r.instructionIndex === ix.index))
-    .filter((r) => r.kind !== 'token-mint')
+    // Badges are checks against what the instruction expects; ownership and stored references are graph facts.
+    .filter((r) => r.kind !== 'token-mint' && r.kind !== 'program-owner' && r.kind !== 'data-ref')
     .map((r) => `${r.kind === 'token-owner' ? 'owner' : r.kind === 'ata' ? 'ATA' : r.label} ${SYMBOLS[r.status]}`);
 }
 

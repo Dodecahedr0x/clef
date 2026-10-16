@@ -5,10 +5,11 @@ import { verifyAnchorExtras } from './anchor-relations';
 import { balanceChangesFromMeta, balanceChangesFromSimulation } from './balances';
 import { decodeTransaction } from './decode';
 import { computeAccountDiffs } from './diffs';
+import { dataRelations } from './data-relations';
 import { externalRelations } from './external';
 import { parseLogs } from './logs';
 import { identifyInstruction, type IdentifiedInstruction } from './identify';
-import { Labeler, tokenRelations } from './labels';
+import { Labeler, tokenRelations, shortAddress } from './labels';
 import { verifyCodamaPdas } from './pda';
 import { CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, PROGRAM_NAMES, RENT_SYSVAR, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
 import { estimateFee, evaluateRisks, type AccountInfo, type RiskInput, type TokenHolding } from './risk';
@@ -229,10 +230,56 @@ async function identifyAndVerify(
   const relations: RelationEdge[] = [];
   try {
     relations.push(...(await verifyCodamaPdas(ix)), ...(await verifyAnchorExtras(ix, cache, modifiedBefore)));
+    await softenStaleSeeds(relations, cache);
   } catch (e) {
     issues.push({ stage: 'relations', instructionIndex: dix.index, message: errorDetail(e) });
   }
   return { ix, relations, issues };
+}
+
+/**
+ * A PDA mismatch is a substitution warning only if the IDL's own PDA is real. When the address the IDL derives
+ * does not exist on chain and the account used belongs to that same program, the IDL's seeds are what is wrong
+ * (published before the program changed): say so as unverified instead of crying danger. An attacker cannot make
+ * the declared PDA vanish, so a real substitution still shows as a mismatch.
+ */
+async function softenStaleSeeds(relations: RelationEdge[], cache: AccountCache): Promise<void> {
+  const stale = relations.filter((r) => r.kind === 'pda' && r.status === 'mismatch' && r.detail?.startsWith('expected '));
+  if (!stale.length) return;
+  const expectedOf = (r: RelationEdge) => r.detail!.slice('expected '.length) as Address;
+  try {
+    await cache.load([...stale.map(expectedOf), ...stale.map((r) => r.from as Address)]);
+  } catch {
+    return; // unknown stays a mismatch: fail closed
+  }
+  // A token account counts as the program's when its authority is one of the program's own accounts.
+  const authorities = stale.map((r) => decodeTokenAccount(cache.get(r.from as Address))?.owner).filter((o): o is Address => !!o);
+  if (authorities.length) {
+    try {
+      await cache.load(authorities);
+    } catch {
+      // unknown authority: that edge stays a mismatch
+    }
+  }
+  const programs = (r: RelationEdge, a: RawAccount | null | undefined): boolean => {
+    if (!a) return false;
+    if (a.owner === r.to) return true;
+    const authority = decodeTokenAccount(a)?.owner;
+    return !!authority && cache.get(authority)?.owner === r.to;
+  };
+  for (const r of stale) {
+    const declared = cache.get(expectedOf(r));
+    const used = cache.get(r.from as Address);
+    if (!programs(r, used)) continue;
+    r.status = 'unverified';
+    if (declared === null) {
+      r.detail = `the IDL's seeds give ${shortAddress(expectedOf(r))}, which does not exist; this account belongs to the program (or is held by one of its accounts), so the IDL's PDA seeds look out of date`;
+    } else {
+      // The IDL's PDA is real but another program-controlled account is used: a second instance, or a substitute.
+      r.unconfirmed = true;
+      r.detail = `the IDL's seeds give ${shortAddress(expectedOf(r))}; this account is a different one the program also controls (another instance?), so Clef cannot confirm it is the intended one`;
+    }
+  }
 }
 
 const INTERNAL_ERROR: Warning = { rule: 'internal-error', severity: 'danger', message: 'Clef could not finish its safety checks.' };
@@ -301,6 +348,14 @@ export async function explainWith(
   for (const r of results) {
     issues.push(...r.issues);
     relations.push(...r.relations);
+  }
+  // What the accounts themselves say: program ownership and stored references (see data-relations.ts).
+  try {
+    const idls = new Map<string, NonNullable<IdentifiedInstruction['resolvedIdl']>>();
+    for (const ix of identified) if (ix.resolvedIdl && !idls.has(ix.programId)) idls.set(ix.programId, ix.resolvedIdl);
+    relations.push(...dataRelations(addresses, cache, (program) => idls.get(program)));
+  } catch (e) {
+    issues.push({ stage: 'relations', message: errorDetail(e) });
   }
 
   // On the meta path, the meta says who held each token account at the time.

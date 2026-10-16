@@ -77,7 +77,9 @@ export type ExplainedInstruction = {
 export type SeedInfo = { kind: 'const' | 'account' | 'arg'; display: string };
 
 export type RelationKind = 'pda' | 'has_one' | 'token-owner' | 'token-mint' | 'ata'
-  | 'program-owner' | 'ata-derivation' | 'mint-authority' | 'freeze-authority' | 'delegate' | 'close-authority';
+  | 'program-owner' | 'ata-derivation' | 'mint-authority' | 'freeze-authority' | 'delegate' | 'close-authority'
+  /** A program account whose data holds another key of the transaction. */
+  | 'data-ref';
 
 export type RelationEdge = {
   kind: RelationKind;
@@ -93,6 +95,8 @@ export type RelationEdge = {
   bump?: number;
   /** A fact from on-chain state reaching outside the transaction's keys (program owner, authorities, ...). */
   external: boolean;
+  /** Not the PDA the IDL describes, yet controlled by the same program (another instance of it?): unconfirmed. */
+  unconfirmed?: true;
 };
 
 /** Diff values are strings: raw integers with `_` thousands separators, addresses in full. */

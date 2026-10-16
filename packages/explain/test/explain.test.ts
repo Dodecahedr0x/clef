@@ -186,6 +186,17 @@ describe('explain', () => {
     expect(limited.summary).not.toMatch(/Send/);
   });
 
+  it('an allowance the delegate spends in full within the transaction is info, not a danger', async () => {
+    const reader = new MemoryChainReader();
+    tokenAccount(reader, MY_USDC, ME, 100n);
+    // After the transaction the delegate is still set but has nothing left to spend.
+    simulateWith(reader, { [MY_USDC]: { data: tokenAccountData(ME, USDC, 0n, { delegate: OTHER, delegatedAmount: 0n }) } });
+    const wire = buildWire([getApproveInstruction({ source: MY_USDC, delegate: OTHER, owner: me, amount: 100n })]);
+    const ex = await explain({ wire }, ctx(reader));
+    expect(rules(ex)).toEqual([['delegation', 'info']]);
+    expect(ex.warnings[0]!.message).toMatch(/uses within this transaction; no allowance remains afterwards/);
+  });
+
   it('flags a sweep of SOL and USDC to a wallet, and the summary still lists the outflows', async () => {
     const reader = new MemoryChainReader();
     reader.setAccount({ address: ME, owner: address('11111111111111111111111111111111'), lamports: 10n * SOL, data: new Uint8Array() });

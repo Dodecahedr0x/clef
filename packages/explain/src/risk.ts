@@ -225,7 +225,13 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       const danger = all && notMineOrUnknown(account(ix, 'delegate'));
       const whose = source && (source.mine || me.has(source.address) || (held && me.has(held.owner))) ? 'your' : 'a';
       const what = unlimited ? 'an UNLIMITED amount' : all ? 'ALL' : 'some';
-      warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
+      // Positive evidence only: the simulated post-state shows the delegate with nothing left to spend, i.e. it
+      // spent the whole allowance within this transaction. No evidence (not simulated, account not seen) stays a danger.
+      const usedUp =
+        source !== undefined &&
+        (input.stateChanges ?? []).some((c) => c.kind === 'token-delegate' && c.address === source.address && c.after !== null && c.amount === 0n);
+      if (usedUp) warn('delegation', 'info', `Approves a delegate for ${whose} tokens, which it uses within this transaction; no allowance remains afterwards.`, i, source.address);
+      else warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
     }
     if (isToken(ix.programId) && ix.name === 'setAuthority') {
       const next = authorityArg(ix.args?.newAuthority);
@@ -278,6 +284,8 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       warn('authority-change', 'danger', 'Lets someone else close one of your token accounts.', undefined, c.address);
     } else {
       const amount = c.amount ?? 0n;
+      // A delegate left with nothing to spend (allowance used up, or revoked) is not a lasting delegation.
+      if (c.after === null || amount === 0n) continue;
       const all = amount >= HALF_U64 || (c.balance !== undefined && amount >= c.balance);
       const what = amount >= HALF_U64 ? 'an UNLIMITED amount' : all ? 'ALL' : 'some';
       warn('delegation', all ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in your token account.`, undefined, c.address);
@@ -285,6 +293,9 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   }
 
   for (const r of input.relations) {
+    if (r.unconfirmed) {
+      warn('relation-unconfirmed', 'warn', `${shortAddress(r.from)} is not the ${r.label} the IDL describes, but the program controls it (another instance?). Clef can't confirm it's the intended account.`, r.instructionIndex);
+    }
     if (r.status === 'mismatch') {
       warn('relation-mismatch', 'danger', `Account ${r.from} does not match its expected ${r.label}${r.detail ? ` (${r.detail})` : ''}.`, r.instructionIndex);
     }
