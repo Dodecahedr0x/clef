@@ -2,6 +2,7 @@ import type { RelationEdge } from '@clef/explain';
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { shortAddress } from '../../../lib/format';
 import { edgeKey } from './model';
+import { Pubkey } from '../../../components';
 
 export const GRAPH = { width: 672, nodeW: 136, nodeH: 52, colX: [8, 184, 360, 536], top: 40, rowH: 110 } as const;
 
@@ -161,7 +162,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
     selected
       ? edges
           .filter((e) => e.from === selected.address || e.to === selected.address)
-          .map((e) => (e.from === selected.address ? { k: e.label, v: label(e.to), ok: STATUS_OK[e.status] } : { k: `${e.label} of`, v: label(e.from), ok: STATUS_OK[e.status] }))
+          .map((e) => (e.from === selected.address ? { k: e.label, v: label(e.to), address: e.to, ok: STATUS_OK[e.status] } : { k: `${e.label} of`, v: label(e.from), address: e.from, ok: STATUS_OK[e.status] }))
       : [];
   const inRows = rows(input.edges);
   const outRows = rows(input.external);
@@ -251,7 +252,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       } ${n.external ? 'bg-surface-4' : mine ? 'bg-info-tint' : program ? 'bg-primary-bg' : 'bg-surface'}`}
                     >
                       <span className="w-full truncate text-xs font-semibold">{n.title}</span>
-                      <span className="w-full truncate font-mono text-xs text-muted">{n.sub}</span>
+                      <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={input.programs.has(n.address) ? 'program · ' : pdaChild(input, n.address) ? 'PDA · ' : undefined} /></span>
                     </button>
                   );
                 })}
@@ -275,7 +276,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   );
 }
 
-function RelationRows({ title, rows }: { title: string; rows: { k: string; v: string; ok: string }[] }) {
+function RelationRows({ title, rows }: { title: string; rows: { k: string; v: string; address: string; ok: string }[] }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">{title}</span>
@@ -283,7 +284,7 @@ function RelationRows({ title, rows }: { title: string; rows: { k: string; v: st
       {rows.map((r, i) => (
         <div key={i} className="flex gap-2 text-xs">
           <span className="w-[92px] flex-none truncate font-mono text-muted">{r.k}</span>
-          <span className="min-w-0 flex-1 truncate">{r.v}</span>
+          <span className="min-w-0 flex-1 truncate">{r.v === shortAddress(r.address) ? <Pubkey value={r.address} /> : <>{r.v} <Pubkey value={r.address} className="text-muted" /></>}</span>
           <span className={r.ok.startsWith('✓') ? 'text-ok' : r.ok.startsWith('✗') ? 'text-danger-text' : 'text-warn'}>{r.ok}</span>
         </div>
       ))}

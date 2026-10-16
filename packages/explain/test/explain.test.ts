@@ -405,7 +405,7 @@ describe('explain', () => {
 
   it('explains an instruction with no IDL anywhere', () => {
     const d = decodeDetails({ programId: 'KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5', data: new Uint8Array([1, 2, 3]) });
-    expect(d[0]).toMatch(/^Clef found no IDL for program KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5/);
+    expect(d[0]).toMatch(/^Clef found no IDL for program Keys…wde5:/);
     expect(d[1]).toBe('Its data starts with 010203 (3 bytes).');
   });
 

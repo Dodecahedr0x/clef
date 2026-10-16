@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAddress, type Address } from '@solana/kit';
 import type { Contact } from '@clef/wallet-core';
 import { buildSendTransaction, classifyRecipient, type Holding, type RecipientKind } from '@clef/portfolio';
-import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Spinner } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
@@ -193,7 +193,7 @@ export function SendScreen() {
           body={
             <span>
               {amountText} {h?.symbol} to {picked?.name ?? shortAddress(to ?? '')}
-              {sent && <span className="block font-mono text-[12px] text-muted mt-1">{shortAddress(sent)}</span>}
+              {sent && <span className="block mt-1"><Pubkey value={sent} className="text-[12px] text-muted" /></span>}
             </span>
           }
           action={<Button onClick={() => nav.reset({ name: 'home' })}>Done</Button>}
@@ -275,7 +275,7 @@ export function SendScreen() {
                     <span className="flex flex-col flex-1 min-w-0">
                       <span className="text-[14px] font-medium truncate">{s.name}</span>
                       <span className="font-mono text-[12px] text-muted">
-                        {shortAddress(s.address)} · {s.source}
+                        <Pubkey value={s.address} /> · {s.source}
                       </span>
                     </span>
                   </button>
@@ -285,7 +285,7 @@ export function SendScreen() {
           )}
           {picked && (
             <span className="font-mono text-[12px] text-muted">
-              {shortAddress(picked.address)} · {picked.source}
+              <Pubkey value={picked.address} /> · {picked.source}
             </span>
           )}
           {toText && !picked && !to && suggestions.length === 0 && <span className="text-[12px] text-danger-text">Not a Solana address</span>}

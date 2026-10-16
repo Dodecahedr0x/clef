@@ -1,6 +1,6 @@
 import type { BatchView, InstructionView, IntermediateView, Warning } from '@clef/explain';
 import { useState } from 'react';
-import { Icon, Pill } from '../../../components';
+import { Icon, Pill, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
 import { AllClear, DangerCards, Deltas, TxTabs, UNKNOWN_CHANGES, WarnCards } from './parts';
@@ -60,7 +60,7 @@ function InstructionCard({ ix }: { ix: InstructionView }) {
             <li key={i} className={`flex flex-col gap-[3px] px-3 py-2 ${i ? 'border-t border-line-soft' : ''}`}>
               <span className="font-mono text-xs text-muted">{a.name}</span>
               <div className="flex items-center gap-1.5 text-sm">
-                <span>{a.label ?? shortAddress(a.address)}</span>
+                <span className="flex min-w-0 items-center gap-1.5">{a.label && <span>{a.label}</span>}<Pubkey value={a.address} className={a.label ? 'text-xs text-muted' : ''} /></span>
                 <span className="ml-auto flex gap-2 text-xs">
                   {a.badges.map((b, j) => {
                     const p = badgeParts(b);

@@ -1,7 +1,7 @@
 import { fetchMultisig, vaultPda, type MultisigInfo } from '@clef/squads';
 import { isAddress, type Address } from '@solana/kit';
 import { useEffect, useState } from 'react';
-import { Button, IconButton, TextField } from '../../../components';
+import { Button, IconButton, TextField, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { formatToken, shortAddress } from '../../../lib/format';
 import { useClients, useWallet } from '../../../lib/hooks';
@@ -103,7 +103,7 @@ export function SquadsAddScreen() {
                   >
                     <input type="radio" name="squads-member" checked={on} disabled={!ok} onChange={() => setMember(a.address)} className="m-0 size-[18px] accent-primary" />
                     <span className="flex-1 text-[14px]">
-                      {a.label} <span className="font-mono text-[12px] text-muted">{shortAddress(a.address)}</span>
+                      {a.label} <Pubkey value={a.address} className="text-[12px] text-muted" />
                     </span>
                     <span className={`text-[12px] ${ok ? 'text-ok' : ''}`}>{ok ? 'member' : 'not a member'}</span>
                   </label>

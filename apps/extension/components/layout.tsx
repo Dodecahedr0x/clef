@@ -1,4 +1,4 @@
-import { cloneElement, useId, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, useId, useState, type ReactElement, type ReactNode, type SyntheticEvent } from 'react';
 import { shortAddress } from '../lib/format';
 import { Icon, type IconName } from './icons';
 import { TONE, type Tone } from './tone';
@@ -124,8 +124,45 @@ export function Avatar({ text, tone = 'neutral', size = 34, square = false, src 
   );
 }
 
+/**
+ * A public key (or signature) shown short, `Abcd…wxyz`, that copies the full value on click. Works inside
+ * clickable rows: the click is not passed on.
+ */
+export function Pubkey({ value, className = '', prefix }: { value: string; className?: string; prefix?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = (e: SyntheticEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    void navigator.clipboard?.writeText(value).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      },
+      () => {},
+    );
+  };
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title={`${value} · click to copy`}
+      aria-label={`Copy ${value}`}
+      onClick={copy}
+      onPointerDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') copy(e);
+      }}
+      className={`inline-flex cursor-copy items-center gap-1 rounded-[4px] font-mono hover:underline focus-visible:outline-2 focus-visible:outline-primary ${className}`}
+    >
+      {prefix}
+      {shortAddress(value)}
+      {copied && <Icon name="check" size={12} className="text-ok" />}
+    </span>
+  );
+}
+
 export function AddressText({ address, mode = 'short', className = '' }: { address: string; mode?: 'short' | 'full' | 'groups'; className?: string }) {
-  if (mode === 'short') return <span className={`font-mono ${className}`} title={address}>{shortAddress(address)}</span>;
+  if (mode === 'short') return <Pubkey value={address} className={className} />;
   if (mode === 'full') return <span className={`break-all font-mono ${className}`}>{address}</span>;
   const groups = address.match(/.{1,4}/g) ?? [];
   return (

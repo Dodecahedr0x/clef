@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SwapQuote } from '@clef/market';
-import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Segmented, Spinner } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Segmented, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
@@ -246,7 +246,7 @@ export function SwapScreen() {
       <PopupScreen title="Swap" onBack={() => nav.reset({ name: 'home' })}>
         <EmptyState
           title="Swap sent"
-          body={done && <span className="font-mono text-[12px] text-muted">{shortAddress(done)}</span>}
+          body={done && <Pubkey value={done} className="text-[12px] text-muted" />}
           action={<Button onClick={() => nav.reset({ name: 'home' })}>Done</Button>}
         />
       </PopupScreen>

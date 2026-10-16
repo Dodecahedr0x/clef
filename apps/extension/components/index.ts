@@ -2,6 +2,6 @@ export { Icon, Logo, type IconName } from './icons';
 export type { Tone } from './tone';
 export { Button, IconButton } from './buttons';
 export { Segmented, Tabs, Chips, Toggle, TextField, PasswordField } from './controls';
-export { Card, CardHeader, SectionLabel, ListGroup, ListRow, Pill, Alert, Avatar, AddressText, Amount, StepDots, Tooltip, Spinner, EmptyState } from './layout';
+export { Card, CardHeader, SectionLabel, ListGroup, ListRow, Pill, Alert, Avatar, AddressText, Pubkey, Amount, StepDots, Tooltip, Spinner, EmptyState } from './layout';
 export { QrCode, AnimatedQr } from './qr';
 export { PopupScreen, ApprovalFrame, DetailLevelSwitch, NetworkSwitch, DecisionFooter } from './shells';

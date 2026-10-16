@@ -175,7 +175,7 @@ describe('several recovery phrases', () => {
     render(<AccountsScreen />);
     const one = screen.getByRole('heading', { name: 'Recovery phrase 1' }).closest('section')!;
     const two = screen.getByRole('heading', { name: 'Recovery phrase 2' }).closest('section')!;
-    expect(within(one).getAllByRole('button').map((b) => b.textContent)).toEqual([expect.stringContaining('Main'), expect.stringContaining('Trading')]);
+    expect(within(one).getAllByRole('button').filter((b) => !b.getAttribute('aria-label')?.startsWith('Copy ')).map((b) => b.textContent)).toEqual([expect.stringContaining('Main'), expect.stringContaining('Trading')]);
     expect(within(two).getByRole('button', { name: /Savings/ })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Recovery phrase' })).toBeNull();
   });

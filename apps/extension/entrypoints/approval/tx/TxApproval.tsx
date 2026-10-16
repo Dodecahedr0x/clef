@@ -2,7 +2,7 @@ import type { BatchView, DetailLevel, Warning } from '@clef/explain';
 import { DEFAULT_RPC, type ApprovalDecision, type ApprovalRequest, type DecisionLog } from '@clef/wallet-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner } from '../../../components';
+import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner, Pubkey } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useApprovalHost } from '../../../lib/approval-host';
@@ -120,7 +120,7 @@ export function TxApproval({
   const label = accountLabel(state, request.account);
   const expert = level === 'expert';
   const subtitle = expert
-    ? `${label} · ${shortAddress(request.account)} · ${SIGNER_KIND[request.signer.kind]}`
+    ? <>{label} · <Pubkey value={request.account} /> · {SIGNER_KIND[request.signer.kind]}</>
     : `Requests ${n > 1 ? `${n} signatures` : 'signature'} · ${label}`;
   const network = state.settings.network;
   const showNetwork = expert && state.settings.networkSwitchInHeader && (network === 'mainnet' || network === 'devnet');

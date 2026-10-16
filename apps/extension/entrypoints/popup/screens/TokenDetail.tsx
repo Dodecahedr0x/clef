@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { address, getAddressEncoder, getProgramDerivedAddress, type Address } from '@solana/kit';
 import type { Holding } from '@clef/portfolio';
-import { Avatar, EmptyState, Pill, PopupScreen, Spinner } from '../../../components';
+import { Avatar, EmptyState, Pill, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useHistory, usePortfolio } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -108,14 +108,14 @@ export function TokenDetailScreen() {
       <h2 className="mx-5 mt-2 mb-2 text-[12px] font-semibold text-muted uppercase tracking-[0.06em]">About this token</h2>
       <dl className="mx-3 my-0 px-3 py-1 bg-surface border border-line rounded-[12px] grid grid-cols-[120px_minmax(0,1fr)] text-[12px]">
         <Row k="Mint" first>
-          <span className="font-mono">{native ? 'Native SOL' : shortAddress(h.mint)}</span>
+          {native ? <span className="font-mono">Native SOL</span> : <Pubkey value={h.mint} />}
         </Row>
         <Row k="Program">
           {native ? 'System' : h.program === 'token-2022' ? 'Token-2022' : 'Token'} · {h.decimals} decimals
         </Row>
         {!native && (
           <Row k="Your account">
-            <span className="font-mono">{h.tokenAccount ? shortAddress(h.tokenAccount) : '—'}</span>{' '}
+            {h.tokenAccount ? <Pubkey value={h.tokenAccount} /> : <span className="font-mono">—</span>}{' '}
             {isAta === true && <span className="text-ok font-sans">✓ ATA</span>}
             {isAta === false && <span className="text-warn font-sans">Not the ATA</span>}
           </Row>
@@ -124,7 +124,7 @@ export function TokenDetailScreen() {
         {!native && <Row k="Freeze authority">{authority(h.freezeAuthority, 'issuer can freeze')}</Row>}
         {!native && (
           <Row k="Delegate">
-            {h.delegate ? <span className="text-warn font-mono">{shortAddress(h.delegate)}</span> : <span className="text-ok">None</span>}
+            {h.delegate ? <Pubkey value={h.delegate} className="text-warn" /> : <span className="text-ok">None</span>}
           </Row>
         )}
       </dl>

@@ -4,6 +4,7 @@ import { call } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { displaySign } from './model';
 import { useOnChain } from './source';
+import { Pubkey } from '../../../components';
 
 const LINE_TONE: Record<string, string> = { '-': 'bg-danger-bg text-danger-ink-2', '+': 'bg-ok-bg text-ok-ink', ' ': 'text-muted' };
 const TAG_TONE: Record<AccountDiffView['tag'], string> = { new: 'bg-ok-bg text-ok-ink', closed: 'bg-danger-bg text-danger-ink-2', temp: 'bg-info-bg text-info-ink', modified: 'bg-surface-2 text-muted' };
@@ -25,7 +26,7 @@ function DiffCard({ d }: { d: AccountDiffView }) {
     <article aria-label={d.title} className={`overflow-hidden rounded-xl bg-surface ${d.tag === 'temp' ? 'border border-dashed border-[#9CB4E8]' : 'border border-line'}`}>
       <div className="flex items-center gap-2 border-b border-line-soft bg-surface-3 px-3.5 py-2">
         <span className="text-xs font-semibold">{d.title}</span>
-        <span className="font-mono text-xs text-muted">{shortAddress(d.address)}</span>
+        <Pubkey value={d.address} className="text-xs text-muted" />
         <span className={`ml-auto rounded-[5px] px-1.5 text-xs ${TAG_TONE[d.tag]}`}>{d.type}</span>
       </div>
       {d.lines.map((l, i) => (
@@ -59,7 +60,7 @@ function RawCard({ d, owner, network, onResimulate }: { d: AccountDiffView & { u
     <article aria-label={d.title} className="overflow-hidden rounded-xl border border-dashed border-warn bg-surface">
       <div className="flex items-center gap-2 border-b border-warn-line bg-warn-bg px-3.5 py-2">
         <span className="text-xs font-semibold">{d.title}</span>
-        <span className="font-mono text-xs text-muted">{shortAddress(d.address)}</span>
+        <Pubkey value={d.address} className="text-xs text-muted" />
         <span className="ml-auto rounded-[5px] bg-warn px-1.5 text-xs font-semibold text-white">Not decoded</span>
       </div>
       <div className="px-3.5 pt-2 pb-1 text-xs text-warn-ink">

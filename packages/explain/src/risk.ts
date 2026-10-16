@@ -78,7 +78,7 @@ export function decodeDetails(
   if (!ix.idlMismatch?.length && failed.length) return [...failed, prefix];
   if (!ix.idlMismatch?.length) {
     return [
-      `Clef found no IDL for program ${ix.programId}: none curated, none published with Program Metadata, no Anchor IDL on chain.`,
+      `Clef found no IDL for program ${shortAddress(ix.programId)}: none curated, none published with Program Metadata, no Anchor IDL on chain.`,
       prefix,
       'If the program publishes its IDL elsewhere (its repository or docs), add it to decode this instruction.',
     ];

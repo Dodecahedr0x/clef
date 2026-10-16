@@ -6,6 +6,7 @@ import { shortAddress } from '../../../lib/format';
 import { BlockedSiteBanner } from './BlockedSiteBanner';
 import { AccountRadio } from './ConnectApproval';
 import { CardLabel, ErrorLine, findAccount, Footer, Page, PhishingAck, signerFor, siteName, SiteMark, useApprove } from './shared';
+import { Pubkey } from '../../../components';
 
 const CHAINS: Record<string, string> = { 'solana:mainnet': 'Mainnet', 'solana:devnet': 'Devnet', 'solana:testnet': 'Testnet', 'solana:localnet': 'Localnet' };
 
@@ -65,7 +66,7 @@ export function SignInApproval({
 
   const rows: [string, ReactNode, ReactNode?, boolean?][] = [
     ['Domain', domain, domainOk ? '✓ matches tab' : '✕ not this site', domainOk],
-    ['Address', shownAddress ? shortAddress(shownAddress) : '—', addressOk ? '✓ yours' : '✕ not this account', addressOk],
+    ['Address', shownAddress ? <Pubkey value={shownAddress} /> : '—', addressOk ? '✓ yours' : '✕ not this account', addressOk],
   ];
   if (input.statement) rows.push(['Statement', input.statement]);
   if (input.uri) rows.push(['URI', input.uri]);
@@ -85,7 +86,7 @@ export function SignInApproval({
           <h1 className="m-0 text-[20px] font-semibold">Sign in to {host}</h1>
           {account && (
             <span className="text-[14px] text-muted">
-              as <strong className="text-ink">{account.label}</strong> <span className="font-mono text-[12px]">{shortAddress(account.address)}</span>
+              as <strong className="text-ink">{account.label}</strong> <Pubkey value={account.address} className="text-[12px]" />
             </span>
           )}
         </section>

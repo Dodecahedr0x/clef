@@ -2,7 +2,7 @@ import { normalizeMnemonic, validateMnemonic } from '@clef/vault';
 import { isAddress, type Address } from '@solana/kit';
 import { useEffect, useMemo, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { Button, Icon, IconButton, Segmented, TextField } from '../../../components';
+import { Button, Icon, IconButton, Segmented, TextField, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { formatToken, shortAddress } from '../../../lib/format';
@@ -221,7 +221,7 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
                           className="m-0 size-[18px] accent-primary"
                         />
                         <span className="font-mono text-[12px] text-muted">#{a.index}</span>
-                        <span className={`flex-1 font-mono text-[14px] ${empty ? 'text-muted' : ''}`} title={a.address}>{shortAddress(a.address)}</span>
+                        <span className={`flex-1 text-[14px] ${empty ? 'text-muted' : ''}`}><Pubkey value={a.address} /></span>
                         <span className={`text-[12px] ${empty ? 'text-muted' : ''}`}>{balanceText(b)}</span>
                       </label>
                     </li>
@@ -303,7 +303,7 @@ function KeyTab({ busy, error, onImport }: { busy: boolean; error: string | null
         >
           <Icon name="key" size={18} />
           <span className="font-medium text-ink">{file ? `Loaded ${file.name}` : 'Drop a keypair file here, or choose one'}</span>
-          <span>{file ? `Address ${shortAddress(file.address)}` : 'Solana CLI keypair .json, or a text file with a base58 key'}</span>
+          <span>{file ? <>Address <Pubkey value={file.address} /></> : 'Solana CLI keypair .json, or a text file with a base58 key'}</span>
           <input type="file" accept=".json,.txt,application/json,text/plain" className="sr-only" onChange={(e) => void load(e.target.files?.[0])} aria-label="Choose a keypair file" />
         </label>
         {fileError && <p role="alert" className="m-0 text-[12px] text-danger-text">{fileError}</p>}

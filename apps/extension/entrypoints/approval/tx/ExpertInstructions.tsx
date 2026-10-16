@@ -1,6 +1,7 @@
 import type { ExpertInstructionView, ExpertView } from '@clef/explain';
 import { useState } from 'react';
 import { shortAddress } from '../../../lib/format';
+import { Pubkey } from '../../../components';
 
 type Step = { index: number; title: string; view: ExpertView };
 type Pick = { step: number; ix: number };
@@ -52,12 +53,12 @@ function Detail({ step, ix }: { step: Step; ix: ExpertInstructionView }) {
           {ix.accounts.map((a, i) => (
             <tr key={i} className={a.signer ? 'bg-surface-3' : ''}>
               <td className="px-2.5 py-[7px] pl-3.5 text-muted">{i}</td>
-              <td className="truncate px-2.5 py-[7px]" title={a.address}>
-                {shortAddress(a.address)}
+              <td className="truncate px-2.5 py-[7px]">
+                <Pubkey value={a.address} />
               </td>
               <td className="px-2.5 py-[7px] text-warn">{[a.signer && 'S', a.writable && 'W'].filter(Boolean).join(' ')}</td>
               <td className="truncate px-2.5 py-[7px]">{a.name}</td>
-              <td className={`truncate px-2.5 py-[7px] ${a.lookupTable ? 'text-info' : 'text-muted'}`}>{a.lookupTable ? `ALT ${shortAddress(a.lookupTable)}` : 'msg'}</td>
+              <td className={`truncate px-2.5 py-[7px] ${a.lookupTable ? 'text-info' : 'text-muted'}`}>{a.lookupTable ? <Pubkey value={a.lookupTable} prefix="ALT " /> : 'msg'}</td>
             </tr>
           ))}
         </tbody>

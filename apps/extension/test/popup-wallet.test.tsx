@@ -47,6 +47,9 @@ import { TokenDetailScreen, associatedTokenAddress } from '../entrypoints/popup/
 import { SendScreen, parseAmount } from '../entrypoints/popup/screens/Send';
 import { ReceiveScreen } from '../entrypoints/popup/screens/Receive';
 import { SwapScreen, REFRESH_SECONDS, USDC, WSOL } from '../entrypoints/popup/screens/Swap';
+
+/** Matches an element whose whole text is `t` (keys are their own copy buttons, so text spans elements). */
+const fullText = (t: string) => (_: string, el: Element | null) => el?.textContent === t && ![...(el?.children ?? [])].some((c) => c.textContent === t);
 import { HistoryScreen } from '../entrypoints/popup/screens/History';
 
 const ME = '7xKpWm2QdL9vHc4TrB8nYeX5uJ3kPs6AGf1zNq7R3fQa';
@@ -242,7 +245,7 @@ describe('Portfolio', () => {
 
     const list = screen.getByRole('list', { name: 'Token accounts' });
     expect(within(list).getByText('Token-2022')).toBeTruthy();
-    expect(within(list).getByText('mint EPjF…Dt1v · ata BtLe…9mHv')).toBeTruthy();
+    expect(within(list).getByText(fullText('mint EPjF…Dt1v · ata BtLe…9mHv'))).toBeTruthy();
     expect(within(list).getByText('312400000 · 6 dp')).toBeTruthy();
     expect(within(list).queryByText(/FREE/)).toBeNull();
     expect(screen.getByText('1 spam token hidden')).toBeTruthy();
@@ -328,9 +331,9 @@ describe('Send', () => {
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'l' } });
     const sugg = screen.getByRole('list', { name: 'Suggestions' });
     expect(within(sugg).getByText('Alice')).toBeTruthy();
-    expect(within(sugg).getByText('9vRt…k2Lm · Address book')).toBeTruthy();
+    expect(within(sugg).getByText(fullText('9vRt…k2Lm · Address book'))).toBeTruthy();
     expect(within(sugg).getByText('Ledger 1')).toBeTruthy();
-    expect(within(sugg).getByText('Ct4m…Q8xe · Your account')).toBeTruthy();
+    expect(within(sugg).getByText(fullText('Ct4m…Q8xe · Your account'))).toBeTruthy();
     expect(within(sugg).queryByText('Whale')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'ali' } });
@@ -555,7 +558,7 @@ describe('History', () => {
 
   it('lists txs and request-log rows grouped by day with what-you-saw for Clef-signed txs', () => {
     render(<HistoryScreen />);
-    expect(screen.getByText('Main · 7xKp…3fQa')).toBeTruthy();
+    expect(screen.getByText(fullText('Main · 7xKp…3fQa'))).toBeTruthy();
     expect(screen.getByText('Today')).toBeTruthy();
     expect(screen.getByText('Yesterday')).toBeTruthy();
 

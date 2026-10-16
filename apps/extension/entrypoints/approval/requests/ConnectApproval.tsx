@@ -4,6 +4,7 @@ import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { BlockedSiteBanner } from './BlockedSiteBanner';
 import { CheckRow, Footer, Page, PhishingAck, siteName, SiteMark } from './shared';
+import { Pubkey } from '../../../components';
 
 const TAGS: Partial<Record<PublicAccount['kind'], string>> = { ledger: 'Ledger', keystone: 'Keystone', squads: 'Squads' };
 const DOTS: Record<string, string> = { ledger: 'bg-violet', keystone: 'bg-violet', imported: 'bg-ok', squads: 'bg-warn rounded-[6px]' };
@@ -18,7 +19,7 @@ export function AccountRadio({ account, name, checked, onSelect }: { account: Pu
       <span aria-hidden="true" className={`h-[22px] w-[22px] flex-none rounded-full ${DOTS[account.kind] ?? 'bg-info-dot'}`} />
       <span className="flex min-w-0 flex-1 flex-col text-left">
         <span className="truncate text-[14px] font-medium">{account.label}</span>
-        <span className="font-mono text-[12px] text-muted">{shortAddress(account.address)}</span>
+        <Pubkey value={account.address} className="text-[12px] text-muted" />
       </span>
       {tag && <span className="rounded-[5px] border border-line-strong px-1.5 py-px text-[12px] text-muted">{tag}</span>}
     </label>

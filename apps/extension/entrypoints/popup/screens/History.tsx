@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { RequestLogEntry } from '@clef/wallet-core';
 import type { HistoryItem } from '@clef/portfolio';
-import { Button, Chips, EmptyState, Icon, PopupScreen, Spinner, type IconName } from '../../../components';
+import { Button, Chips, EmptyState, Icon, PopupScreen, Spinner, type IconName, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, useHistory } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -213,7 +213,7 @@ export function HistoryScreen() {
       title="History"
       onBack={nav.back}
       scroll
-      right={account && <span className="text-[12px] text-muted">{account.label} · {shortAddress(account.address)}</span>}
+      right={account && <span className="text-[12px] text-muted">{account.label} · <Pubkey value={account.address} /></span>}
     >
       <div className="px-4 py-2.5 border-b border-line-soft">
         <Chips ariaLabel="Filter" chips={FILTERS} value={filter} onChange={setFilter} />

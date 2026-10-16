@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_RPC, type Settings } from '@clef/wallet-core';
 import type { Holding, Portfolio } from '@clef/portfolio';
-import { Avatar, Icon, Logo, NetworkSwitch, Spinner, Tabs, type IconName } from '../../../components';
+import { Avatar, Icon, Logo, NetworkSwitch, Spinner, Tabs, type IconName, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
@@ -249,7 +249,7 @@ function BasicPortfolio() {
         >
           <span className="w-[18px] h-[18px] rounded-full bg-info-dot shrink-0" />
           <span className="text-[14px] font-medium truncate">{account?.label ?? 'No account'}</span>
-          {account && <span className="font-mono text-[12px] text-muted whitespace-nowrap shrink-0">{shortAddress(account.address)}</span>}
+          {account && <Pubkey value={account.address} className="text-[12px] text-muted whitespace-nowrap shrink-0" />}
           <span className="ml-auto text-muted"><Icon name="chevron-down" size={14} /></span>
         </button>
         <PanelButton />
@@ -341,7 +341,7 @@ function ExpertPortfolio() {
           className="h-9 shrink-0 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
         >
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
-          <span className="font-mono text-[12px] whitespace-nowrap">{account ? shortAddress(account.address) : '—'}</span>
+          {account ? <Pubkey value={account.address} className="text-[12px] whitespace-nowrap" /> : <span className="font-mono text-[12px]">—</span>}
         </button>
         <div className="ml-auto">
           {settings.networkSwitchInHeader && sw && <NetworkSwitch compact value={sw} onChange={(v) => void switchNetwork(v)} />}
@@ -400,7 +400,7 @@ function ExpertPortfolio() {
               </button>
               <span className="text-[14px] font-medium text-right tabular-nums">{t.usdValue === null ? '—' : formatUsd(t.usdValue)}</span>
               <span className="font-mono text-[12px] text-muted truncate">
-                mint {shortAddress(t.mint)} · ata {t.tokenAccount ? shortAddress(t.tokenAccount) : '—'}
+                mint <Pubkey value={t.mint} /> · ata {t.tokenAccount ? <Pubkey value={t.tokenAccount} /> : '—'}
               </span>
               <span className="font-mono text-[12px] text-muted text-right">
                 {t.amount.toString()} · {t.decimals} dp

@@ -1,7 +1,7 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
 import { useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ApprovalFrame, Button, DetailLevelSwitch, Spinner } from '../../../components';
+import { ApprovalFrame, Button, DetailLevelSwitch, Spinner, Pubkey } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useExplainLanded, useWallet } from '../../../lib/hooks';
@@ -59,7 +59,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   const warnings: Warning[] = view ? batchWarnings(view) : [];
   const failed = result.status === 'ok' && result.batch.steps[0]?.status === 'failed';
   const status = result.status === 'ok' ? `${failed ? 'Failed' : 'Confirmed'} · ${when(result.blockTime)}` : 'Loading…';
-  const subtitle = expert ? `${status} · ${shortAddress(signature)}` : status;
+  const subtitle = expert ? <>{status} · <Pubkey value={signature} /></> : status;
   const explorer = explorerUrl(state, signature);
 
   let body;

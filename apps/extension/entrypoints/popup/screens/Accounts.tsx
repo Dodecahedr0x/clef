@@ -3,7 +3,7 @@ import { loadPortfolio } from '@clef/portfolio';
 import { fetchMultisig } from '@clef/squads';
 import type { Address } from '@solana/kit';
 import { useEffect, useState } from 'react';
-import { Button, IconButton } from '../../../components';
+import { Button, IconButton, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { formatUsd, shortAddress } from '../../../lib/format';
 import { useClients, useWallet } from '../../../lib/hooks';
@@ -122,7 +122,7 @@ export function AccountsScreen() {
                         <span className={`size-6 flex-none ${a.kind === 'squads' ? 'rounded-[6px]' : 'rounded-full'} ${SWATCH[a.kind]}`} />
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-[14px] font-medium">{a.label}</span>
-                          <span className="font-mono text-[12px] text-muted">{shortAddress(a.address)}</span>
+                          <Pubkey value={a.address} className="text-[12px] text-muted" />
                         </span>
                         <span className="flex flex-col items-end">
                           <span className="text-[14px] tabular-nums">{value}</span>

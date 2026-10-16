@@ -3,7 +3,7 @@ import { BUNDLED_PROGRAM_IDS, MAX_IDL_BYTES } from '@clef/idl';
 import type { Network, UserIdl } from '@clef/wallet-core';
 import { isAddress } from '@solana/kit';
 import { useMemo, useState } from 'react';
-import { Alert, Button, Chips, EmptyState, PopupScreen, Segmented, TextField } from '../../../components';
+import { Alert, Button, Chips, EmptyState, PopupScreen, Segmented, TextField, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useCall, useWallet } from '../../../lib/hooks';
@@ -255,7 +255,7 @@ export function IdlManagerScreen() {
               >
                 <span className="truncate text-sm font-medium">{r.name}</span>
                 <span className="font-mono text-xs text-muted">
-                  {shortAddress(r.programId)} · {r.network}
+                  <Pubkey value={r.programId} /> · {r.network}
                 </span>
               </button>
               <span className={`rounded-full px-2 py-px text-xs font-semibold ${TIER[r.tier].className}`}>{TIER[r.tier].label}</span>

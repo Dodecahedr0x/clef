@@ -2,7 +2,7 @@ import { AnchorOnchainIdlSource, createBundledSource, ProgramMetadataIdlSource, 
 import type { UserIdl } from '@clef/wallet-core';
 import { address } from '@solana/kit';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Alert, PopupScreen, Spinner } from '../../../components';
+import { Alert, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { useCall, useClients } from '../../../lib/hooks';
 import { outlineIdl, type IdlOutline } from '../../../lib/idl-view';
@@ -143,7 +143,7 @@ export function IdlViewScreen() {
       <div className="flex flex-col gap-4 px-4 py-3">
         <dl className="m-0 grid grid-cols-[88px_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs">
           <dt className="text-muted">Program</dt>
-          <dd className="m-0 font-mono break-all">{route.programId}</dd>
+          <dd className="m-0"><Pubkey value={route.programId} /></dd>
           <dt className="text-muted">Source</dt>
           <dd className="m-0">{SOURCE[route.tier]}</dd>
           <dt className="text-muted">Network</dt>

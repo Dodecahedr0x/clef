@@ -1,7 +1,7 @@
 import type { Contact } from '@clef/wallet-core';
 import { isAddress } from '@solana/kit';
 import { useState } from 'react';
-import { Alert, Avatar, Button, EmptyState, IconButton, PopupScreen, Tabs, TextField } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, IconButton, PopupScreen, Tabs, TextField, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useCall } from '../../../lib/hooks';
@@ -129,7 +129,7 @@ export function AddressBookScreen() {
                 <Avatar text={c.name.charAt(0).toUpperCase()} tone={TONES[i % TONES.length]} size={32} />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{c.name}</span>
-                  <span className="font-mono text-xs text-muted">{shortAddress(c.address)}</span>
+                  <Pubkey value={c.address} className="text-xs text-muted" />
                 </span>
                 {c.note && <span className="text-right text-xs text-muted">{c.note}</span>}
               </button>

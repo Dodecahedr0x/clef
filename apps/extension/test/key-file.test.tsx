@@ -48,7 +48,7 @@ describe('Import · Private key file', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Private key/ }));
     fireEvent.drop(screen.getByTestId('key-drop'), { dataTransfer: { files: [fileOf(JSON.stringify([...full]))], types: ['Files'] } });
     expect(await screen.findByText('Loaded keypair.json')).toBeTruthy();
-    expect(screen.getByText(`Address ${address.slice(0, 4)}…${address.slice(-4)}`)).toBeTruthy();
+    expect(screen.getByRole('button', { name: `Copy ${address}` }).textContent).toBe(`${address.slice(0, 4)}…${address.slice(-4)}`);
     fireEvent.click(screen.getByRole('button', { name: 'Import account' }));
     await waitFor(() => expect(h.call).toHaveBeenCalledWith(expect.objectContaining({ type: 'accounts:import', secretKey: JSON.stringify([...full]) })));
   });

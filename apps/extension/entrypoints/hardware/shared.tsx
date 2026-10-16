@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Icon, PopupScreen } from '../../components';
+import { Button, Icon, PopupScreen, Pubkey } from '../../components';
 import { call, type FullState } from '../../lib/api';
 import { createClients } from '../../lib/clients';
 import { formatToken, shortAddress } from '../../lib/format';
@@ -78,8 +78,8 @@ export function CandidateList(p: {
                 aria-label={`${c.index} ${shortAddress(c.address)}`}
               />
               <span className="w-6 font-mono text-[12px] text-muted">{c.index}</span>
-              <span className="flex-1 font-mono text-[14px]" title={c.address}>
-                {shortAddress(c.address)}
+              <span className="flex-1 text-[14px]">
+                <Pubkey value={c.address} />
               </span>
               <span className="text-[12px]">{already ? <span className="text-muted">added</span> : balanceText(p.balances[c.address])}</span>
             </label>

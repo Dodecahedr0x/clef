@@ -207,7 +207,7 @@ describe('display components', () => {
 
   it('AddressText renders short, full and grouped forms', () => {
     render(<><AddressText address={ADDR} /><AddressText address={ADDR} mode="groups" /></>);
-    expect(screen.getByText('7xKp…3fQa').getAttribute('title')).toBe(ADDR);
+    expect(screen.getByText('7xKp…3fQa').getAttribute('title')).toContain(ADDR);
     const grouped = screen.getByLabelText(ADDR);
     expect(grouped.textContent).toBe(ADDR.match(/.{1,4}/g)!.join(' '));
     expect(Array.from(grouped.querySelectorAll('strong')).map((s) => s.textContent)).toEqual(['7xKp', '3fQa']);
