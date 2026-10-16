@@ -188,6 +188,49 @@ describe('several recovery phrases', () => {
     await user.click(news[1]!);
     await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', phrase: 2 }));
     expect(h.nav.back).toHaveBeenCalled();
+    expect(screen.queryByRole('radiogroup', { name: 'Derivation path' })).toBeNull();
+  });
+
+  it('asks for the path when the phrase has legacy accounts, defaulting to the most recent one', async () => {
+    const st = h.state as { accounts: unknown[] };
+    st.accounts.push({ kind: 'hd', address: OTHER1, label: 'Old', index: 0, phrase: 2, scheme: 'legacy' });
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    await user.click(screen.getAllByRole('button', { name: /New account/ })[1]!);
+    const path = screen.getByRole('radiogroup', { name: 'Derivation path' });
+    expect(within(path).getByRole('radio', { name: /Legacy \(older wallets\)/ }).getAttribute('aria-checked')).toBe('true');
+    expect(within(path).getByRole('radio', { name: /Standard \(Phantom, Solflare\)/ }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByText("m/44'/501'/n'")).toBeTruthy();
+    expect(h.call).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'accounts:derive' }));
+
+    await user.click(within(path).getByRole('radio', { name: /Standard/ }));
+    expect(screen.getByText("m/44'/501'/n'/0'")).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Add account on this path' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', phrase: 2, scheme: 'standard' }));
+    expect(h.nav.back).toHaveBeenCalled();
+  });
+
+  it('phrase 1 with only standard accounts adds directly even when another phrase has legacy ones', async () => {
+    const st = h.state as { accounts: unknown[] };
+    st.accounts.push({ kind: 'hd', address: OTHER1, label: 'Old', index: 0, phrase: 2, scheme: 'legacy' });
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    await user.click(screen.getAllByRole('button', { name: /New account/ })[0]!);
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', phrase: 1 }));
+    expect(screen.queryByRole('radiogroup', { name: 'Derivation path' })).toBeNull();
+  });
+});
+
+describe('one recovery phrase with legacy accounts', () => {
+  it('asks for the path and sends the chosen one', async () => {
+    const st = h.state as { phrases?: number; accounts: { kind: string }[] };
+    st.phrases = 1;
+    st.accounts = st.accounts.map((a) => (a.kind === 'hd' ? { ...a, phrase: 1, scheme: 'legacy' } : a));
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    await user.click(screen.getByRole('button', { name: /New account/ }));
+    await user.click(screen.getByRole('button', { name: 'Add account on this path' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', scheme: 'legacy' }));
   });
 });
 
