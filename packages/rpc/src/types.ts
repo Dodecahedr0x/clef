@@ -59,6 +59,24 @@ export type ReadOptions = {
   minContextSlot?: bigint;
 };
 
+/** The RPC does not offer `method` (HTTP 410, JSON-RPC -32601, or no DAS). */
+export class UnsupportedMethodError extends Error {
+  constructor(readonly method: string) {
+    super(`RPC method not supported: ${method}`);
+    this.name = 'UnsupportedMethodError';
+  }
+}
+
+/**
+ * One result per input transaction, simulated in order on accumulated state. `pre` is the state of each
+ * transaction's `addresses` right before it ran. After a failure at `failedIndex`, later results are null.
+ */
+export type SequenceResult = {
+  results: ((SimulationResult & { pre: (RawAccount | null)[] }) | null)[];
+  failedIndex: number | null;
+  slot?: bigint;
+};
+
 /** Every chain read the engine performs goes through this interface (live, recorded, or replayed). */
 export interface ChainReader {
   getAccounts(addresses: readonly Address[]): Promise<(RawAccount | null)[]>;
@@ -66,4 +84,6 @@ export interface ChainReader {
   getAccountsWithSlot?(addresses: readonly Address[], options?: ReadOptions): Promise<{ accounts: (RawAccount | null)[]; slot: bigint }>;
   getTransaction(signature: string): Promise<FetchedTransaction | null>;
   simulate(wire: Uint8Array, addresses: readonly Address[], options?: SimulateOptions): Promise<SimulationResult>;
+  /** Optional: simulate `wires` in order on one state. Throws `UnsupportedMethodError` when the RPC cannot. */
+  simulateSequence?(wires: readonly Uint8Array[], addresses: readonly (readonly Address[])[], options?: SimulateOptions): Promise<SequenceResult>;
 }

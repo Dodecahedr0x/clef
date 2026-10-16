@@ -1,6 +1,17 @@
 import type { Address } from '@solana/kit';
 import { fromJson, toJson } from './serde';
-import type { ChainReader, FetchedTransaction, RawAccount, ReadOptions, SimulateOptions, SimulationResult } from './types';
+import {
+  UnsupportedMethodError,
+  type ChainReader,
+  type FetchedTransaction,
+  type RawAccount,
+  type ReadOptions,
+  type SequenceResult,
+  type SimulateOptions,
+  type SimulationResult,
+} from './types';
+
+const UNSUPPORTED = '$unsupported';
 
 export type FixtureFile = { version: 1; input?: unknown; calls: Record<string, unknown> };
 
@@ -43,6 +54,20 @@ export class RecordingChainReader implements ChainReader {
 
   simulate(wire: Uint8Array, addresses: readonly Address[], options?: SimulateOptions) {
     return this.record('simulate', [wire, addresses], () => this.inner.simulate(wire, addresses, options));
+  }
+
+  /** An `UnsupportedMethodError` (including an inner reader without the method) is recorded and replayed. */
+  async simulateSequence(wires: readonly Uint8Array[], addresses: readonly (readonly Address[])[], options?: SimulateOptions) {
+    const key = callKey('simulateSequence', [wires, addresses]);
+    try {
+      if (!this.inner.simulateSequence) throw new UnsupportedMethodError('simulateSequence');
+      const result = await this.inner.simulateSequence(wires, addresses, options);
+      this.calls[key] = structuredClone(result);
+      return result;
+    } catch (e) {
+      if (e instanceof UnsupportedMethodError) this.calls[key] = { [UNSUPPORTED]: e.method };
+      throw e;
+    }
   }
 
   toFixture(input?: unknown): string {
@@ -91,5 +116,15 @@ export class FixtureChainReader implements ChainReader {
 
   simulate(wire: Uint8Array, addresses: readonly Address[], _options?: SimulateOptions) {
     return this.lookup<SimulationResult>('simulate', [wire, addresses]);
+  }
+
+  /** Fixtures recorded without any sequence call replay as an RPC without `simulateBundle`. */
+  async simulateSequence(wires: readonly Uint8Array[], addresses: readonly (readonly Address[])[], _options?: SimulateOptions) {
+    if (!Object.keys(this.fixture.calls).some((k) => k.startsWith('simulateSequence:'))) {
+      throw new UnsupportedMethodError('simulateSequence');
+    }
+    const value = await this.lookup<SequenceResult | { [UNSUPPORTED]: string }>('simulateSequence', [wires, addresses]);
+    if (UNSUPPORTED in value) throw new UnsupportedMethodError(value[UNSUPPORTED]);
+    return value;
   }
 }
