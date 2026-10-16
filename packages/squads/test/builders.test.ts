@@ -287,6 +287,25 @@ describe('buildProposeTransactions', () => {
       expect(new Uint8Array(Buffer.concat([uploaded, ...chunks]))).toEqual(bytes);
     });
 
+    it('outerInstructionNames never hides an instruction it cannot name', () => {
+      const SYSTEM = address('11111111111111111111111111111111');
+      const ix = (programAddress: Address, data: number[]): Instruction => ({ programAddress, accounts: [], data: new Uint8Array(data) });
+      const wire = new Uint8Array(
+        getTransactionEncoder().encode(
+          compileTransaction(
+            pipe(
+              createTransactionMessage({ version: 0 }),
+              (m) => setTransactionMessageFeePayer(MEMBER, m),
+              (m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: '11111111111111111111111111111111' as Blockhash, lastValidBlockHeight: 0n }, m),
+              (m) => appendTransactionMessageInstructions([ix(SQUADS_PROGRAM_ID, [1, 2, 3, 4, 5, 6, 7, 8]), ix(SQUADS_PROGRAM_ID, []), ix(SYSTEM, [2, 0, 0, 0])], m),
+            ),
+          ),
+        ),
+      );
+      expect(outerInstructionNames(wire)).toEqual(['unknown_squads_instruction', 'unknown_squads_instruction', SYSTEM]);
+      expect(() => outerInstructionNames(new Uint8Array([1, 2, 3]))).toThrow();
+    });
+
     it('outerInstructionNames reads what each outer transaction does', async () => {
       const names = (wires: Uint8Array[]) => wires.map(outerInstructionNames);
       const extendCount = fresh.length - 2;
