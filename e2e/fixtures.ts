@@ -2,6 +2,7 @@ import { test as base, chromium, type BrowserContext, type Page } from '@playwri
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { join } from 'node:path';
+import { startSurfpool } from './surfpool';
 
 const EXTENSION = join(import.meta.dirname, '..', 'apps', 'extension', '.output', 'chrome-mv3');
 const DAPP = readFileSync(join(import.meta.dirname, 'dapp', 'index.html'), 'utf8');
@@ -32,15 +33,39 @@ async function startServer(): Promise<{ server: Server; base: string }> {
   return { server, base: `http://127.0.0.1:${port}` };
 }
 
-type Fixtures = { context: BrowserContext; extensionId: string; base: string; popup: Page; dapp: Page };
+type Fixtures = {
+  context: BrowserContext;
+  extensionId: string;
+  /** Origin serving the test dApp (and the stub RPC at /rpc). */
+  base: string;
+  /** JSON-RPC endpoint that fails every call, so explanations fail closed. */
+  stubRpc: string;
+  popup: Page;
+  dapp: Page;
+};
+/** RPC URL of an offline surfpool validator (snapshot preloaded), shared by the worker's tests. */
+type WorkerFixtures = { validator: string };
 
-export const test = base.extend<Fixtures>({
+export const test = base.extend<Fixtures, WorkerFixtures>({
+  validator: [
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use) => {
+      const surfpool = await startSurfpool();
+      try {
+        await use(surfpool.url);
+      } finally {
+        await surfpool.stop();
+      }
+    },
+    { scope: 'worker' },
+  ],
   // eslint-disable-next-line no-empty-pattern
   base: async ({}, use) => {
     const { server, base: url } = await startServer();
     await use(url);
     server.close();
   },
+  stubRpc: async ({ base: url }, use) => use(`${url}/rpc`),
   // eslint-disable-next-line no-empty-pattern
   context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
