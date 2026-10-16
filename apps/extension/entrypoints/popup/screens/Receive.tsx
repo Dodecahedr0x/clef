@@ -71,9 +71,9 @@ export function ReceiveScreen() {
         </div>
       }
     >
-      <div className="px-6 pt-6 flex flex-col items-center gap-5">
+      <div className="px-6 pt-4 flex flex-col items-center gap-4">
         <div className="p-4 bg-surface border border-line rounded-[20px]" role="img" aria-label={`QR code of your ${account.label} account address`}>
-          <QrCode value={account.address} size={184} logo />
+          <QrCode value={account.address} size={168} logo />
         </div>
         <div className="w-full flex flex-col gap-2">
           <span className="text-[12px] text-muted text-center">Your Solana address</span>

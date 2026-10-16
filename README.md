@@ -2,7 +2,7 @@
 
 Clef is a Solana wallet for Chrome that explains a transaction before you sign it. It decodes the transaction (legacy, v0 with address lookup tables, and v1), names every instruction from IDLs it resolves through a prioritized chain (your own IDLs, curated bundled IDLs, Program Metadata, on-chain Anchor IDLs), independently verifies account relationships (PDA seeds, Anchor `has_one`, token ownership, ATAs), simulates it to compute balance and state changes, and runs risk rules over all of it. You choose how much you see: Basic, Intermediate or Expert (account-by-account state diffs, simulation logs, the relationship graph, raw data). Requests with several transactions are simulated in sequence when the RPC supports `simulateBundle`, and shown one by one or combined.
 
-It is a full wallet: recovery phrase, imported and watch-only accounts, Ledger and Keystone hardware wallets, Squads v4 multisig, send, receive, Jupiter swaps, history, address book, phishing-list protection, and mainnet/devnet/local/custom networks. There is no Clef backend.
+It is a full wallet: recovery phrase, imported and watch-only accounts, Squads v4 multisig, send, receive, Jupiter swaps, history, address book, phishing-list protection, and mainnet/devnet/local/custom networks. There is no Clef backend.
 
 - Design: `docs/plans/2026-10-15-clef-wallet-design.md`; UI: `docs/design/canvas/` (one `.dc.html` per screen).
 - Store release: `docs/store/` (listing, privacy policy, permissions, data usage, submission checklist).
@@ -52,6 +52,7 @@ Environment variables:
 | `CLEF_LIVE_RPC` | `pnpm test:live` | RPC URL for live chain tests, e.g. `https://api.mainnet-beta.solana.com`. |
 | `CLEF_LIVE_JUPITER` | `pnpm test:live` | Set to `1` to run live Jupiter price/quote tests (keyless, rate-limited). |
 | `CLEF_ERROR_ENDPOINT` | `pnpm build:ext` | Opt-in error report endpoint (plain JSON POST). Unset: the error-report toggle is hidden. |
+| `CLEF_HARDWARE` | `pnpm build:ext` | `1` shows Ledger and Keystone. Unset (0.1.0 store build): hardware wallets are hidden until the device checklists in `docs/manual/` pass. |
 
 ## The `clef` CLI
 

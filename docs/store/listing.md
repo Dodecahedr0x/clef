@@ -33,7 +33,6 @@ Choose how much detail you want:
 Clef is a full wallet:
 
 - Create or import a recovery phrase, import private keys, or watch any address.
-- Ledger (USB) and Keystone (QR) hardware wallets.
 - Squads v4 multisig: propose, approve and execute from Clef.
 - Send, receive with a QR code, swap through Jupiter, transaction history, address book.
 - Mainnet, devnet, local and custom RPC endpoints, with a one-click network switch in Expert mode.
@@ -54,4 +53,4 @@ Clef is a Solana cryptocurrency wallet: it holds the user's Solana accounts and 
 | Small promo tile | 440x280 PNG | `docs/store/promo-440x280.png` |
 | Marquee (optional) | 1400x560 PNG | not required |
 
-Order: 01 approval at Basic, 02 Expert combined state changes, 03 phishing warning, 04 portfolio popup, 05 Ledger connect.
+Order: 01 approval at Basic, 02 Expert combined state changes, 03 phishing warning, 04 portfolio popup, 05 receive.

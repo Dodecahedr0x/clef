@@ -112,9 +112,8 @@ test('store screenshots', async ({ context, popup, extensionId, validator }) => 
   await expect(wallet.getByText('12.5 SOL')).toBeVisible();
   await capture(context, wallet, POPUP, '04-portfolio', 'Your tokens, prices and history');
 
-  // 5. Hardware wallets.
-  const hw = await context.newPage();
-  await hw.goto(`chrome-extension://${extensionId}/hardware.html?kind=ledger`);
-  await expect(hw.getByRole('button', { name: 'Connect Ledger' })).toBeVisible();
-  await capture(context, hw, { width: 400, height: 640 }, '05-ledger', 'Ledger and Keystone hardware wallets');
+  // 5. Receive.
+  await wallet.getByRole('button', { name: 'Receive' }).click();
+  await expect(wallet.getByRole('img', { name: /^QR code of your/ })).toBeVisible();
+  await capture(context, wallet, POPUP, '05-receive', 'Receive with a QR code');
 });
