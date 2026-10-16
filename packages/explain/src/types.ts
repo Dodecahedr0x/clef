@@ -65,8 +65,11 @@ export type ExplainedInstruction = {
 
 export type SeedInfo = { kind: 'const' | 'account' | 'arg'; display: string };
 
+export type RelationKind = 'pda' | 'has_one' | 'token-owner' | 'token-mint' | 'ata'
+  | 'program-owner' | 'ata-derivation' | 'mint-authority' | 'freeze-authority' | 'delegate' | 'close-authority';
+
 export type RelationEdge = {
-  kind: 'pda' | 'has_one' | 'token-owner' | 'token-mint' | 'ata';
+  kind: RelationKind;
   /** The account the fact is about. */
   from: Address;
   /** The related account (owner, mint, holder, or deriving program). */
@@ -77,6 +80,37 @@ export type RelationEdge = {
   instructionIndex?: number;
   seeds?: SeedInfo[];
   bump?: number;
+  /** A fact from on-chain state reaching outside the transaction's keys (program owner, authorities, ...). */
+  external: boolean;
+};
+
+/** Diff values are strings: raw integers with `_` thousands separators, addresses in full. */
+export type FieldChange = { path: string; before: string | null; after: string | null; note?: string };
+/** Lowercase hex, space-separated bytes, at most 16 bytes per entry. */
+export type ByteChange = { offset: number; before: string; after: string };
+export type AccountDiff = {
+  address: Address;
+  /** e.g. 'Your USDC account', 'You · Main', a trusted label, else the short address. */
+  title: string;
+  mine: boolean;
+  lifecycle: 'created' | 'closed' | 'modified';
+  owner: { before: Address | null; after: Address | null };
+  lamports: { before: bigint; after: bigint };
+  decoded: { by: 'system' | 'token' | 'idl'; type: string; changed: FieldChange[]; context: FieldChange[] } | null;
+  /** Non-null iff `decoded` is null and the data changed. */
+  raw: { size: { before: number; after: number }; changes: ByteChange[]; changedBytes: number } | null;
+  undecodedReason?: string;
+  /** Batch combined view: 0-based index of the last step that changed it. */
+  lastChangedBy?: number;
+};
+export type LogKind = 'invoke' | 'success' | 'failed' | 'log' | 'data' | 'consumed' | 'return' | 'other';
+export type LogLine = {
+  depth: number;
+  kind: LogKind;
+  text: string;
+  programId?: Address;
+  programName?: string;
+  computeUnits?: { consumed: number; budget: number };
 };
 
 export type BalanceChange = {
@@ -102,6 +136,13 @@ export type ExplainedTransaction = {
   summary: string;
   warnings: Warning[];
   issues: Issue[];
+  /** Null without a successful simulation (and on the meta path). */
+  accountDiffs: AccountDiff[] | null;
+  /** From the simulation or `meta.logMessages`. */
+  logs: LogLine[] | null;
+  computeUnits: bigint | null;
+  /** Edges with `external: true`: targets outside the transaction's keys. */
+  externalRelations: RelationEdge[];
 };
 
 export type ExplainContext = {
