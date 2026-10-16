@@ -6,6 +6,30 @@ const SIG = '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3
 
 describe('scrub', () => {
   it.each([
+    'legal_winner_thank_year_wave_sausage_xqzt_worth_useful_legal_winner_thank_yellow',
+    'LegalWinnerThankYearWaveSausageXqztWorthUsefulLegalWinnerThankYellow',
+    '0legal1winner2thank3year4wave5sausage6xqzt7worth8useful9legal10winner11thank12yellow',
+    'legal winner thank year wave sausage zz worth useful legal winner thank yellow',
+    'legal winner thank year wave sausage sausagexx worth useful legal winner thank yellow',
+    'letter_advice_cage_absurd_amount_doctor_acoustic_avoid_letter_advice_cage_xqzt_absurd_amount_doctor_acoustic_avoid_letter_advice_cage_absurd_amount_doctor_acoustic_bless',
+    'legalwinnerthankyearwavesausageworthusefullegalwinnerthankyellow',
+  ])('redacts a phrase split by a typo or written without separators: %s', (text) => {
+    const out = scrub(`seed ${text} end`).toLowerCase();
+    for (const w of ['legal', 'winner', 'sausage', 'useful', 'yellow', 'letter', 'advice', 'acoustic', 'bless']) {
+      if (text.toLowerCase().includes(w)) expect(out).not.toContain(w);
+    }
+  });
+
+  it('keeps ordinary error text readable', () => {
+    for (const t of [
+      'TypeError: Cannot read properties of undefined (reading "address") at useWallet (popup.js:12:4)',
+      'Simulation failed: custom program error 0x1771 in instruction 2',
+      'Error: Account not connected',
+      'RPC request getTokenAccountsByOwner failed with status 429 Too Many Requests',
+    ]) expect(scrub(t)).toBe(t);
+  });
+
+  it.each([
     ['dashes', (w: string[]) => w.join(' - ')],
     ['numbered', (w: string[]) => w.map((x, i) => `${i + 1}. ${x}`).join(' ')],
     ['json array', (w: string[]) => JSON.stringify(w)],

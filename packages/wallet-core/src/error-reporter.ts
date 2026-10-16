@@ -24,31 +24,45 @@ function hostOf(text: string): string | null {
 }
 
 /**
- * Redacts every stretch of 12+ consecutive BIP39 words, whatever separates them (underscores, digits, punctuation,
- * camelCase), by splitting the text into letter runs. Catches phrase layouts a separator-based pattern misses.
+ * Redacts recovery phrases in any layout, typos included: the text is split into letter runs (camelCase aware, so
+ * underscores, digits and punctuation never hide a word), and any 12-run window holding 8+ BIP39 words is redacted
+ * from its first to its last BIP39 word. A lowercase letter run of 20+ letters (a phrase written without
+ * separators) is redacted too.
  */
-function redactBip39Runs(text: string): string {
-  const runs = [...text.matchAll(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])/g)];
+function redactPhraseLike(text: string): string {
+  const runs = [...text.matchAll(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])/g)].map((m) => ({
+    start: m.index!,
+    end: m.index! + m[0].length,
+    bip: isBip39Word(m[0].toLowerCase()),
+    long: m[0].length >= 20 && m[0] === m[0].toLowerCase(),
+  }));
+  const spans: [number, number][] = runs.filter((r) => r.long).map((r) => [r.start, r.end]);
+  for (let i = 0; i + 12 <= runs.length; i++) {
+    const words = runs.slice(i, i + 12).filter((r) => r.bip);
+    if (words.length >= 8) spans.push([words[0]!.start, words.at(-1)!.end]);
+  }
+  if (!spans.length) return text;
+  spans.sort((a, b) => a[0] - b[0]);
   let out = '';
   let last = 0;
-  let i = 0;
-  while (i < runs.length) {
-    let j = i;
-    while (j < runs.length && isBip39Word(runs[j]![0].toLowerCase())) j++;
-    if (j - i >= 12) {
-      const start = runs[i]!.index!;
-      const end = runs[j - 1]!.index! + runs[j - 1]![0].length;
-      out += text.slice(last, start) + '<words>';
-      last = end;
+  let cur: [number, number] | null = null;
+  for (const span of [...spans, [Infinity, Infinity] as [number, number]]) {
+    if (cur && span[0] <= cur[1]) {
+      cur[1] = Math.max(cur[1], span[1]);
+      continue;
     }
-    i = Math.max(j, i + 1);
+    if (cur) {
+      out += text.slice(last, cur[0]) + '<words>';
+      last = cur[1];
+    }
+    cur = [span[0], span[1]];
   }
   return out + text.slice(last);
 }
 
 /** Redacts anything that could identify a user or leak a secret from error text before it leaves the device. */
 export function scrub(text: string, originHost?: string): string {
-  return redactBip39Runs(text)
+  return redactPhraseLike(text)
     .replace(BYTE_LIST, '<bytes>')
     .replace(URLS, (u) => (originHost && hostOf(u) === originHost ? originHost : '<url>'))
     .replace(TOKENS, (t) => {
