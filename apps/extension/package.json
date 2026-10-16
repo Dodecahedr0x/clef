@@ -28,6 +28,7 @@
     "@clef/market": "workspace:*",
     "@clef/portfolio": "workspace:*",
     "@clef/rpc": "workspace:*",
+    "@clef/signers": "workspace:*",
     "@clef/vault": "workspace:*",
     "@clef/wallet-core": "workspace:*",
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -37,6 +38,7 @@
     "@wallet-standard/base": "^1.1.1",
     "@wallet-standard/features": "^1.1.1",
     "@wallet-standard/wallet": "^1.1.1",
+    "@zxing/browser": "^0.2.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "uqr": "^0.1.3"
