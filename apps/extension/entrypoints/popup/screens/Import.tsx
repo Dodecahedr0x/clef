@@ -1,12 +1,15 @@
 import { normalizeMnemonic, validateMnemonic } from '@clef/vault';
 import { isAddress, type Address } from '@solana/kit';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, IconButton, Segmented, TextField } from '../../../components';
+import { browser } from 'wxt/browser';
+import { Button, Icon, IconButton, Segmented, TextField } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { formatToken, shortAddress } from '../../../lib/format';
 import { useWallet } from '../../../lib/hooks';
+import { readKeyFile } from '../../../lib/key-file';
 import { useNav, useOnboardingDraft } from '../../../lib/nav';
+import { inSidePanel } from '../../../lib/side-panel';
 
 type Tab = 'phrase' | 'key' | 'watch';
 type Scheme = 'standard' | 'legacy';
@@ -33,7 +36,7 @@ export function ImportScreen() {
   const draft = useOnboardingDraft();
   const { state, refresh } = useWallet();
   const hasVault = state?.hasVault ?? false;
-  const [tab, setTab] = useState<Tab>('phrase');
+  const [tab, setTab] = useState<Tab>(location.hash === '#import-key' ? 'key' : 'phrase');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -247,10 +250,72 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
 
 function KeyTab({ busy, error, onImport }: { busy: boolean; error: string | null; onImport: (secretKey: string) => void }) {
   const [key, setKey] = useState('');
+  const [file, setFile] = useState<{ name: string; address: string } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [over, setOver] = useState(false);
+  // The toolbar popup closes as soon as Finder or a file dialog takes focus; the side panel and tabs keep files.
+  const popup = !inSidePanel() && !location.hash;
+
+  const load = async (f: File | undefined) => {
+    setOver(false);
+    if (!f) return;
+    const r = await readKeyFile(f);
+    if (!r.ok) {
+      setFile(null);
+      setFileError(r.error);
+      return;
+    }
+    setFileError(null);
+    setKey(r.secret);
+    setFile({ name: f.name, address: r.address });
+  };
+
   return (
     <>
-      <div className="flex flex-1 flex-col gap-3 px-4 pt-4">
-        <TextField label="Private key" type="password" mono value={key} onChange={(e) => setKey(e.target.value)} placeholder="Base58 or [12, 34, …]" error={error} />
+      <div
+        className="flex flex-1 flex-col gap-3 px-4 pt-4"
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return;
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          void load(e.dataTransfer.files[0]);
+        }}
+      >
+        <TextField
+          label="Private key"
+          type="password"
+          mono
+          value={key}
+          onChange={(e) => {
+            setKey(e.target.value);
+            setFile(null);
+          }}
+          placeholder="Base58 or [12, 34, …]"
+          error={error}
+        />
+        <label
+          data-testid="key-drop"
+          className={`flex cursor-pointer flex-col items-center gap-1 rounded-[12px] border border-dashed px-3 py-3.5 text-center text-[12px] ${over ? 'border-primary bg-primary-bg text-primary' : 'border-line-strong bg-surface text-muted'}`}
+        >
+          <Icon name="key" size={18} />
+          <span className="font-medium text-ink">{file ? `Loaded ${file.name}` : 'Drop a keypair file here, or choose one'}</span>
+          <span>{file ? `Address ${shortAddress(file.address)}` : 'Solana CLI keypair .json, or a text file with a base58 key'}</span>
+          <input type="file" accept=".json,.txt,application/json,text/plain" className="sr-only" onChange={(e) => void load(e.target.files?.[0])} aria-label="Choose a keypair file" />
+        </label>
+        {fileError && <p role="alert" className="m-0 text-[12px] text-danger-text">{fileError}</p>}
+        {popup && (
+          <p className="m-0 text-[12px] leading-[1.45] text-muted">
+            The toolbar popup closes when you switch to Finder.{' '}
+            <button type="button" onClick={() => void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#import-key' as '/popup.html') })} className="border-0 bg-transparent p-0 text-[12px] text-info underline">
+              Open in a tab
+            </button>{' '}
+            to drop a file, or use the side panel.
+          </p>
+        )}
         <p className="text-[12px] leading-[1.45] text-muted">A 64-byte secret key, as exported by Phantom or the Solana CLI. It is encrypted with your password and never leaves this device.</p>
       </div>
       <div className="px-4 pb-4 pt-3">

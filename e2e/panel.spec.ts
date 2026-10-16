@@ -48,3 +48,46 @@ test('with the side panel open, approvals show in it and no approval window open
 
   expect(windows.filter((u) => u.includes('/approval.html'))).toEqual([]);
 });
+
+test('a keypair file chosen in the side panel imports that account', async ({ context, popup, extensionId, stubRpc }) => {
+  await context.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (r) => r.abort());
+  await popup.evaluate((rpcUrl) => chrome.runtime.sendMessage({ channel: 'internal', call: { type: 'settings:update', patch: { network: 'localnet', rpcUrl } } }), stubRpc);
+  await popup.reload();
+  await popup.getByRole('button', { name: 'I already have a wallet' }).click();
+  await popup.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await popup.getByLabel('Confirm password', { exact: true }).fill(PASSWORD);
+  await popup.getByRole('button', { name: 'Continue' }).click();
+  await popup.getByLabel('Recovery phrase (12 or 24 words)').fill(ABANDON);
+  await popup.getByRole('button', { name: 'Import 1 account' }).click();
+  await expect(popup.getByText('HAgk…Kpqk').first()).toBeVisible();
+
+  // The Solana CLI format: [32-byte seed, 32-byte public key] as a JSON array.
+  const { keypair, address } = await popup.evaluate(async () => {
+    const pair = (await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify'])) as CryptoKeyPair;
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey));
+    const pub = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
+    const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let n = BigInt(`0x${[...pub].map((b) => b.toString(16).padStart(2, '0')).join('')}`);
+    let s = '';
+    while (n > 0n) {
+      s = ALPHABET[Number(n % 58n)] + s;
+      n /= 58n;
+    }
+    return { keypair: JSON.stringify([...pkcs8.slice(-32), ...pub]), address: s };
+  });
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByRole('button', { name: 'Switch account' }).click();
+  await panel.getByRole('button', { name: /Add account/ }).click();
+  await panel.getByRole('button', { name: /^Import/ }).click();
+  await panel.getByRole('radio', { name: /Private key/ }).click();
+  await panel.getByLabel('Choose a keypair file').setInputFiles({ name: 'id.json', mimeType: 'application/json', buffer: Buffer.from(keypair) });
+  await expect(panel.getByText('Loaded id.json')).toBeVisible();
+  await expect(panel.getByText(`Address ${address.slice(0, 4)}…${address.slice(-4)}`)).toBeVisible();
+  await panel.getByRole('button', { name: 'Import account' }).click();
+  await expect.poll(async () => {
+    const r = (await panel.evaluate(() => chrome.runtime.sendMessage({ channel: 'internal', call: { type: 'state' } }))) as { value: { accounts: { address: string }[] } };
+    return r.value.accounts.map((a) => a.address);
+  }).toContain(address);
+});

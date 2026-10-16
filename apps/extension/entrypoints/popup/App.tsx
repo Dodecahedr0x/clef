@@ -61,6 +61,7 @@ const CREATE_ONLY = new Set<RouteName>(['welcome', 'create-password', 'recovery-
 function entryRoute(state: FullState): Route {
   if (!state.hasVault) return { name: 'welcome' };
   if (!state.unlocked) return { name: 'unlock' };
+  if (location.hash === '#import-key') return { name: 'import' };
   return { name: 'home' };
 }
 
