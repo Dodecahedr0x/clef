@@ -1,173 +1,156 @@
-import type { ApprovalDecision, ApprovalRequest, WalletState } from '@clef/wallet-core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '../../components/ui';
-import { decide, getApproval, getState, shortAddress } from '../../lib/api';
+import type { ApprovalDecision, ApprovalRequest, SignerInfo } from '@clef/wallet-core';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Alert, Button, Spinner } from '../../components';
+import { decide, getApproval, type FullState } from '../../lib/api';
+import { useWallet } from '../../lib/hooks';
+import { NavProvider, useNav } from '../../lib/nav';
 import { deserializeApproval } from '../../lib/serialize';
-import { Unlock } from '../popup/Onboarding';
-import { MessageReview, messageDanger } from './MessageReview';
-import { hasDanger, TxReview, useExplanations } from './TxReview';
+import { UnlockScreen } from '../popup/screens/Unlock';
+import { ConnectApproval, HardwareSignStep, MessageApproval, SignInApproval, SquadsApproval } from './requests';
+import { TxApproval } from './tx/TxApproval';
 
 const requestId = new URLSearchParams(location.search).get('id') ?? '';
 
-const TITLES: Record<ApprovalRequest['kind'], string> = {
-  connect: 'Connect to this site?',
-  signTransactions: 'Review transaction',
-  signMessage: 'Sign message?',
-  signIn: 'Sign in with Solana?',
+type HardwareSigner = Exclude<SignerInfo, { kind: 'software' }>;
+type Signing = {
+  signer: HardwareSigner;
+  payloads: Uint8Array[];
+  payloadKind: 'transaction' | 'message';
+  resolve: (signatures: Uint8Array[]) => void;
+  reject: (e: Error) => void;
 };
 
-function Origin({ origin }: { origin: string }) {
-  const url = new URL(origin);
-  return (
-    <div className="rounded-lg bg-gray-900 px-3 py-2">
-      <div className="text-xs text-gray-500">Request from</div>
-      <div className="font-mono text-sm">
-        <span className={url.protocol === 'https:' ? 'text-gray-500' : 'text-amber-300'}>{url.protocol}//</span>
-        <span className="font-semibold text-gray-100">{url.host}</span>
-      </div>
-    </div>
-  );
+function Centered({ children }: { children: ReactNode }) {
+  return <div className="flex min-h-screen items-center justify-center bg-bg p-6">{children}</div>;
 }
 
-function AccountPicker({ state, multiple, selected, onChange }: { state: WalletState; multiple: boolean; selected: string[]; onChange: (s: string[]) => void }) {
-  const signable = state.accounts.filter((a) => a.kind !== 'watch');
-  return (
-    <ul className="space-y-2">
-      {signable.map((a) => (
-        <li key={a.address}>
-          <label className="flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm">
-            <input
-              type={multiple ? 'checkbox' : 'radio'}
-              name="account"
-              checked={selected.includes(a.address)}
-              onChange={(e) =>
-                onChange(multiple ? (e.target.checked ? [...selected, a.address] : selected.filter((s) => s !== a.address)) : [a.address])
-              }
-            />
-            <span>{a.label}</span>
-            <span className="font-mono text-xs text-gray-400">{shortAddress(a.address)}</span>
-          </label>
-        </li>
-      ))}
-    </ul>
-  );
+/** Unlock inside the approval window; the request shows once the wallet is unlocked. */
+function UnlockGate({ onUnlocked }: { onUnlocked: () => void }) {
+  const nav = useNav();
+  useEffect(() => {
+    if (nav.route.name !== 'unlock') onUnlocked();
+  }, [nav.route.name, onUnlocked]);
+  return <UnlockScreen />;
 }
 
-function Review({ request, state }: { request: ApprovalRequest; state: WalletState }) {
-  const firstSignable = state.accounts.find((a) => a.kind !== 'watch')?.address;
-  const [selected, setSelected] = useState<string[]>(firstSignable ? [firstSignable] : []);
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const transactions = useMemo(() => (request.kind === 'signTransactions' ? request.transactions : []), [request]);
-  const explanations = useExplanations(transactions, state);
+function Dispatch({ request, state }: { request: ApprovalRequest; state: FullState }) {
+  const [signing, setSigning] = useState<Signing | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const accountLabel = (address: string | null) => {
-    if (!address) return null;
-    const a = state.accounts.find((x) => x.address === address);
-    return `${a?.label ?? 'Unknown account'} (${shortAddress(address)})`;
-  };
+  const onDecide = useCallback((d: ApprovalDecision) => {
+    decide(requestId, d).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'));
+  }, []);
 
-  let danger = false;
-  let ready = true;
-  if (request.kind === 'signTransactions') {
-    danger = explanations.some(hasDanger);
-    ready = explanations.every((r) => r.status !== 'loading');
-  } else if (request.kind === 'signMessage') {
-    danger = messageDanger(request.message, request.origin);
+  // Hardware signers sign here, in the page (WebHID and the camera need a page); the background verifies every signature.
+  const signWith = useCallback(
+    (signer: SignerInfo | null, payloadKind: Signing['payloadKind']) =>
+      signer && signer.kind !== 'software'
+        ? (payloads: Uint8Array[]) =>
+            new Promise<Uint8Array[]>((resolve, reject) => setSigning({ signer, payloads, payloadKind, resolve, reject }))
+        : undefined,
+    [],
+  );
+
+  if (error) {
+    return (
+      <Centered>
+        <Alert severity="danger" title="Something went wrong">
+          {error}
+        </Alert>
+      </Centered>
+    );
   }
-  const needsAccount = request.kind === 'connect' || (request.kind === 'signIn' && request.account === null);
-  const canApprove = ready && (!danger || acknowledged) && (!needsAccount || selected.length > 0) && !busy;
 
-  const finish = async (decision: ApprovalDecision) => {
-    setBusy(true);
-    try {
-      await decide(requestId, decision);
-    } finally {
-      window.close();
-    }
-  };
+  if (signing) {
+    const done = () => setSigning(null);
+    return (
+      <HardwareSignStep
+        signer={signing.signer}
+        payloads={signing.payloads}
+        payloadKind={signing.payloadKind}
+        origin={request.origin}
+        summary={null}
+        onSigned={(sigs) => {
+          done();
+          signing.resolve(sigs);
+        }}
+        onCancel={() => {
+          done();
+          signing.reject(new Error('Signing cancelled on the hardware wallet step'));
+        }}
+      />
+    );
+  }
 
-  const approve = () => {
-    if (request.kind === 'connect') return finish({ approved: true, accounts: selected });
-    if (request.kind === 'signIn' && request.account === null) return finish({ approved: true, account: selected[0] });
-    return finish({ approved: true });
-  };
-
-  return (
-    <div className="flex min-h-screen flex-col gap-3 p-4">
-      <h1 className="text-lg font-semibold">{TITLES[request.kind]}</h1>
-      <Origin origin={request.origin} />
-      {'account' in request && request.account && <div className="text-sm text-gray-400">Account: {accountLabel(request.account)}</div>}
-
-      {request.kind === 'connect' && (
-        <>
-          <p className="text-sm text-gray-400">The site will see the selected addresses and can ask you to sign. It cannot move funds without your approval.</p>
-          <AccountPicker state={state} multiple selected={selected} onChange={setSelected} />
-        </>
-      )}
-      {request.kind === 'signTransactions' && (
-        <div className="space-y-3">
-          {explanations.map((r, i) => (
-            <TxReview key={i} index={i} total={explanations.length} result={r} />
-          ))}
-        </div>
-      )}
-      {request.kind === 'signMessage' && <MessageReview message={request.message} origin={request.origin} />}
-      {request.kind === 'signIn' && (
-        <div className="space-y-2 text-sm">
-          <p>
-            Sign in to <span className="font-semibold">{request.input.domain}</span>
-          </p>
-          {request.input.statement && <p className="rounded-lg bg-gray-900 p-3">{request.input.statement}</p>}
-          {request.account === null && <AccountPicker state={state} multiple={false} selected={selected} onChange={setSelected} />}
-        </div>
-      )}
-
-      <div className="mt-auto space-y-3 pt-2">
-        {danger && (
-          <label className="flex items-start gap-2 rounded-lg border border-red-500 p-3 text-sm text-red-200">
-            <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
-            I understand the risks and want to continue anyway.
-          </label>
-        )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" disabled={busy} onClick={() => finish({ approved: false })}>
-            Reject
-          </Button>
-          <Button variant={danger ? 'danger' : 'primary'} disabled={!canApprove} onClick={approve}>
-            {request.kind === 'signTransactions' && request.send ? 'Approve and send' : request.kind === 'connect' ? 'Connect' : 'Approve'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+  switch (request.kind) {
+    case 'connect':
+      return <ConnectApproval request={request} state={state} onDecide={onDecide} />;
+    case 'signTransactions':
+      return <TxApproval request={request} state={state} onDecide={onDecide} onSign={signWith(request.signer, 'transaction')} />;
+    case 'signMessage':
+      return <MessageApproval request={request} state={state} onDecide={onDecide} onSign={signWith(request.signer, 'message')} />;
+    case 'signIn':
+      return (
+        <SignInApproval
+          request={request}
+          state={state}
+          onDecide={onDecide}
+          onSign={(payloads, signer) => {
+            const sign = signWith(signer, 'message');
+            return sign ? sign(payloads) : Promise.reject(new Error('This account signs without a hardware wallet'));
+          }}
+        />
+      );
+    case 'squadsPropose':
+      return <SquadsApproval request={request} state={state} onDecide={onDecide} onSign={signWith(request.signer, 'transaction')} />;
+  }
 }
 
 export function Approval() {
+  const { state, error, refresh } = useWallet();
   const [request, setRequest] = useState<ApprovalRequest | null | undefined>(undefined);
-  const [state, setState] = useState<WalletState | null>(null);
-
-  const load = useCallback(async () => {
-    const [serialized, s] = await Promise.all([getApproval(requestId), getState()]);
-    setRequest(serialized ? deserializeApproval(serialized) : null);
-    setState(s);
-  }, []);
 
   useEffect(() => {
-    void load().catch(() => setRequest(null));
-  }, [load]);
+    getApproval(requestId).then(
+      (s) => setRequest(s ? deserializeApproval(s) : null),
+      () => setRequest(null),
+    );
+  }, []);
 
-  if (request === undefined || (request && !state)) return null;
-  if (request === null || !state) {
+  if (error) {
     return (
-      <div className="flex min-h-screen flex-col justify-center gap-4 p-6 text-center">
-        <p className="text-sm text-gray-400">This request is no longer pending.</p>
-        <Button variant="secondary" onClick={() => window.close()}>
-          Close
-        </Button>
-      </div>
+      <Centered>
+        <Alert severity="danger" title="Clef did not respond">
+          {error}
+        </Alert>
+      </Centered>
     );
   }
-  if (!state.unlocked) return <Unlock onDone={() => void load()} />;
-  return <Review request={request} state={state} />;
+  if (!state || request === undefined) {
+    return (
+      <Centered>
+        <Spinner />
+      </Centered>
+    );
+  }
+  if (request === null) {
+    return (
+      <Centered>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-[14px] text-muted">This request is no longer available. It may have been answered or the site closed it.</p>
+          <Button variant="secondary" onClick={() => window.close()}>
+            Close
+          </Button>
+        </div>
+      </Centered>
+    );
+  }
+  if (!state.unlocked) {
+    return (
+      <NavProvider initial={{ name: 'unlock' }}>
+        <UnlockGate onUnlocked={() => void refresh()} />
+      </NavProvider>
+    );
+  }
+  return <Dispatch request={request} state={state} />;
 }

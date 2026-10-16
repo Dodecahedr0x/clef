@@ -24,8 +24,12 @@ const expert: ExpertView = {
   recentBlockhash: 'H',
   computeUnitLimit: 200000,
   computeUnitPrice: '1000',
-  relations: [{ kind: 'pda', from: 'BBBB' as never, to: 'PPPP' as never, label: 'PDA("x")', status: 'mismatch', detail: 'expected CCCC' }],
+  relations: [{ kind: 'pda', from: 'BBBB' as never, to: 'PPPP' as never, label: 'PDA("x")', status: 'mismatch', detail: 'expected CCCC', external: false }],
   issues: [{ stage: 'idl', message: 'boom' }],
+  accountDiffs: null,
+  logs: null,
+  computeUnits: null,
+  externalRelations: [],
   stateChanges: [{ address: 'TTTT', kind: 'token-delegate', before: null, after: 'DDDD', amount: '100', holder: 'AAAA', balance: '100' }],
   instructions: [{
     index: 0, program: 'System Program', programId: '11111111111111111111111111111111', name: 'transferSol', trust: 'curated',
