@@ -3,7 +3,7 @@ import { NotASignerError, signMessageBytes, signTransactionWire } from '@clef/si
 import { LockedError, toBase64, type Vault } from '@clef/vault';
 import { getBase58Decoder, getBase58Encoder, getTransactionDecoder, type Address } from '@solana/kit';
 import { createSignInMessage } from '@solana/wallet-standard-util';
-import { isKeyAccount, type Account, type AccountStore } from './accounts';
+import { isKeyAccount, keyRef, type Account, type AccountStore } from './accounts';
 import { attachSignature, transactionMessageBytes, verifyEd25519 } from './hardware';
 import type { PermissionStore } from './permissions';
 import type { PhishingHit } from './phishing';
@@ -34,7 +34,8 @@ export type ApprovalRequest =
       vaultIndex: number;
       member: Address;
       inner: Uint8Array;
-      proposal: Uint8Array;
+      /** Unsigned outer transactions, sent in order; more than one when the inner message goes through a transaction buffer. */
+      proposals: Uint8Array[];
       signer: SignerInfo;
     };
 
@@ -55,8 +56,10 @@ export interface Approver {
 /** The slice of `@clef/squads` the service needs, bound to the active RPC by the background. */
 export type SquadsClient = {
   fetchMultisig(multisig: Address): Promise<{ transactionIndex: bigint; members: { key: Address; initiate?: boolean }[] } | null>;
-  buildProposeTransaction(p: { multisig: Address; vaultIndex: number; member: Address; innerWire: Uint8Array; transactionIndex: bigint; blockhash: string }): Promise<Uint8Array>;
+  buildProposeTransactions(p: { multisig: Address; vaultIndex: number; member: Address; innerWire: Uint8Array; transactionIndex: bigint; blockhash: string }): Promise<Uint8Array[]>;
   latestBlockhash(): Promise<string>;
+  /** Waits for a sent transaction; required to send buffered proposals (each must land before the next). */
+  confirm?(signature: string): Promise<'confirmed' | 'failed' | 'expired'>;
 };
 
 export type WalletServiceDeps = {
@@ -254,7 +257,7 @@ export class WalletService {
     });
   }
 
-  /** Squads: the dApp's transaction becomes a vault transaction + proposal signed by the member. Returns the proposal tx signature. */
+  /** Squads: the dApp's transaction becomes a vault transaction + proposal signed by the member. Returns the last outer tx signature. */
   private async propose(origin: string, vault: Extract<Account, { kind: 'squads' }>, inner: Uint8Array, skipPreflight: boolean): Promise<string> {
     requireSigner(inner, vault.address);
     const squads = this.deps.squads;
@@ -264,7 +267,7 @@ export class WalletService {
     const info = await squads.fetchMultisig(vault.multisig);
     if (!info) throw new Error('Multisig not found');
     if (!info.members.some((m) => m.key === member.address && m.initiate !== false)) throw new ProtocolError(ERR.UNAUTHORIZED, 'Member cannot propose');
-    const proposal = await squads.buildProposeTransaction({
+    const proposals = await squads.buildProposeTransactions({
       multisig: vault.multisig,
       vaultIndex: vault.vaultIndex,
       member: member.address,
@@ -281,13 +284,22 @@ export class WalletService {
       vaultIndex: vault.vaultIndex,
       member: member.address,
       inner,
-      proposal,
+      proposals,
       signer: signerInfo(member),
     };
+    if (proposals.length > 1 && !squads.confirm) throw new ProtocolError(ERR.UNSUPPORTED, 'Multisig transaction too large');
     return this.run(req, async (d) => {
-      const [signed] = await this.signWires(member, [proposal], d);
-      const signature = await this.deps.sender.send(signed!, { skipPreflight });
-      return { result: signature, signatures: [signature] };
+      const signed = await this.signWires(member, proposals, d);
+      const sent: string[] = [];
+      for (const [i, wire] of signed.entries()) {
+        const signature = await this.deps.sender.send(wire, { skipPreflight });
+        sent.push(signature);
+        if (i < signed.length - 1) {
+          const status = await squads.confirm!(signature);
+          if (status !== 'confirmed') throw new Error(`Proposal transaction ${i + 1} of ${signed.length} ${status}`);
+        }
+      }
+      return { result: sent.at(-1)!, signatures: sent };
     });
   }
 
@@ -383,8 +395,7 @@ export class WalletService {
   /** Runs `fn` with the account's private key; the vault zeroes it afterwards. */
   private async withKey<T>(account: Account, fn: (key: Uint8Array) => Promise<T>): Promise<T> {
     if (account.kind !== 'hd' && account.kind !== 'imported') throw new ProtocolError(ERR.UNAUTHORIZED, 'Account cannot sign');
-    const ref = account.kind === 'hd' ? { secretId: account.secretId, index: account.index } : { secretId: account.secretId };
-    return this.deps.vault.withPrivateKey(ref, async (key, derived) => {
+    return this.deps.vault.withPrivateKey(keyRef(account), async (key, derived) => {
       if (derived !== account.address) throw new Error('Key does not match the account');
       return fn(key);
     });

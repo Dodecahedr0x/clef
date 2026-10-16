@@ -1,6 +1,6 @@
 import '../lib/node-globals';
 import { KitChainReader, KitPortfolioReader } from '@clef/rpc';
-import { buildProposeTransaction, fetchMultisig } from '@clef/squads';
+import { buildProposeTransactions, fetchMultisig } from '@clef/squads';
 import { Vault } from '@clef/vault';
 import {
   AccountStore,
@@ -59,8 +59,12 @@ export default defineBackground(() => {
   const rpcUrl = async () => (await settings.get()).rpcUrl;
   const squads: SquadsClient = {
     fetchMultisig: async (multisig) => fetchMultisig(new KitChainReader(await rpcUrl()), multisig),
-    buildProposeTransaction,
+    buildProposeTransactions,
     latestBlockhash: async () => (await new KitPortfolioReader(await rpcUrl()).getLatestBlockhash()).blockhash,
+    confirm: async (sig) => {
+      const reader = new KitPortfolioReader(await rpcUrl());
+      return reader.confirm(sig, (await reader.getLatestBlockhash()).lastValidBlockHeight);
+    },
   };
 
   const queue = new ApprovalQueue(

@@ -279,7 +279,7 @@ describe('SignInApproval', () => {
 describe('SquadsApproval', () => {
   const inner = new Uint8Array([1, 2, 3]);
   const proposal = new Uint8Array([4, 5, 6]);
-  const request = { kind: 'squadsPropose', origin: 'https://payroll.example', phishing: null, account: VAULT, multisig: MULTISIG, vaultIndex: 0, member: LEDGER, inner, proposal, signer: ledgerSigner } as const;
+  const request = { kind: 'squadsPropose', origin: 'https://payroll.example', phishing: null, account: VAULT, multisig: MULTISIG, vaultIndex: 0, member: LEDGER, inner, proposals: [proposal] as Uint8Array[], signer: ledgerSigner } as const;
 
   beforeEach(() => {
     explainHook.useExplainBatch.mockReturnValue({
@@ -325,6 +325,25 @@ describe('SquadsApproval', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Propose & approve' }));
     await waitFor(() => expect(onDecide).toHaveBeenCalledWith({ approved: true, signatures: [SIG] }));
     expect(onSign).toHaveBeenCalledWith([proposal]);
+    expect(screen.queryByText(/transaction buffer/)).toBeNull();
+    expect(screen.queryByText(/ephemeral signer/)).toBeNull();
+  });
+
+  it('a buffered proposal with an extra signer: lists every outer instruction, explains why, signs all on the device', async () => {
+    const vault = getBase58Decoder().decode(new Uint8Array(32).fill(5)) as Address;
+    // legacy wire: 2 signers (vault, a fresh account), system program; one createAccount-like instruction
+    const twoSigners = new Uint8Array([2, ...new Array(128).fill(0), 2, 0, 1, 3, ...new Array(32).fill(5), ...new Array(32).fill(6), ...new Array(32).fill(0), ...new Array(32).fill(7), 1, 2, 2, 0, 1, 0]);
+    const outer = [new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3]), new Uint8Array([4])];
+    const onDecide = vi.fn();
+    const onSign = vi.fn().mockResolvedValue([SIG, SIG, SIG, SIG]);
+    render(<SquadsApproval request={{ ...request, account: vault, inner: twoSigners, proposals: outer }} state={state} onDecide={onDecide} onSign={onSign} />);
+    for (const ix of ['transaction_buffer_create', 'transaction_buffer_extend ×2', 'vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve']) expect(screen.getByText(ix)).toBeTruthy();
+    expect(screen.getByText(/You sign 4 transactions, sent one after another/)).toBeTruthy();
+    expect(screen.getByText(/1 extra signer\. The multisig signs for it with an ephemeral signer/)).toBeTruthy();
+    expect(await screen.findByText('✓ member · can vote')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Propose & approve' }));
+    await waitFor(() => expect(onDecide).toHaveBeenCalledWith({ approved: true, signatures: [SIG, SIG, SIG, SIG] }));
+    expect(onSign).toHaveBeenCalledWith(outer);
   });
 
   it('a member without vote permission cannot propose', async () => {

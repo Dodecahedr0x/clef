@@ -35,7 +35,7 @@ const VARIANTS: ApprovalRequest[] = [
     vaultIndex: 0,
     member: A,
     inner: new Uint8Array([9, 8, 7]),
-    proposal: new Uint8Array([6, 5]),
+    proposals: [new Uint8Array([6, 5])],
     signer: { kind: 'software' },
   },
 ] as ApprovalRequest[];
@@ -48,9 +48,9 @@ describe('approval serialization', () => {
   });
 
   it('encodes bytes as base64 strings', () => {
-    const s = serializeApproval(VARIANTS[6]!) as { inner: unknown; proposal: unknown };
+    const s = serializeApproval(VARIANTS[6]!) as { inner: unknown; proposals: unknown };
     expect(s.inner).toBe('CQgH');
-    expect(s.proposal).toBe('BgU=');
+    expect(s.proposals).toEqual(['BgU=']);
   });
 });
 

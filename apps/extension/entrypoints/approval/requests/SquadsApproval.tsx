@@ -1,6 +1,7 @@
 import type { ChangeView, Warning } from '@clef/explain';
 import type { ApprovalDecision, ApprovalRequest } from '@clef/wallet-core';
 import { fetchMultisig, type MultisigInfo } from '@clef/squads';
+import { getCompiledTransactionMessageDecoder, getTransactionDecoder } from '@solana/kit';
 import { useEffect, useMemo, useState } from 'react';
 import type { FullState } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
@@ -8,7 +9,24 @@ import { useExplainBatch } from '../../../lib/hooks';
 import { BlockedSiteBanner } from './BlockedSiteBanner';
 import { accountName, Acknowledge, CardLabel, DangerBox, errorText, ErrorLine, Footer, Header, Page, siteName, SiteMark, useApprove } from './shared';
 
-const SIGNS_NOW = ['vault_transaction_create', 'proposal_create', 'proposal_approve'];
+const PROPOSE = ['proposal_create', 'proposal_approve'];
+
+/** Instructions the member signs, in order; buffered proposals upload the message first. */
+function signsNow(outer: number): string[] {
+  if (outer <= 1) return ['vault_transaction_create', ...PROPOSE];
+  const extends_ = outer - 2;
+  return ['transaction_buffer_create', ...(extends_ > 0 ? [`transaction_buffer_extend${extends_ > 1 ? ` ×${extends_}` : ''}`] : []), 'vault_transaction_create_from_buffer', ...PROPOSE];
+}
+
+/** Signers of the inner transaction besides the vault; Clef replaces them with ephemeral signers. */
+function extraSigners(inner: Uint8Array, vault: string): number {
+  try {
+    const msg = getCompiledTransactionMessageDecoder().decode(getTransactionDecoder().decode(inner).messageBytes);
+    return msg.staticAccounts.slice(0, msg.header.numSignerAccounts).filter((k) => k !== vault).length;
+  } catch {
+    return 0;
+  }
+}
 const MEMBER_DOTS = ['bg-violet-bg', 'bg-ok-tint', 'bg-info-bg', 'bg-warn-bg', 'bg-primary-tint'];
 
 export function SquadsApproval({
@@ -49,6 +67,8 @@ export function SquadsApproval({
   const failed = explained.status === 'failed';
   const needsAck = !!request.phishing || failed || dangers.length > 0;
   const hardware = request.signer.kind !== 'software' && onSign;
+  const outer = request.proposals.length;
+  const ephemeral = useMemo(() => extraSigners(request.inner, request.account), [request.inner, request.account]);
 
   const title = combined ? `Propose: ${combined.summary}` : failed ? 'Propose a vault transaction' : 'Explaining the proposal…';
   const ready = !!info && memberOk && explained.status !== 'loading' && (!needsAck || ack) && !busy;
@@ -94,7 +114,7 @@ export function SquadsApproval({
         <section className="overflow-hidden rounded-[12px] border border-line bg-surface">
           <CardLabel>What you sign now</CardLabel>
           <ol className="m-0 py-[10px] pl-8 pr-3 font-mono text-[12px] leading-[1.8]">
-            {SIGNS_NOW.map((ix) => (
+            {signsNow(outer).map((ix) => (
               <li key={ix}>
                 <span>{ix}</span>
                 {ix === 'proposal_approve' && <span className="font-sans text-muted"> · your vote</span>}
@@ -102,6 +122,16 @@ export function SquadsApproval({
             ))}
           </ol>
           <div className="flex flex-col gap-1 border-t border-line-soft px-3 py-2 text-[12px]">
+            {outer > 1 && (
+              <p className="m-0 text-muted">{`You sign ${outer} transactions, sent one after another: the proposal is too large for one transaction, so Clef uploads it to a Squads transaction buffer first.`}</p>
+            )}
+            {ephemeral > 0 && (
+              <p className="m-0 text-warn-ink">
+                {ephemeral === 1
+                  ? 'The site asked for 1 extra signer. The multisig signs for it with an ephemeral signer, so that account gets a different address than the site chose.'
+                  : `The site asked for ${ephemeral} extra signers. The multisig signs for them with ephemeral signers, so those accounts get different addresses than the site chose.`}
+              </p>
+            )}
             <div className="flex">
               <span className="text-muted">Signer</span>
               <span className="ml-auto">
@@ -152,7 +182,7 @@ export function SquadsApproval({
         dangerPrimary={needsAck}
         approveDisabled={!ready}
         onReject={() => onDecide({ approved: false })}
-        onApprove={() => run({ approved: true }, hardware ? () => hardware([request.proposal]) : undefined)}
+        onApprove={() => run({ approved: true }, hardware ? () => hardware(request.proposals) : undefined)}
       />
     </Page>
   );

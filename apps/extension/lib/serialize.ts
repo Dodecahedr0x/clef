@@ -17,7 +17,7 @@ export type SerializedApproval =
       vaultIndex: number;
       member: string;
       inner: string;
-      proposal: string;
+      proposals: string[];
       signer: SignerInfo;
     } & Common);
 
@@ -33,7 +33,7 @@ export function serializeApproval(r: ApprovalRequest): SerializedApproval {
     case 'signMessage':
       return { ...r, message: toBase64(r.message) };
     case 'squadsPropose':
-      return { ...r, inner: toBase64(r.inner), proposal: toBase64(r.proposal) };
+      return { ...r, inner: toBase64(r.inner), proposals: r.proposals.map(toBase64) };
     case 'signIn':
       return { ...r, input: r.input as Record<string, unknown> };
     default:
@@ -56,7 +56,7 @@ export function deserializeApproval(s: SerializedApproval): ApprovalRequest {
         multisig: s.multisig as Address,
         member: s.member as Address,
         inner: fromBase64(s.inner),
-        proposal: fromBase64(s.proposal),
+        proposals: s.proposals.map(fromBase64),
       };
     default:
       return s;
