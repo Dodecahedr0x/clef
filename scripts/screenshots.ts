@@ -16,14 +16,13 @@ Options:
                        e.g. "portfolio|popup.html|360|600|Know what you sign"
   --help               show this help
 
-Without --scene, captures the default scenes (welcome/portfolio popup and the kitchen sink).
+Without --scene, captures the popup. The store set (approvals on a local validator) comes from "pnpm screenshots:store".
 Run "pnpm build:ext" first. Output: <out>/<name>.png, 1280x800.`;
 
 type Scene = { name: string; path: string; width: number; height: number; caption: string };
 
 const DEFAULT_SCENES: Scene[] = [
   { name: '01-popup', path: 'popup.html', width: 360, height: 600, caption: 'A Solana wallet that explains what you sign' },
-  { name: '02-components', path: 'kitchen-sink.html', width: 1100, height: 680, caption: 'Clear, verified detail at every level' },
 ];
 
 function parseScene(spec: string): Scene {
@@ -72,14 +71,28 @@ async function createWallet(context: BrowserContext, base: string, rpc: string |
   await page.close();
 }
 
-function framePage(png: Buffer, scene: Scene): string {
+/** Scales the capture to fit under the caption (explicit size, nothing can overflow the 1280x800 canvas). */
+export function framePage(png: Buffer, scene: Pick<Scene, 'width' | 'height' | 'caption'>): string {
   const img = `data:image/png;base64,${png.toString('base64')}`;
+  const scale = Math.min(1, 1180 / scene.width, (scene.caption ? 640 : 740) / scene.height);
+  const w = Math.round(scene.width * scale);
+  const h = Math.round(scene.height * scale);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
-    html,body{margin:0;width:1280px;height:800px;background:#F5F6F8;font-family:"IBM Plex Sans",system-ui,sans-serif;color:#14171F}
+    html,body{margin:0;width:1280px;height:800px;overflow:hidden;background:#F5F6F8;font-family:"IBM Plex Sans",system-ui,sans-serif;color:#14171F}
     .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}
     h1{margin:0;font-size:34px;font-weight:600;letter-spacing:-0.02em}
-    img{border-radius:16px;box-shadow:0 18px 48px rgba(20,23,31,.16),0 0 0 1px #E1E4EA;max-height:640px}
-  </style></head><body><div class="wrap">${scene.caption ? `<h1>${scene.caption.replace(/</g, '&lt;')}</h1>` : ''}<img src="${img}" alt=""></div></body></html>`;
+    img{display:block;flex:none;border-radius:16px;box-shadow:0 18px 48px rgba(20,23,31,.16),0 0 0 1px #E1E4EA}
+  </style></head><body><div class="wrap">${scene.caption ? `<h1>${scene.caption.replace(/</g, '&lt;')}</h1>` : ''}<img src="${img}" width="${w}" height="${h}" alt=""></div></body></html>`;
+}
+
+/** Renders the framed 1280x800 store image for one capture. */
+export async function frame(context: BrowserContext, png: Buffer, scene: Pick<Scene, 'width' | 'height' | 'caption'>): Promise<Buffer> {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setContent(framePage(png, scene));
+  const out = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1280, height: 800 } });
+  await page.close();
+  return out;
 }
 
 async function main(argv: string[]): Promise<void> {
@@ -108,12 +121,8 @@ async function main(argv: string[]): Promise<void> {
       const shot = await page.screenshot({ type: 'png' });
       await page.close();
 
-      const frame = await context.newPage();
-      await frame.setViewportSize({ width: 1280, height: 800 });
-      await frame.setContent(framePage(shot, scene));
       const file = join(opts.out, `${scene.name}.png`);
-      writeFileSync(file, await frame.screenshot({ type: 'png' }));
-      await frame.close();
+      writeFileSync(file, await frame(context, shot, scene));
       console.log(`Wrote ${file}`);
     }
   } finally {

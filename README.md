@@ -41,7 +41,7 @@ pnpm test:live     # public-endpoint tests, skipped unless the env flags below a
 pnpm e2e           # builds the extension and runs Playwright against it and a local validator
 pnpm build:ext     # apps/extension/.output/chrome-mv3 (load unpacked in Chrome 137+)
 pnpm zip:ext       # store-ready zip in apps/extension/.output/
-pnpm screenshots   # 1280x800 store screenshots in docs/store/screenshots/
+pnpm screenshots:store   # 1280x800 store screenshots in docs/store/screenshots/ (local validator)
 ```
 
 Environment variables:

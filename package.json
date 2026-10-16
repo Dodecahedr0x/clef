@@ -12,7 +12,8 @@
     "test:local": "vitest run --project local",
     "test:live": "vitest run --project live",
     "zip:ext": "tsx scripts/zip-extension.ts",
-    "screenshots": "tsx scripts/screenshots.ts"
+    "screenshots": "tsx scripts/screenshots.ts",
+    "screenshots:store": "CLEF_SCREENSHOTS=1 playwright test e2e/store-screenshots.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
