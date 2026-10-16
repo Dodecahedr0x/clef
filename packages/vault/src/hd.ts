@@ -37,3 +37,9 @@ export function solanaPath(index: number): number[] {
   assertIndex(index);
   return [44, 501, index, 0];
 }
+
+/** m/44'/501'/index' -- the older path used by Sollet and early Solana CLI derivations. */
+export function legacySolanaPath(index: number): number[] {
+  assertIndex(index);
+  return [44, 501, index];
+}

@@ -1,13 +1,15 @@
 import { createKeyPairSignerFromPrivateKeyBytes, type Address } from '@solana/kit';
 import { fromBase64, toBase64, utf8, zeroize } from './bytes';
 import { deriveKey, newKdfParams, openEnvelope, sealEnvelope, type Envelope, type KdfCost, type KdfParams } from './crypto';
-import { deriveEd25519, solanaPath } from './hd';
+import { deriveEd25519, legacySolanaPath, solanaPath } from './hd';
 import { mnemonicToSeed, normalizeMnemonic, validateMnemonic } from './mnemonic';
 import type { KeyValueStore } from './store';
 
 export type NewSecret = { kind: 'mnemonic'; phrase: string } | { kind: 'keypair'; privateKey: Uint8Array };
 export type Secret = { id: string; kind: 'mnemonic'; phrase: string } | { id: string; kind: 'keypair'; privateKey: string /* base64, 32 bytes */ };
-export type KeyRef = { secretId: string; index?: number };
+export type DerivationScheme = 'legacy';
+/** `scheme: 'legacy'` derives m/44'/501'/index' instead of m/44'/501'/index'/0'. */
+export type KeyRef = { secretId: string; index?: number; scheme?: DerivationScheme };
 
 export class LockedError extends Error {
   constructor() {
@@ -83,11 +85,20 @@ export class Vault {
     }
   }
 
+  /** Ids and kinds in storage order, without key material. */
+  async list(): Promise<{ id: string; kind: Secret['kind'] }[]> {
+    return (await this.secrets()).map(({ id, kind }) => ({ id, kind }));
+  }
+
+  /** Adds a secret; a recovery phrase already in the vault returns its existing id instead of a duplicate. */
   async addSecret(secret: NewSecret): Promise<string> {
     const stored = toStored(secret);
     const { key, env } = await this.open();
     try {
-      await this.write(key, env.kdf, [...(await this.read(key, env)), stored]);
+      const all = await this.read(key, env);
+      const same = stored.kind === 'mnemonic' && all.find((s) => s.kind === 'mnemonic' && s.phrase === stored.phrase);
+      if (same) return same.id;
+      await this.write(key, env.kdf, [...all, stored]);
     } finally {
       zeroize(key);
     }
@@ -122,7 +133,7 @@ export class Vault {
     if (secret.kind === 'mnemonic') {
       const seed = await mnemonicToSeed(secret.phrase);
       try {
-        privateKey = deriveEd25519(seed, solanaPath(ref.index ?? 0));
+        privateKey = deriveEd25519(seed, ref.scheme === 'legacy' ? legacySolanaPath(ref.index ?? 0) : solanaPath(ref.index ?? 0));
       } finally {
         zeroize(seed);
       }

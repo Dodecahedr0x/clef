@@ -1,13 +1,19 @@
-import type { KeyValueStore } from '@clef/vault';
+import type { DerivationScheme, KeyRef, KeyValueStore } from '@clef/vault';
 import type { Address } from '@solana/kit';
 
 export type Account =
-  | { kind: 'hd'; address: Address; label: string; secretId: string; index: number }
+  | { kind: 'hd'; address: Address; label: string; secretId: string; index: number; scheme?: DerivationScheme }
   | { kind: 'imported'; address: Address; label: string; secretId: string }
   | { kind: 'watch'; address: Address; label: string }
   | { kind: 'ledger'; address: Address; label: string; path: string }
   | { kind: 'keystone'; address: Address; label: string; path: string; xfp: string }
   | { kind: 'squads'; address: Address /* vault PDA */; label: string; multisig: Address; vaultIndex: number; member: Address };
+
+/** The vault reference for a software account's key. */
+export function keyRef(a: Extract<Account, { kind: 'hd' | 'imported' }>): KeyRef {
+  if (a.kind === 'imported') return { secretId: a.secretId };
+  return { secretId: a.secretId, index: a.index, ...(a.scheme && { scheme: a.scheme }) };
+}
 
 /** Accounts whose own key (in the vault or on a device) signs. */
 export const isKeyAccount = (a: Account): boolean => a.kind === 'hd' || a.kind === 'imported' || a.kind === 'ledger' || a.kind === 'keystone';
@@ -64,8 +70,8 @@ export class AccountStore {
     await this.store.set(ACTIVE, address);
   }
 
-  async nextHdIndex(secretId: string): Promise<number> {
-    const used = (await this.list()).flatMap((a) => (a.kind === 'hd' && a.secretId === secretId ? [a.index] : []));
+  async nextHdIndex(secretId: string, scheme?: DerivationScheme): Promise<number> {
+    const used = (await this.list()).flatMap((a) => (a.kind === 'hd' && a.secretId === secretId && a.scheme === scheme ? [a.index] : []));
     return used.length ? Math.max(...used) + 1 : 0;
   }
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { LockedError, MemoryStore, Vault, WrongPasswordError } from '../src';
+import { createKeyPairSignerFromPrivateKeyBytes } from '@solana/kit';
+import { deriveEd25519, LockedError, MemoryStore, mnemonicToSeed, Vault, WrongPasswordError } from '../src';
 
 const ABANDON = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 const FAST = { memoryKiB: 1024, iterations: 1, parallelism: 1 };
+const ZOO = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong';
 
 function setup() {
   const local = new MemoryStore();
@@ -83,6 +85,28 @@ describe('Vault', () => {
     await expect(vault.unlock('a long password')).rejects.toBeInstanceOf(WrongPasswordError);
     await vault.unlock('another long password');
     expect(await vault.secrets()).toHaveLength(1);
+  });
+
+  it('keeps one secret per recovery phrase and lists secrets without their material', async () => {
+    const { vault } = setup();
+    const [first] = await vault.create('a long password', [{ kind: 'mnemonic', phrase: ABANDON }]);
+    const second = await vault.addSecret({ kind: 'mnemonic', phrase: ZOO });
+    expect(second).not.toBe(first);
+    expect(await vault.addSecret({ kind: 'mnemonic', phrase: `  ${ABANDON.toUpperCase()} ` })).toBe(first);
+    expect(await vault.addSecret({ kind: 'mnemonic', phrase: ZOO })).toBe(second);
+    expect(await vault.secrets()).toHaveLength(2);
+    const list = await vault.list();
+    expect(list).toEqual([{ id: first, kind: 'mnemonic' }, { id: second, kind: 'mnemonic' }]);
+    expect(JSON.stringify(list)).not.toMatch(/abandon|zoo/);
+  });
+
+  it("derives the legacy path m/44'/501'/index' when asked", async () => {
+    const { vault } = setup();
+    const [id] = await vault.create('a long password', [{ kind: 'mnemonic', phrase: ABANDON }]);
+    const seed = await mnemonicToSeed(ABANDON);
+    const expected = (await createKeyPairSignerFromPrivateKeyBytes(deriveEd25519(seed, [44, 501, 1]))).address;
+    expect(await vault.withPrivateKey({ secretId: id!, index: 1, scheme: 'legacy' }, async (_k, a) => a)).toBe(expected);
+    expect(await vault.withPrivateKey({ secretId: id!, index: 1 }, async (_k, a) => a)).not.toBe(expected);
   });
 
   it('never persists plaintext', async () => {
