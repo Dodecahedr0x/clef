@@ -1,7 +1,94 @@
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #F5F6F8;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #EEF0F4;
+  --color-surface-3: #F1F3F7;
+  --color-surface-4: #FAFBFC;
+  --color-line: #E1E4EA;
+  --color-line-soft: #E6E8EE;
+  --color-line-strong: #CBD0DA;
+  --color-ink: #14171F;
+  --color-muted: #5C6475;
+  --color-faint: #8A91A0;
+  --color-ink-2: #3A4152;
+  --color-primary: #4A6B12;
+  --color-primary-bg: #EEF5DD;
+  --color-primary-line: #C7DA9C;
+  --color-primary-tint: #EDF3DF;
+  --color-ok: #0F7A62;
+  --color-ok-ink: #0B5C49;
+  --color-ok-ink-2: #2E6B5C;
+  --color-ok-bg: #E8F6F1;
+  --color-ok-line: #B5E0D3;
+  --color-ok-tint: #DFF3EE;
+  --color-warn: #A86400;
+  --color-warn-ink: #6B4A0A;
+  --color-warn-bg: #FDF4E3;
+  --color-warn-line: #F0D9A8;
+  --color-danger: #C8402A;
+  --color-danger-text: #C2341F;
+  --color-danger-ink: #6E2417;
+  --color-danger-ink-2: #8A2414;
+  --color-danger-deep: #5A1409;
+  --color-danger-bg: #FDF0ED;
+  --color-danger-bg-2: #FBE7E3;
+  --color-danger-line: #F2B8AC;
+  --color-info: #2752B8;
+  --color-info-ink: #1A3A86;
+  --color-info-bg: #E5EDFC;
+  --color-info-dot: #3D6FE0;
+  --color-info-tint: #E8EFFD;
+  --color-violet: #5B3FC4;
+  --color-violet-bg: #ECE7FB;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
 
 html,
 body {
-  background: #0b0f17;
-  color: #e5e7eb;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--color-info);
+}
+a:hover {
+  color: var(--color-info-ink);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Tooltip bubble: hidden until its wrapper is hovered or holds keyboard focus. */
+.clef-tip > [role='tooltip'] {
+  opacity: 0;
+  pointer-events: none;
+}
+.clef-tip:hover > [role='tooltip'],
+.clef-tip:has(:focus-visible) > [role='tooltip'] {
+  opacity: 1;
 }
