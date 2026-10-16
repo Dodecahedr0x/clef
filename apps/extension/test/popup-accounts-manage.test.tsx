@@ -33,6 +33,8 @@ const h = vi.hoisted(() => ({
 h.clients = { chain: h.chain, portfolio: { getBalance: h.getBalance, getLatestBlockhash: h.getLatestBlockhash }, jupiter: { tag: 'jup' } };
 
 vi.mock('../lib/api', () => ({ call: h.call }));
+const flags = vi.hoisted(() => ({ HARDWARE_ENABLED: true }));
+vi.mock('../lib/features', () => flags);
 vi.mock('../lib/nav', () => ({ useNav: () => h.nav }));
 vi.mock('../lib/hooks', () => ({
   useWallet: () => ({ state: h.state, error: null, refresh: h.refresh }),
@@ -137,6 +139,17 @@ describe('AddAccount', () => {
     expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'accounts/squads' });
     await user.click(screen.getByRole('button', { name: /Watch an address/ }));
     expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'import' });
+  });
+
+  it('hides Ledger and Keystone while hardware is disabled', () => {
+    flags.HARDWARE_ENABLED = false;
+    try {
+      render(<AddAccountScreen />);
+      expect(screen.queryByRole('button', { name: /Ledger|Keystone/ })).toBeNull();
+      expect(screen.getByRole('button', { name: /Squads multisig/ })).toBeTruthy();
+    } finally {
+      flags.HARDWARE_ENABLED = true;
+    }
   });
 
   it('shows why a new account could not be derived', async () => {

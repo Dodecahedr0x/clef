@@ -29,6 +29,8 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock('../lib/api', () => ({ call: h.call }));
+const flags = vi.hoisted(() => ({ HARDWARE_ENABLED: true }));
+vi.mock('../lib/features', () => flags);
 vi.mock('../lib/clients', () => ({ createClients: () => ({ portfolio: { getBalance: h.getBalance } }) }));
 vi.mock('@clef/signers', () => ({
   HardwareError: h.HardwareError,
@@ -98,6 +100,18 @@ afterEach(() => {
 });
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
+
+describe('hardware disabled', () => {
+  it('says hardware wallets are not available', () => {
+    flags.HARDWARE_ENABLED = false;
+    try {
+      render(<HardwareApp kind="ledger" />);
+      expect(screen.getByText(/not available in this version/)).toBeTruthy();
+    } finally {
+      flags.HARDWARE_ENABLED = true;
+    }
+  });
+});
 
 describe('Ledger connect', () => {
   async function connect() {

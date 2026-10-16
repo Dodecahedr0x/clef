@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { browser } from 'wxt/browser';
 import { Icon, IconButton } from '../../../components';
 import { call } from '../../../lib/api';
+import { HARDWARE_ENABLED } from '../../../lib/features';
 import { useNav } from '../../../lib/nav';
 
 type Option = { mark: string; title: string; desc: string; tint: string; run: () => void | Promise<void> };
@@ -28,8 +29,12 @@ export function AddAccountScreen() {
   const options: Option[] = [
     { mark: '+', title: 'New account', desc: 'Next address from your recovery phrase', tint: 'bg-primary-bg text-primary', run: derive },
     { mark: '↓', title: 'Import', desc: 'Another recovery phrase or a private key', tint: 'bg-surface-2 text-ink', run: () => nav.go({ name: 'import' }) },
-    { mark: 'L', title: 'Ledger', desc: 'Connect over USB', tint: 'bg-violet-bg text-violet', run: () => openHardware('ledger') },
-    { mark: 'K', title: 'Keystone', desc: 'Pair by scanning a QR code', tint: 'bg-surface-2 text-ink', run: () => openHardware('keystone') },
+    ...(HARDWARE_ENABLED
+      ? [
+          { mark: 'L', title: 'Ledger', desc: 'Connect over USB', tint: 'bg-violet-bg text-violet', run: () => openHardware('ledger') },
+          { mark: 'K', title: 'Keystone', desc: 'Pair by scanning a QR code', tint: 'bg-surface-2 text-ink', run: () => openHardware('keystone') },
+        ]
+      : []),
     { mark: 'S', title: 'Squads multisig', desc: 'Propose and vote with one of your accounts', tint: 'bg-warn-bg text-warn', run: () => nav.go({ name: 'accounts/squads' }) },
     { mark: '◎', title: 'Watch an address', desc: 'See balances and preview requests, no signing', tint: 'bg-info-bg text-info', run: () => nav.go({ name: 'import' }) },
   ];

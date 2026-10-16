@@ -25,6 +25,9 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
     // Unset by default: the error reporter stays unavailable and the setting hidden.
-    define: { 'import.meta.env.CLEF_ERROR_ENDPOINT': JSON.stringify(process.env.CLEF_ERROR_ENDPOINT ?? '') },
+    define: {
+      'import.meta.env.CLEF_ERROR_ENDPOINT': JSON.stringify(process.env.CLEF_ERROR_ENDPOINT ?? ''),
+      'import.meta.env.CLEF_HARDWARE': JSON.stringify(process.env.CLEF_HARDWARE ?? ''),
+    },
   }),
 });
