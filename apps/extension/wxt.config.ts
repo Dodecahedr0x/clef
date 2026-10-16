@@ -4,6 +4,13 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   imports: false, // explicit imports everywhere
+  hooks: {
+    // WXT 0.21 still runs unimport with its presets when imports are off, and rewrites workspace packages that merely
+    // mention a preset name (e.g. a `getAppConfig()` method in @clef/signers) into unresolvable `wxt/utils/*` imports.
+    'config:resolved': (wxt) => {
+      wxt.config.imports.presets = [];
+    },
+  },
   manifest: {
     name: 'Clef',
     description: 'A Solana wallet that explains what you sign.',

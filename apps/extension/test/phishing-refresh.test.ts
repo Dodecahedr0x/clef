@@ -1,27 +1,17 @@
-import type { PhishingHit, PhishingList } from '@clef/wallet-core';
+import { BUNDLED_PHISHING_LIST, PHISHING_LIST_URL, PhishingListStore } from '@clef/wallet-core';
 import { describe, expect, it, vi } from 'vitest';
-import { PHISHING_ALARM, PHISHING_STORAGE_KEY, PhishingGuard, type PhishingGuardDeps } from '../lib/phishing';
+import { PHISHING_ALARM, schedulePhishingRefresh } from '../lib/phishing';
 
 const DAY_MIN = 24 * 60;
-const SNAPSHOT = { version: 1, tolerance: 1, fuzzylist: [], whitelist: [], blacklist: ['old-evil.example'] };
-const FRESH = { version: 2, tolerance: 1, fuzzylist: ['clef.app'], whitelist: [], blacklist: ['old-evil.example', 'new-evil.example'] };
+const FRESH = { version: 99, tolerance: 1, fuzzylist: ['clef.app'], whitelist: [], blacklist: ['new-evil.example'] };
 
-// Stand-ins for @clef/wallet-core's parsePhishingConfig / PhishingDetector: strict shape check, exact match.
-function parse(json: unknown): PhishingList {
-  const j = json as Record<string, unknown>;
-  if (typeof j !== 'object' || j === null || typeof j.version !== 'number' || !Array.isArray(j.blacklist)) throw new Error('bad config');
-  return { version: j.version, tolerance: 1, fuzzylist: (j.fuzzylist as string[]) ?? [], whitelist: [], blacklist: j.blacklist as string[], fetchedAt: 0 };
-}
-const detector = (list: PhishingList) => ({
-  check: (host: string): PhishingHit | null => (list.blacklist.includes(host) ? { reason: 'blocklist', match: host } : null),
-});
-
-function memStore(init: Record<string, unknown> = {}) {
-  const data = new Map(Object.entries(init));
+function memStore() {
+  const data = new Map<string, unknown>();
   return {
     data,
     get: async <T>(k: string) => data.get(k) as T | undefined,
     set: async <T>(k: string, v: T) => void data.set(k, v),
+    remove: async (k: string) => void data.delete(k),
   };
 }
 
@@ -38,94 +28,57 @@ function fakeAlarms(existing = false) {
   };
 }
 
-const okFetch = (body: unknown) =>
-  vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), { status: 200 })) as unknown as typeof fetch;
+const respond = (body: string, status = 200) => vi.fn(async (_u: string, _i?: RequestInit) => new Response(body, { status }));
 
-function guard(over: Partial<PhishingGuardDeps> = {}) {
+function setup(fetch = respond(JSON.stringify(FRESH))) {
   const store = memStore();
-  const deps: PhishingGuardDeps = { snapshot: () => SNAPSHOT, parse, detector, store, fetch: okFetch(FRESH), url: 'https://list.example/config.json', now: () => 1000, ...over };
-  return { g: new PhishingGuard(deps), store: deps.store as ReturnType<typeof memStore>, deps };
+  const list = new PhishingListStore({ store, fetch: fetch as unknown as typeof globalThis.fetch, now: () => BUNDLED_PHISHING_LIST.fetchedAt + 1 });
+  return { store, list, fetch };
 }
 
-describe('PhishingGuard', () => {
-  it('loads the bundled snapshot at startup and checks origins by hostname', async () => {
-    const { g } = guard();
-    await g.ready;
-    expect(g.checkOrigin('https://old-evil.example')).toEqual({ reason: 'blocklist', match: 'old-evil.example' });
-    expect(g.checkOrigin('https://old-evil.example:8443')).toEqual({ reason: 'blocklist', match: 'old-evil.example' });
-    expect(g.checkOrigin('https://fine.example')).toBeNull();
-    expect(g.status()).toEqual({ version: 1, fetchedAt: 0, domains: 1 });
+describe('phishing list in the background', () => {
+  it('starts from the bundled snapshot', async () => {
+    const { list } = setup();
+    expect(BUNDLED_PHISHING_LIST.blacklist.length).toBeGreaterThan(1000);
+    expect(await list.status()).toMatchObject({ version: BUNDLED_PHISHING_LIST.version, fetchedAt: BUNDLED_PHISHING_LIST.fetchedAt });
+    const blocked = BUNDLED_PHISHING_LIST.blacklist[0]!;
+    expect(await list.check(blocked)).toEqual({ reason: 'blocklist', match: blocked });
   });
 
-  it('never checks the wallet itself or non-web origins', async () => {
-    const check = vi.fn(() => ({ reason: 'blocklist' as const, match: 'x' }));
-    const { g } = guard({ detector: () => ({ check }) });
-    await g.ready;
-    expect(g.checkOrigin('clef://wallet')).toBeNull();
-    expect(g.checkOrigin('not a url')).toBeNull();
-    expect(check).not.toHaveBeenCalled();
-  });
-
-  it('refresh fetches the list, validates it, stores it and swaps the detector', async () => {
-    const { g, store, deps } = guard({ now: () => 5000 });
-    await g.ready;
-    await g.refresh();
-    expect(deps.fetch).toHaveBeenCalledWith('https://list.example/config.json', expect.objectContaining({ credentials: 'omit' }));
-    expect(g.checkOrigin('https://new-evil.example')).toEqual({ reason: 'blocklist', match: 'new-evil.example' });
-    expect(g.status()).toEqual({ version: 2, fetchedAt: 5000, domains: 3 });
-    expect(store.data.get(PHISHING_STORAGE_KEY)).toMatchObject({ version: 2, fetchedAt: 5000, blacklist: FRESH.blacklist });
-  });
-
-  it('a stored list newer than the snapshot is used at startup', async () => {
-    const store = memStore({ [PHISHING_STORAGE_KEY]: { ...FRESH, fetchedAt: 7 } });
-    const { g } = guard({ store });
-    await g.ready;
-    expect(g.checkOrigin('https://new-evil.example')).not.toBeNull();
-    expect(g.status().fetchedAt).toBe(7);
-  });
-
-  it('a corrupt stored list falls back to the snapshot', async () => {
-    const store = memStore({ [PHISHING_STORAGE_KEY]: { nope: true } });
-    const { g } = guard({ store });
-    await g.ready;
-    expect(g.status().version).toBe(1);
-  });
-
-  it.each([
-    ['invalid config', okFetch({ hello: 'world' })],
-    ['http error', vi.fn(async () => new Response('gone', { status: 503 })) as unknown as typeof fetch],
-    ['not json', vi.fn(async () => new Response('<html>', { status: 200 })) as unknown as typeof fetch],
-    ['network failure', vi.fn(async () => Promise.reject(new TypeError('offline'))) as unknown as typeof fetch],
-  ])('a failed refresh (%s) throws and keeps the current list', async (_n, f) => {
-    const { g, store } = guard({ fetch: f });
-    await g.ready;
-    await expect(g.refresh()).rejects.toThrow();
-    expect(g.status().version).toBe(1);
-    expect(store.data.has(PHISHING_STORAGE_KEY)).toBe(false);
-  });
-
-  it('schedules a daily refresh alarm once and refreshes when it fires', async () => {
-    const { g } = guard();
+  it('schedules a daily alarm once; firing it downloads, validates and stores the list', async () => {
+    const { list, store, fetch } = setup();
     const alarms = fakeAlarms();
     const onError = vi.fn();
-    await g.schedule(alarms, onError);
+    await schedulePhishingRefresh(alarms, list, onError);
     expect(alarms.created).toEqual([[PHISHING_ALARM, { delayInMinutes: 1, periodInMinutes: DAY_MIN }]]);
+
     alarms.fire('clef-autolock');
+    expect(fetch).not.toHaveBeenCalled();
     alarms.fire(PHISHING_ALARM);
-    await vi.waitFor(() => expect(g.status().version).toBe(2));
+    await vi.waitFor(async () => expect((await list.status()).version).toBe(99));
+    expect(fetch).toHaveBeenCalledWith(PHISHING_LIST_URL, expect.objectContaining({ credentials: 'omit' }));
+    expect(await list.check('new-evil.example')).toEqual({ reason: 'blocklist', match: 'new-evil.example' });
+    expect([...store.data.values()]).toContainEqual(expect.objectContaining({ version: 99, blacklist: ['new-evil.example'] }));
     expect(onError).not.toHaveBeenCalled();
 
+    // After a service-worker restart the alarm already exists.
     const again = fakeAlarms(true);
-    await g.schedule(again, onError);
+    await schedulePhishingRefresh(again, list, onError);
     expect(again.created).toEqual([]);
   });
 
-  it('reports a failed scheduled refresh instead of throwing', async () => {
-    const { g } = guard({ fetch: okFetch({ bad: 1 }) });
+  it.each([
+    ['invalid config', respond(JSON.stringify({ version: 'x', blacklist: 5 }))],
+    ['http error', respond('gone', 503)],
+    ['not json', respond('<html>')],
+  ])('a failed refresh (%s) is reported and keeps the snapshot', async (_n, f) => {
+    const { list, store } = setup(f);
     const alarms = fakeAlarms();
     const onError = vi.fn();
-    await g.schedule(alarms, onError);
+    await schedulePhishingRefresh(alarms, list, onError);
     alarms.fire(PHISHING_ALARM);
     await vi.waitFor(() => expect(onError).toHaveBeenCalledOnce());
+    expect((await list.status()).version).toBe(BUNDLED_PHISHING_LIST.version);
+    expect(store.data.size).toBe(0);
   });
 });

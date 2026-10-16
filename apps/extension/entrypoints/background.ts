@@ -1,18 +1,33 @@
-import { KitChainReader } from '@clef/rpc';
+import { KitChainReader, KitPortfolioReader } from '@clef/rpc';
+import { buildProposeTransaction, fetchMultisig } from '@clef/squads';
 import { Vault } from '@clef/vault';
-import { AccountStore, AutoLock, InternalApi, PermissionStore, SettingsStore, WalletService } from '@clef/wallet-core';
+import {
+  AccountStore,
+  AutoLock,
+  ContactStore,
+  ErrorReporter,
+  InternalApi,
+  PermissionStore,
+  PhishingListStore,
+  RequestLog,
+  SettingsStore,
+  UserIdlStore,
+  WalletService,
+  type SquadsClient,
+} from '@clef/wallet-core';
 import { browser, type Browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { AlarmScheduler } from '../lib/alarm-scheduler';
 import { ApprovalQueue } from '../lib/approvals';
 import { ChromeStore } from '../lib/chrome-store';
+import { browserLabel, errorEndpoint, installErrorHandlers } from '../lib/errors';
 import { dappOrigin, isExtensionPage } from '../lib/guards';
 import { DAPP_PORT, type DappPortReply, type InternalMessage, type InternalReply } from '../lib/messages';
+import { schedulePhishingRefresh } from '../lib/phishing';
 import { parseDecision, serializeApproval } from '../lib/serialize';
+import { approvalWindowSize, openApprovalWindow } from '../lib/windows';
 
 type Port = Browser.runtime.Port;
-
-const APPROVAL_SIZE = { width: 400, height: 640 };
 
 export default defineBackground(() => {
   // Session storage defaults to trusted contexts; assert it so content scripts can never read the session key.
@@ -23,17 +38,34 @@ export default defineBackground(() => {
   const accounts = new AccountStore(local);
   const permissions = new PermissionStore(local);
   const settings = new SettingsStore(local);
+  const contacts = new ContactStore(local);
+  const userIdls = new UserIdlStore(local);
+  const log = new RequestLog(local);
+  const phishing = new PhishingListStore({ store: local });
   const extensionBase = browser.runtime.getURL('/' as never);
 
+  const reporter = new ErrorReporter({
+    endpoint: errorEndpoint(import.meta.env.CLEF_ERROR_ENDPOINT),
+    enabled: async () => (await settings.get()).errorReports,
+    version: browser.runtime.getManifest().version,
+    browser: browserLabel(navigator.userAgent),
+  });
+  installErrorHandlers(self, reporter);
+  const reportError = (area: string) => (e: unknown) => void reporter.report(e, { area });
+
+  void schedulePhishingRefresh(browser.alarms, phishing, reportError('phishing-refresh'));
+
+  const rpcUrl = async () => (await settings.get()).rpcUrl;
+  const squads: SquadsClient = {
+    fetchMultisig: async (multisig) => fetchMultisig(new KitChainReader(await rpcUrl()), multisig),
+    buildProposeTransaction,
+    latestBlockhash: async () => (await new KitPortfolioReader(await rpcUrl()).getLatestBlockhash()).blockhash,
+  };
+
   const queue = new ApprovalQueue(
-    async (id) => {
-      const win = await browser.windows.create({
-        url: browser.runtime.getURL(`/approval.html?id=${encodeURIComponent(id)}` as never),
-        type: 'popup',
-        focused: true,
-        ...APPROVAL_SIZE,
-      });
-      return win?.id;
+    async (id, request) => {
+      const size = approvalWindowSize(request, (await settings.get()).detailLevel);
+      return openApprovalWindow({ windows: browser.windows, runtime: { getURL: (p) => browser.runtime.getURL(p as never) } }, id, size);
     },
     (windowId) => void browser.windows.remove(windowId).catch(() => {}),
   );
@@ -57,10 +89,13 @@ export default defineBackground(() => {
     accounts,
     permissions,
     settings,
-    sender: { send: async (wire, options) => new KitChainReader((await settings.get()).rpcUrl).send(wire, options) },
+    sender: { send: async (wire, options) => new KitChainReader(await rpcUrl()).send(wire, options) },
     approver: queue,
     emit,
     activity: () => autoLock.touch(),
+    phishing,
+    log,
+    squads,
   });
 
   const internal = new InternalApi({
@@ -71,6 +106,12 @@ export default defineBackground(() => {
     onLock: () => autoLock.stop(),
     onUnlock: () => autoLock.touch(),
     emit,
+    contacts,
+    userIdls,
+    log,
+    phishing,
+    reporter,
+    service,
   });
 
   browser.runtime.onConnect.addListener((port: Port) => {
