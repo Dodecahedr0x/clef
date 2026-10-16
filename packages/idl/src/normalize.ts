@@ -23,6 +23,39 @@ function canonicalJson(value: unknown): string {
 
 const UNRECOGNIZED = 'Unrecognized IDL format (expected a Codama rootNode or an Anchor IDL)';
 
+/**
+ * Some generators (e.g. Phoenix's Ember) emit the new Anchor layout (metadata.spec, discriminators) with the legacy
+ * `publicKey` type name; Codama's new-format parser only knows `pubkey`. Rename it wherever a type is named.
+ */
+export function fixHybridTypeNames(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(fixHybridTypeNames);
+  if (value === null || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (v === 'publicKey' && (k === 'type' || k === 'option' || k === 'vec' || k === 'coption')) out[k] = 'pubkey';
+    else if (k === 'array' && Array.isArray(v) && v[0] === 'publicKey') out[k] = ['pubkey', ...v.slice(1)];
+    else out[k] = fixHybridTypeNames(v);
+  }
+  return out;
+}
+
+/**
+ * Production builds of Codama replace error messages with a code and an encoded context; turn that back into
+ * something a person can act on.
+ */
+export function describeIdlError(e: unknown): string {
+  const err = e as { message?: unknown; context?: Record<string, unknown> } | null;
+  const message = typeof err?.message === 'string' ? err.message : String(e);
+  const ctx = err?.context;
+  if (!ctx || !/^Codama error #/.test(message)) return message;
+  if (ctx.__code === 2100000 && typeof ctx.idlType !== 'undefined') return `Unrecognized Anchor IDL type ${JSON.stringify(ctx.idlType)}`;
+  const details = Object.entries(ctx)
+    .filter(([k]) => k !== '__code')
+    .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+    .join(', ');
+  return `The IDL could not be read (Codama error ${String(ctx.__code)}${details ? `; ${details}` : ''})`;
+}
+
 /** Accepts a Codama root or an Anchor IDL (as JSON text or parsed object) and returns a Codama root. */
 export async function normalizeIdl(input: string | object): Promise<NormalizedIdl> {
   const value: unknown = typeof input === 'string' ? JSON.parse(input) : input;
@@ -34,11 +67,14 @@ export async function normalizeIdl(input: string | object): Promise<NormalizedId
   if (Array.isArray(parsed.instructions)) {
     const spec = (parsed.metadata as { spec?: unknown } | undefined)?.spec;
     if (spec !== undefined && spec !== '0.1.0') throw new Error(`Unsupported Anchor IDL spec ${String(spec)}`);
-    return {
-      root: rootNodeFromAnchor(parsed as unknown as AnchorIdl),
-      anchorExtras: extractAnchorExtras(parsed),
-      hash,
-    };
+    const anchor = (spec !== undefined ? fixHybridTypeNames(parsed) : parsed) as Record<string, unknown>;
+    let root: RootNode;
+    try {
+      root = rootNodeFromAnchor(anchor as unknown as AnchorIdl);
+    } catch (e) {
+      throw new Error(describeIdlError(e));
+    }
+    return { root, anchorExtras: extractAnchorExtras(anchor), hash };
   }
   throw new Error(UNRECOGNIZED);
 }
