@@ -1,9 +1,12 @@
+import { isAddress } from '@solana/kit';
+import type { BatchStep, ExplainedBatch } from './batch';
+import { groupDigits } from './diffs';
 import { formatUnits, programDisplay } from './format';
 import { toHex } from './hex';
 import { shortAddress } from './labels';
 import type { StateChange } from './state-changes';
 import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, TOKEN_PROGRAMS } from './registry';
-import type { BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge, Warning } from './types';
+import type { AccountDiff, BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, LogKind, LogLine, RelationEdge, Warning } from './types';
 
 export type ChangeView = { owner: string; asset: string; amount: string };
 export type AccountView = { name: string; address: string; label?: string; badges: string[] };
@@ -54,6 +57,40 @@ export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   issues: Issue[];
   /** Null when unknown (no successful simulation). */
   stateChanges: StateChangeView[] | null;
+  accountDiffs: AccountDiffView[] | null;
+  logs: LogLineView[] | null;
+  /** e.g. '16,101 CU'. */
+  computeUnits: string | null;
+  externalRelations: RelationEdge[];
+};
+
+export type DiffLineView = { sign: '+' | '-' | ' '; key: string; value: string; note?: string };
+export type AccountDiffView = {
+  address: string;
+  title: string;
+  type: string;
+  tag: 'new' | 'closed' | 'temp' | 'modified';
+  lines: DiffLineView[];
+  undecoded?: { reason: string; lines: { sign: '+' | '-'; offset: string; bytes: string }[]; summary: string };
+  lastChangedBy?: number;
+};
+export type LogLineView = { depth: number; kind: LogKind; text: string; program?: string; computeUnits?: string };
+export type CombinedView = {
+  summary: string;
+  balanceChanges: ChangeView[] | null;
+  warnings: Warning[];
+  fee: string | null;
+  computeUnits: string | null;
+  accountDiffs: AccountDiffView[] | null;
+  incomplete: boolean;
+};
+type ViewOf<L extends DetailLevel> = L extends 'basic' ? BasicView : L extends 'intermediate' ? IntermediateView : ExpertView;
+export type BatchView<L extends DetailLevel = DetailLevel> = {
+  level: L;
+  mode: 'sequential' | 'independent';
+  combined: CombinedView;
+  steps: { index: number; status: BatchStep['status']; title: string; view: ViewOf<L> | null }[];
+  dependentSteps: number[];
 };
 
 const SYMBOLS: Record<RelationEdge['status'], string> = { verified: '\u2713', mismatch: '\u2717', unverified: '?' };
@@ -126,6 +163,75 @@ function stateChangeView(c: StateChange): StateChangeView {
   };
 }
 
+/** IDL context lines shown per account: enough to orient, not the whole account. */
+const MAX_CONTEXT_LINES = 3;
+const STEP_TITLE_MAX = 40;
+
+const withCommas = (n: bigint | number) => BigInt(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const cu = (n: bigint | number) => `${withCommas(n)} CU`;
+const sol = (lamports: bigint) => `${formatUnits(lamports, 9)} SOL`;
+const shortValue = (v: string) => (isAddress(v) ? shortAddress(v) : v);
+
+function line(sign: DiffLineView['sign'], key: string, value: string, note?: string): DiffLineView {
+  return note ? { sign, key, value: shortValue(value), note } : { sign, key, value: shortValue(value) };
+}
+
+/** A created-and-closed account in a batch: no state before, none after. */
+const isTemp = (d: AccountDiff) => d.lifecycle === 'closed' && d.owner.before === null;
+
+function accountDiffView(d: AccountDiff): AccountDiffView {
+  const temp = isTemp(d);
+  const tag = temp ? 'temp' : d.lifecycle === 'created' ? 'new' : d.lifecycle === 'closed' ? 'closed' : 'modified';
+  const type = temp
+    ? 'Created & closed'
+    : tag === 'new' ? 'New account'
+    : tag === 'closed' ? 'Closed'
+    : !d.decoded ? 'Undecoded'
+    : d.decoded.by === 'idl' ? `${d.decoded.type} \u00b7 IDL` : d.decoded.type;
+  const lines: DiffLineView[] = [];
+  const context = d.decoded?.context ?? [];
+  for (const c of d.decoded?.by === 'idl' ? context.slice(0, MAX_CONTEXT_LINES) : context) {
+    const value = c.after ?? c.before ?? '';
+    lines.push(line(' ', c.path, value, c.note ?? (d.decoded?.by === 'idl' ? 'unchanged' : undefined)));
+  }
+  for (const c of d.decoded?.changed ?? []) {
+    const both = c.before !== null && c.after !== null;
+    if (c.before !== null) lines.push(line('-', c.path, c.before, both ? undefined : c.note));
+    if (c.after !== null) lines.push(line('+', c.path, c.after, c.note));
+  }
+  if (!temp && d.lamports.before !== d.lamports.after) {
+    if (d.lifecycle !== 'created') lines.push(line('-', 'lamports', groupDigits(d.lamports.before), sol(d.lamports.before)));
+    if (d.lifecycle !== 'closed') lines.push(line('+', 'lamports', groupDigits(d.lamports.after), sol(d.lamports.after)));
+  }
+  const view: AccountDiffView = { address: d.address, title: d.title, type, tag, lines };
+  if (d.raw) {
+    const offset = (n: number) => `0x${n.toString(16).padStart(4, '0')}`;
+    const { size } = d.raw;
+    view.undecoded = {
+      reason: d.undecodedReason ?? 'not decoded',
+      lines: d.raw.changes.flatMap((c) => [
+        ...(c.before ? [{ sign: '-' as const, offset: offset(c.offset), bytes: c.before }] : []),
+        ...(c.after ? [{ sign: '+' as const, offset: offset(c.offset), bytes: c.after }] : []),
+      ]),
+      summary: `${d.raw.changedBytes} bytes changed of ${size.before === size.after ? size.after : `${size.before} \u2192 ${size.after}`}`,
+    };
+  }
+  if (d.lastChangedBy !== undefined) view.lastChangedBy = d.lastChangedBy;
+  return view;
+}
+
+function logLineView(l: LogLine): LogLineView {
+  return {
+    depth: l.depth,
+    kind: l.kind,
+    text: l.text,
+    ...(l.kind === 'invoke' && l.programName !== undefined && { program: l.programName }),
+    ...(l.computeUnits && { computeUnits: cu(l.computeUnits.consumed) }),
+  };
+}
+
+const copyRelation = (r: RelationEdge): RelationEdge => ({ ...r, ...(r.seeds && { seeds: r.seeds.map((seed) => ({ ...seed })) }) });
+
 const toNumber = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'bigint' ? Number(v) : undefined);
 const toBigint = (v: unknown) => (typeof v === 'bigint' ? v : typeof v === 'number' ? BigInt(v) : undefined);
 
@@ -170,7 +276,11 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     ...(config && { loadedAccountsDataSizeLimit: config.loadedAccountsDataSizeLimit ?? 0 }),
     ...(notSet.length && { notSet: [...notSet] }),
     ...(config?.heapSize !== undefined && { heapSize: config.heapSize }),
-    relations: ex.relations.map((r) => ({ ...r, ...(r.seeds && { seeds: r.seeds.map((seed) => ({ ...seed })) }) })),
+    relations: ex.relations.map(copyRelation),
+    accountDiffs: ex.accountDiffs && ex.accountDiffs.map(accountDiffView),
+    logs: ex.logs && ex.logs.map(logLineView),
+    computeUnits: ex.computeUnits === null ? null : cu(ex.computeUnits),
+    externalRelations: ex.externalRelations.map(copyRelation),
     issues: ex.issues.map((i) => ({ ...i })),
     stateChanges: ex.stateChanges && ex.stateChanges.map(stateChangeView),
     instructions: ex.instructions.map((ix) => ({
@@ -184,5 +294,32 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
         return { ...a, signer: ref.signer, writable: ref.writable, ...(ref.lookupTable && { lookupTable: ref.lookupTable }) };
       }),
     })),
+  };
+}
+
+const truncate = (s: string, max: number) => (Array.from(s).length > max ? `${Array.from(s).slice(0, max - 1).join('')}\u2026` : s);
+
+export function viewForBatch<L extends DetailLevel>(batch: ExplainedBatch, level: L): BatchView<L> {
+  const me = new Set<string>(batch.steps.flatMap((s) => s.explained?.me ?? []));
+  const c = batch.combined;
+  return {
+    level,
+    mode: batch.mode,
+    combined: {
+      summary: c.summary,
+      balanceChanges: c.balanceChanges && (level === 'expert' ? c.balanceChanges : c.balanceChanges.filter((b) => me.has(b.owner))).map(changeView),
+      warnings: c.warnings.map((w) => ({ ...w })),
+      fee: c.fee === null ? null : sol(c.fee),
+      computeUnits: c.computeUnits === null ? null : cu(c.computeUnits),
+      accountDiffs: c.accountDiffs && c.accountDiffs.map(accountDiffView),
+      incomplete: c.incomplete,
+    },
+    steps: batch.steps.map((s) => ({
+      index: s.index,
+      status: s.status,
+      title: s.explained ? truncate(s.explained.summary, STEP_TITLE_MAX) : `Transaction ${s.index + 1}`,
+      view: s.explained ? (viewFor(s.explained, level) as ViewOf<L>) : null,
+    })),
+    dependentSteps: [...batch.dependentSteps],
   };
 }

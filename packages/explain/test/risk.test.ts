@@ -96,7 +96,7 @@ describe('evaluateRisks', () => {
         input([nonce, unknown], {
           balanceChanges: null,
           issues: [{ stage: 'simulate', message: 'Simulation failed: custom error 1' }],
-          relations: [{ kind: 'pda', from: OTHER, to: OTHER, label: 'PDA', status: 'mismatch', instructionIndex: 1 }],
+          relations: [{ kind: 'pda', from: OTHER, to: OTHER, label: 'PDA', status: 'mismatch', instructionIndex: 1, external: false }],
         }),
       ),
     ).toEqual([
@@ -365,7 +365,7 @@ describe('evaluateRisks', () => {
     const toMe = ix({ name: 'closeAccount', accounts: [named('account', ME, true), named('destination', ME)] });
     const toMyAta = ix({ name: 'closeAccount', accounts: [named('account', ME, true), named('destination', OTHER, true)] });
     const assignOther = ix({ programId: address(SYSTEM_PROGRAM), name: 'assign', accounts: [named('account', OTHER)] });
-    const unverified = { kind: 'pda' as const, from: OTHER, to: OTHER, label: 'PDA', status: 'unverified' as const };
+    const unverified = { kind: 'pda' as const, from: OTHER, to: OTHER, label: 'PDA', status: 'unverified' as const, external: false };
     expect(rules(input([toMe, toMyAta, assignOther], { relations: [unverified] }))).toEqual([]);
   });
 

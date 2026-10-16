@@ -2,6 +2,7 @@
 
 exports[`mainnet fixture anchor-pda.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "+0.358504945",
@@ -41,6 +42,8 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
   ],
   "computeUnitLimit": 300000,
   "computeUnitPrice": "8001",
+  "computeUnits": null,
+  "externalRelations": [],
   "fee": "0.000007401 SOL",
   "feePayer": "4kJtkAurp3DVraRaLpDKES2mowquE8FT8ZB1qNyU2aMK",
   "instructions": [
@@ -415,9 +418,305 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 292849 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 287760 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 285299 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "14,913 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 14913 of 299700 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Sell",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: GetFeesWithQuoteMint",
+    },
+    {
+      "computeUnits": "6,051 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ consumed 6051 of 246811 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ FAAAAAAAAAAFAAAAAAAAAEsAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 236906 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 231704 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 228669 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 222777 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 218061 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3Cq0NNFqAAAAAO09P5ULAAAAB7TrFAAAAABEAp/hDgAAAAAAAAAAAAAA+cGzmcksAAA1rDF1TwAAALS4lRUAAAAAFAAAAAAAAAAsDQsAAAAAAAUAAAAAAAAAS8MCAAAAAACIq4oVAAAAANp2XhUAAAAADqZP20xMpOmAgMiwptFQIqJRQwxwaEi14SWut+8QHDw3q0Qq9T53g7cJYeZdWxEPmR6a2l3b0KBBKCoQtXHDVl5KPPxsdzqD45s6HlRe3oGVxvFeI7v5oIxYu01m0oaDTgl1sI+AoVVB6JUQFS+vOSDJ1SQ2sDFB51RCPN9a4INKwvjQ3Vy8l+MonBl8tQYqVPPZVrnOblEV+WVnqlyz5nfZFZVfiIBzHOtKdaDMlsF0+kCVxOHZlnrPxChFrmeuSlqOSifPe0HFqwCEXUQfaPUTNHXX6r0uuuPodUR58KJLAAAAAAAAAGNxKQAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 210620 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "78,093 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 78093 of 284787 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 206694 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+  ],
   "recentBlockhash": "FQYHm9XDFzqboJSeTKBRRDa2yAj6dDYGEc1aEHKLy7W2",
   "relations": [
     {
+      "external": false,
       "from": "7M4yraEfBn6HPCWt33tWxjawoEK7Mg6upes9ibhQwp18",
       "kind": "token-owner",
       "label": "token owner",
@@ -425,6 +724,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "4kJtkAurp3DVraRaLpDKES2mowquE8FT8ZB1qNyU2aMK",
     },
     {
+      "external": false,
       "from": "7M4yraEfBn6HPCWt33tWxjawoEK7Mg6upes9ibhQwp18",
       "kind": "token-mint",
       "label": "mint",
@@ -432,6 +732,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "3TCYZkF4yzLhoVWNQMytR6YsU6Fqh6A5jGsJAH9epump",
     },
     {
+      "external": false,
       "from": "7M4yraEfBn6HPCWt33tWxjawoEK7Mg6upes9ibhQwp18",
       "kind": "ata",
       "label": "associated token account",
@@ -439,6 +740,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "4kJtkAurp3DVraRaLpDKES2mowquE8FT8ZB1qNyU2aMK",
     },
     {
+      "external": false,
       "from": "2kzMSUGFQdNJsp453RubakDBuSZc2wXu4pfQDxpMWNc7",
       "kind": "token-owner",
       "label": "token owner",
@@ -446,6 +748,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "2kzMSUGFQdNJsp453RubakDBuSZc2wXu4pfQDxpMWNc7",
       "kind": "token-mint",
       "label": "mint",
@@ -453,6 +756,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "3TCYZkF4yzLhoVWNQMytR6YsU6Fqh6A5jGsJAH9epump",
     },
     {
+      "external": false,
       "from": "2kzMSUGFQdNJsp453RubakDBuSZc2wXu4pfQDxpMWNc7",
       "kind": "ata",
       "label": "associated token account",
@@ -460,6 +764,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "Bw4QKox44BNGfRAyUWRZ3YuyfzAiHxUuzp1PMkBMurTc",
       "kind": "token-owner",
       "label": "token owner",
@@ -467,6 +772,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "Bw4QKox44BNGfRAyUWRZ3YuyfzAiHxUuzp1PMkBMurTc",
       "kind": "token-mint",
       "label": "mint",
@@ -474,6 +780,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "Bw4QKox44BNGfRAyUWRZ3YuyfzAiHxUuzp1PMkBMurTc",
       "kind": "ata",
       "label": "associated token account",
@@ -481,6 +788,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb",
       "kind": "token-owner",
       "label": "token owner",
@@ -488,6 +796,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV",
     },
     {
+      "external": false,
       "from": "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb",
       "kind": "token-mint",
       "label": "mint",
@@ -495,6 +804,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb",
       "kind": "ata",
       "label": "associated token account",
@@ -502,6 +812,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV",
     },
     {
+      "external": false,
       "from": "BQwyQrWoA7DXs4eFPpGmBhUSNJNMhF6YnHoqZ3nTvmox",
       "kind": "token-owner",
       "label": "token owner",
@@ -509,6 +820,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "BYD8fZwQrfFZ9UG4E1Drb8EFGNmxGfTGUds8pzoHSw6o",
     },
     {
+      "external": false,
       "from": "BQwyQrWoA7DXs4eFPpGmBhUSNJNMhF6YnHoqZ3nTvmox",
       "kind": "token-mint",
       "label": "mint",
@@ -516,6 +828,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "BQwyQrWoA7DXs4eFPpGmBhUSNJNMhF6YnHoqZ3nTvmox",
       "kind": "ata",
       "label": "associated token account",
@@ -523,6 +836,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "BYD8fZwQrfFZ9UG4E1Drb8EFGNmxGfTGUds8pzoHSw6o",
     },
     {
+      "external": false,
       "from": "qkYdTGRPHbWTWuBMz45bCiU6a23axRqf6sBHm9295WY",
       "kind": "token-owner",
       "label": "token owner",
@@ -530,6 +844,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
     },
     {
+      "external": false,
       "from": "qkYdTGRPHbWTWuBMz45bCiU6a23axRqf6sBHm9295WY",
       "kind": "token-mint",
       "label": "mint",
@@ -537,6 +852,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "qkYdTGRPHbWTWuBMz45bCiU6a23axRqf6sBHm9295WY",
       "kind": "ata",
       "label": "associated token account",
@@ -545,6 +861,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
     },
     {
       "bump": 255,
+      "external": false,
       "from": "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb",
       "instructionIndex": 3,
       "kind": "pda",
@@ -568,6 +885,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
     },
     {
       "bump": 255,
+      "external": false,
       "from": "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
       "instructionIndex": 3,
       "kind": "pda",
@@ -583,6 +901,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
     },
     {
       "bump": 255,
+      "external": false,
       "from": "BQwyQrWoA7DXs4eFPpGmBhUSNJNMhF6YnHoqZ3nTvmox",
       "instructionIndex": 3,
       "kind": "pda",
@@ -606,6 +925,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
     },
     {
       "bump": 255,
+      "external": false,
       "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
       "instructionIndex": 3,
       "kind": "pda",
@@ -624,6 +944,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
     },
     {
+      "external": false,
       "from": "3TCYZkF4yzLhoVWNQMytR6YsU6Fqh6A5jGsJAH9epump",
       "instructionIndex": 3,
       "kind": "has_one",
@@ -632,6 +953,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "So11111111111111111111111111111111111111112",
       "instructionIndex": 3,
       "kind": "has_one",
@@ -640,6 +962,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "2kzMSUGFQdNJsp453RubakDBuSZc2wXu4pfQDxpMWNc7",
       "instructionIndex": 3,
       "kind": "has_one",
@@ -648,6 +971,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
     {
+      "external": false,
       "from": "Bw4QKox44BNGfRAyUWRZ3YuyfzAiHxUuzp1PMkBMurTc",
       "instructionIndex": 3,
       "kind": "has_one",
@@ -657,6 +981,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
     },
     {
       "bump": 252,
+      "external": false,
       "from": "BYD8fZwQrfFZ9UG4E1Drb8EFGNmxGfTGUds8pzoHSw6o",
       "instructionIndex": 3,
       "kind": "pda",
@@ -690,6 +1015,7 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
 
 exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "+0.0001848",
@@ -719,6 +1045,17 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
   ],
   "computeUnitLimit": 87445,
   "computeUnitPrice": "43660",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+    },
+  ],
   "fee": "0.000008818 SOL",
   "feePayer": "7ht5dpZstYWwNwqc7DAUCzqAhVNEwFEjuvfcKmbfBYPd",
   "instructions": [
@@ -1135,9 +1472,289 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 81794 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 76705 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 74244 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "13,413 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13413 of 87145 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Jupiter Aggregator v6",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Route",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: SellV2",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]",
+    },
+    {
+      "depth": 3,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 39907 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 34706 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 31674 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3CqvNdFqAAAAAMaTYR8BAAAAAAAAAAAAAAAsCO6SBgAAAAAAAAAAAAAA8wUhCXZWAgCCz98iAgAAAOf9AgAAAAAAAgAAAAAAAAAoAAAAAAAAAF0AAAAAAAAAIAcAAAAAAAC//QIAAAAAAFL0AgAAAAAA0lA0RjxA2sLr2jKZd0b+m+nxsG0WxUuI4pWCWoK3l31jnxwzeargG0llAFGQQ1MlWyE4EOonw1KDGYWw06s0rCuvnDxaIkUEcjt21Vgfhqlqjo0PbD17eWcz3+CvV7bUZBghOl0/s74qztfVUO8eAYS2/4kK7zakwaGtIBjY9jYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvhhOvABVL94gb62Rh2phY//Xz1xnD3q6S73s6L0JYz4eAAAAAAAAAE0CAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [3]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 24122 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "49,712 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 49712 of 69525 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Jupiter Aggregator v6",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [2]",
+    },
+    {
+      "computeUnits": "91 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 91 of 17907 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+    },
+    {
+      "computeUnits": "56,532 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 56532 of 73732 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "return",
+      "text": "Program return: JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 UvQCAAAAAAA=",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 17200 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+  ],
   "recentBlockhash": "AMBGVLywNyLo2mvmkgiwFUV6NFqPkEHjjTfoYHwbAote",
   "relations": [
     {
+      "external": false,
       "from": "3wXqpGzsqM67KrKUnaGpznAFSaXXcbrt6rszdUR53nvo",
       "kind": "token-owner",
       "label": "token owner",
@@ -1145,6 +1762,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "7ht5dpZstYWwNwqc7DAUCzqAhVNEwFEjuvfcKmbfBYPd",
     },
     {
+      "external": false,
       "from": "3wXqpGzsqM67KrKUnaGpznAFSaXXcbrt6rszdUR53nvo",
       "kind": "token-mint",
       "label": "mint",
@@ -1152,6 +1770,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "DsjPNCjFrQDXGZ96UzohaMm9PQJJUxWFQ6Gy6do9CSLT",
     },
     {
+      "external": false,
       "from": "3wXqpGzsqM67KrKUnaGpznAFSaXXcbrt6rszdUR53nvo",
       "kind": "ata",
       "label": "associated token account",
@@ -1159,6 +1778,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "7ht5dpZstYWwNwqc7DAUCzqAhVNEwFEjuvfcKmbfBYPd",
     },
     {
+      "external": false,
       "from": "6JVoL88znFLYiPonxpvDpezdQWkpio7Px12RAWxoRfFU",
       "kind": "token-owner",
       "label": "token owner",
@@ -1166,6 +1786,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
     {
+      "external": false,
       "from": "6JVoL88znFLYiPonxpvDpezdQWkpio7Px12RAWxoRfFU",
       "kind": "token-mint",
       "label": "mint",
@@ -1173,6 +1794,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "DsjPNCjFrQDXGZ96UzohaMm9PQJJUxWFQ6Gy6do9CSLT",
     },
     {
+      "external": false,
       "from": "6JVoL88znFLYiPonxpvDpezdQWkpio7Px12RAWxoRfFU",
       "kind": "ata",
       "label": "associated token account",
@@ -1180,6 +1802,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
     {
+      "external": false,
       "from": "9CPHmpepoqDwBqq6mSJb8rbqo1KW66QjYdWxNT8DZHvX",
       "kind": "token-owner",
       "label": "token owner",
@@ -1187,6 +1810,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
     {
+      "external": false,
       "from": "9CPHmpepoqDwBqq6mSJb8rbqo1KW66QjYdWxNT8DZHvX",
       "kind": "token-mint",
       "label": "mint",
@@ -1194,6 +1818,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "9CPHmpepoqDwBqq6mSJb8rbqo1KW66QjYdWxNT8DZHvX",
       "kind": "ata",
       "label": "associated token account",
@@ -1201,6 +1826,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
     {
+      "external": false,
       "from": "HjQjngTDqoHE6aaGhUqfz9aQ7WZcBRjy5xB8PScLSr8i",
       "kind": "token-owner",
       "label": "token owner",
@@ -1208,6 +1834,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
     },
     {
+      "external": false,
       "from": "HjQjngTDqoHE6aaGhUqfz9aQ7WZcBRjy5xB8PScLSr8i",
       "kind": "token-mint",
       "label": "mint",
@@ -1215,6 +1842,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "HjQjngTDqoHE6aaGhUqfz9aQ7WZcBRjy5xB8PScLSr8i",
       "kind": "ata",
       "label": "associated token account",
@@ -1231,6 +1859,7 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
 
 exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.000020702",
@@ -1294,6 +1923,137 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
     },
   ],
   "computeUnitLimit": 189570,
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "5ekepu9jUM8Sb4eEMNvMyqPwgXBk15D7CPoSrVRbRggt",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "6Fc1knxEuytvJ5RrxdCkcy27r1NkPnETWTTJpkbneT85",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "6YMR5yemq2aLNWCj2DUoTtdUMpSR1QA7rgPebhtv9yiF",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "6cDo6ekEHrJaoWnWDkHguqqg89xC52RdhFJZLNVwdeqi",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "6nG2miqkUBaMQhjbQSnKyb68VHJj7sdUk5oCePUW6RJY",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "7xrjio4HMDaBCXCHdFoqBUvP3epvh7DKnECpmVBZ5ZW3",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "9eVjv46ddWcUz38Ce552KXH16SCm8gzta8Ft9oDKWFJZ",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "BrNy16TZKKJLpGimWmarzH8XnQuCxJWKuWvUcW2t8QFi",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "12jcZpK8ggSk2ppnKsbqno6zqbqTMS2rq2jAxNj3moKs",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "dijkbkCAKfFTCxQg3u1pg82gVU1jJGHBBRcteD11mBu",
+    },
+    {
+      "external": true,
+      "from": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+      "kind": "mint-authority",
+      "label": "mint authority",
+      "status": "verified",
+      "to": "CTQE6PMesbH4szKR9Nk5moj9WWUr9MVGP734wYX9wy3p",
+    },
+    {
+      "external": true,
+      "from": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+      "kind": "freeze-authority",
+      "label": "freeze authority",
+      "status": "verified",
+      "to": "DSFAkPhfrSR95J9oq9Sh8rUetbj5vgFmwiSuHw6rAVnz",
+    },
+    {
+      "external": true,
+      "from": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+      "kind": "mint-authority",
+      "label": "mint authority",
+      "status": "verified",
+      "to": "BCD75RNBHrJJpW4dXVagL5mPjzRLnVZq4YirJdjEYMV7",
+    },
+    {
+      "external": true,
+      "from": "8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+    },
+    {
+      "external": true,
+      "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "kind": "mint-authority",
+      "label": "mint authority",
+      "status": "verified",
+      "to": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+    },
+    {
+      "external": true,
+      "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "kind": "freeze-authority",
+      "label": "freeze authority",
+      "status": "verified",
+      "to": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+    },
+    {
+      "external": true,
+      "from": "J1to1yufRnoWn81KYg1XkTWzmKjnYSnmE2VY8DGUJ9Qv",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Vote111111111111111111111111111111111111111",
+    },
+  ],
   "fee": "0.000010702 SOL",
   "feePayer": "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
   "instructions": [
@@ -1913,10 +2673,300 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
   "issues": [],
   "level": "expert",
   "loadedAccountsDataSizeLimit": 67108864,
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Jupiter Aggregator v6",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: RouteV2",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "pump.fun",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: SellV3",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]",
+    },
+    {
+      "depth": 3,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 145706 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "105 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 140467 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "105 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 137411 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "data",
+      "text": "Program data: vdt/007mYe4GcrTZuCfDGGl/gLuozpaP5xvdAB4G8hpXsYE/XSR0MgAAAAAAAAAAsW2LSX4EAAAAkmhW2DzAt5+UYN/puyQfhUtHGg3wrEXrHv5UFrmNlsKvNdFqAAAAAAAAAAAAAAAAWWISgK6oAQAAAAAAAAAAAFnK/zMdqgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABfAAAAAAAAAKgDAAAAAAAAAPpSTmeGHJbzKi26GQ1t0LXeiJ1bDGui+TjyAmk1pAAsAQAAAAAAAIoLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAHNlbGwAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAA1AEAAAAAAAAAAAAAIzzqR01stRPa1CHILmgfgO11EkVd+5H8aDY7mdkVZYKEgAEAAAAAAPZ1jAAAAAAAkVdPAAAAAAAsAQAAAAAAAIoLAAAAAA",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "pump.fun",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P invoke [3]",
+    },
+    {
+      "computeUnits": "2,170 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P consumed 2170 of 130395 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P success",
+    },
+    {
+      "computeUnits": "58,269 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P consumed 58269 of 184191 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "data",
+      "text": "Program data: OubyA0txBKl+L6Fl3CiqX4HS0fGADBmjQ99SpAXKsriUM0cbtBoTdQbEe8514YcJ+3w7ebXnxm2MVvsMjqP03XI1L4U8rEu7kmhW2DzAt5+UYN/puyQfhUtHGg3wrEXrHv5UFrmNlsIJHnPRelUm1Ejlia6lr+fCLNYcW2aoakJ6smIwlRTlXCM86kdNbLUT2tQhyC5oH4DtdRJFXfuR/Gg2O5nZFWWCankumS6Q5w0AAAAAAAAAAJxwAQAAAAAAUnEBAAAAAABDC0oAAAAAAGMLSgAAAAAAAQAAAAAAAAAAAAAAAAAAAA==",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "76 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 115137 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "138 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 138 of 113281 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "data",
+      "text": "Program data: vWGf64gFAY1+L6Fl3CiqX4HS0fGADBmjQ99SpAXKsriUM0cbtBoTdZJoVtg8wLeflGDf6bskH4VLRxoN8KxF6x7+VBa5jZbC1FK+FUB7XKP1xWiJcmpZ4Y7Cl0PflSU2kJXEJIX6Z/AAAAAcLfM3BwBVddzSt1IAnHABAAAAAABjC0oAAAAAAP////8AAAAAAQEAAAAAAAA=",
+    },
+    {
+      "computeUnits": "9,834 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms consumed 9834 of 122424 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program goonuddtQRrWqqn5nFyczVKaie28f3kDkHWkHtURSLE invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: 000000001b4da6a9-000000001fe3da1b-000000000000000a-4d",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "76 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 69784 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 2,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]",
+    },
+    {
+      "computeUnits": "76 CU",
+      "depth": 3,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 68405 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "73,117 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program goonuddtQRrWqqn5nFyczVKaie28f3kDkHWkHtURSLE consumed 73117 of 106372 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program goonuddtQRrWqqn5nFyczVKaie28f3kDkHWkHtURSLE success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Jupiter Aggregator v6",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 invoke [2]",
+    },
+    {
+      "computeUnits": "91 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 91 of 31247 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+    },
+    {
+      "computeUnits": "158,908 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 consumed 158908 of 189570 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "return",
+      "text": "Program return: JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 8j6hBAAAAAA=",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "105 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 30512 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+  ],
   "priorityFeeLamports": "702",
   "recentBlockhash": "AHWbYJaNgUAUf5YFzymiQsUhEThpbe6gikYX6sFU9W4y",
   "relations": [
     {
+      "external": false,
       "from": "51Lo7LQrM5WduV6o49Zmv7cXoMsDfbBw145HWEv9G9WT",
       "kind": "token-owner",
       "label": "token owner",
@@ -1924,6 +2974,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "51Lo7LQrM5WduV6o49Zmv7cXoMsDfbBw145HWEv9G9WT",
     },
     {
+      "external": false,
       "from": "51Lo7LQrM5WduV6o49Zmv7cXoMsDfbBw145HWEv9G9WT",
       "kind": "token-mint",
       "label": "mint",
@@ -1931,6 +2982,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
     },
     {
+      "external": false,
       "from": "5CUmy7rXCJcMtdHpehrbtfJ156ZybLfyiHsNRzSBSEgw",
       "kind": "token-owner",
       "label": "token owner",
@@ -1938,6 +2990,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "5CUmy7rXCJcMtdHpehrbtfJ156ZybLfyiHsNRzSBSEgw",
     },
     {
+      "external": false,
       "from": "5CUmy7rXCJcMtdHpehrbtfJ156ZybLfyiHsNRzSBSEgw",
       "kind": "token-mint",
       "label": "mint",
@@ -1945,6 +2998,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
     },
     {
+      "external": false,
       "from": "5ekepu9jUM8Sb4eEMNvMyqPwgXBk15D7CPoSrVRbRggt",
       "kind": "token-owner",
       "label": "token owner",
@@ -1952,6 +3006,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
     {
+      "external": false,
       "from": "5ekepu9jUM8Sb4eEMNvMyqPwgXBk15D7CPoSrVRbRggt",
       "kind": "token-mint",
       "label": "mint",
@@ -1959,6 +3014,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "SAtoZGJkh4Eid9EQZYXWnCNVn5asZrWZLouBMX1SHi1",
     },
     {
+      "external": false,
       "from": "5ekepu9jUM8Sb4eEMNvMyqPwgXBk15D7CPoSrVRbRggt",
       "kind": "ata",
       "label": "associated token account",
@@ -1966,6 +3022,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
     {
+      "external": false,
       "from": "6Fc1knxEuytvJ5RrxdCkcy27r1NkPnETWTTJpkbneT85",
       "kind": "token-owner",
       "label": "token owner",
@@ -1973,6 +3030,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
     },
     {
+      "external": false,
       "from": "6Fc1knxEuytvJ5RrxdCkcy27r1NkPnETWTTJpkbneT85",
       "kind": "token-mint",
       "label": "mint",
@@ -1980,6 +3038,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "external": false,
       "from": "6Fc1knxEuytvJ5RrxdCkcy27r1NkPnETWTTJpkbneT85",
       "kind": "ata",
       "label": "associated token account",
@@ -1987,6 +3046,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
     },
     {
+      "external": false,
       "from": "6YMR5yemq2aLNWCj2DUoTtdUMpSR1QA7rgPebhtv9yiF",
       "kind": "token-owner",
       "label": "token owner",
@@ -1994,6 +3054,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "6YMR5yemq2aLNWCj2DUoTtdUMpSR1QA7rgPebhtv9yiF",
       "kind": "token-mint",
       "label": "mint",
@@ -2001,6 +3062,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "external": false,
       "from": "6YMR5yemq2aLNWCj2DUoTtdUMpSR1QA7rgPebhtv9yiF",
       "kind": "ata",
       "label": "associated token account",
@@ -2008,6 +3070,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "6cDo6ekEHrJaoWnWDkHguqqg89xC52RdhFJZLNVwdeqi",
       "kind": "token-owner",
       "label": "token owner",
@@ -2015,6 +3078,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
     {
+      "external": false,
       "from": "6cDo6ekEHrJaoWnWDkHguqqg89xC52RdhFJZLNVwdeqi",
       "kind": "token-mint",
       "label": "mint",
@@ -2022,6 +3086,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "external": false,
       "from": "6cDo6ekEHrJaoWnWDkHguqqg89xC52RdhFJZLNVwdeqi",
       "kind": "ata",
       "label": "associated token account",
@@ -2029,6 +3094,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
     {
+      "external": false,
       "from": "6nG2miqkUBaMQhjbQSnKyb68VHJj7sdUk5oCePUW6RJY",
       "kind": "token-owner",
       "label": "token owner",
@@ -2036,6 +3102,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "6nG2miqkUBaMQhjbQSnKyb68VHJj7sdUk5oCePUW6RJY",
       "kind": "token-mint",
       "label": "mint",
@@ -2043,6 +3110,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "SAtoZGJkh4Eid9EQZYXWnCNVn5asZrWZLouBMX1SHi1",
     },
     {
+      "external": false,
       "from": "6nG2miqkUBaMQhjbQSnKyb68VHJj7sdUk5oCePUW6RJY",
       "kind": "ata",
       "label": "associated token account",
@@ -2050,6 +3118,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "7xrjio4HMDaBCXCHdFoqBUvP3epvh7DKnECpmVBZ5ZW3",
       "kind": "token-owner",
       "label": "token owner",
@@ -2057,6 +3126,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
     },
     {
+      "external": false,
       "from": "7xrjio4HMDaBCXCHdFoqBUvP3epvh7DKnECpmVBZ5ZW3",
       "kind": "token-mint",
       "label": "mint",
@@ -2064,6 +3134,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "external": false,
       "from": "7xrjio4HMDaBCXCHdFoqBUvP3epvh7DKnECpmVBZ5ZW3",
       "kind": "ata",
       "label": "associated token account",
@@ -2071,6 +3142,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
     },
     {
+      "external": false,
       "from": "9eVjv46ddWcUz38Ce552KXH16SCm8gzta8Ft9oDKWFJZ",
       "kind": "token-owner",
       "label": "token owner",
@@ -2078,6 +3150,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "9eVjv46ddWcUz38Ce552KXH16SCm8gzta8Ft9oDKWFJZ",
       "kind": "token-mint",
       "label": "mint",
@@ -2085,6 +3158,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "external": false,
       "from": "9eVjv46ddWcUz38Ce552KXH16SCm8gzta8Ft9oDKWFJZ",
       "kind": "ata",
       "label": "associated token account",
@@ -2092,6 +3166,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "BrNy16TZKKJLpGimWmarzH8XnQuCxJWKuWvUcW2t8QFi",
       "kind": "token-owner",
       "label": "token owner",
@@ -2099,6 +3174,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "BrNy16TZKKJLpGimWmarzH8XnQuCxJWKuWvUcW2t8QFi",
       "kind": "token-mint",
       "label": "mint",
@@ -2106,6 +3182,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
     },
     {
+      "external": false,
       "from": "BrNy16TZKKJLpGimWmarzH8XnQuCxJWKuWvUcW2t8QFi",
       "kind": "ata",
       "label": "associated token account",
@@ -2113,6 +3190,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
     {
+      "external": false,
       "from": "DUJ6GqqnusjP4ajzbDUx2veRkeXfNVnjh5vAQ1P5fuix",
       "kind": "token-owner",
       "label": "token owner",
@@ -2120,6 +3198,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "DUJ6GqqnusjP4ajzbDUx2veRkeXfNVnjh5vAQ1P5fuix",
     },
     {
+      "external": false,
       "from": "DUJ6GqqnusjP4ajzbDUx2veRkeXfNVnjh5vAQ1P5fuix",
       "kind": "token-mint",
       "label": "mint",
@@ -2127,6 +3206,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "external": false,
       "from": "FKKpxrDezYSw5JoP2k5xaABPk2De3xvsU7gXkfsdJw3f",
       "kind": "token-owner",
       "label": "token owner",
@@ -2134,6 +3214,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "8TxrtAxqA5PA2Y1d2pxzCz9SoDhjrBcYqNAQKVv6p443",
     },
     {
+      "external": false,
       "from": "FKKpxrDezYSw5JoP2k5xaABPk2De3xvsU7gXkfsdJw3f",
       "kind": "token-mint",
       "label": "mint",
@@ -2141,6 +3222,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
     },
     {
+      "external": false,
       "from": "HQdab425TntryU9zwSzhkBSzkdUuyoKZX1y8sQvjTYmX",
       "kind": "token-owner",
       "label": "token owner",
@@ -2148,6 +3230,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "8TxrtAxqA5PA2Y1d2pxzCz9SoDhjrBcYqNAQKVv6p443",
     },
     {
+      "external": false,
       "from": "HQdab425TntryU9zwSzhkBSzkdUuyoKZX1y8sQvjTYmX",
       "kind": "token-mint",
       "label": "mint",
@@ -2164,6 +3247,7 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
 
 exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "+0.147357806",
@@ -2232,6 +3316,8 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
   ],
   "computeUnitLimit": 1400000,
+  "computeUnits": null,
+  "externalRelations": [],
   "fee": "0.0000683 SOL",
   "feePayer": "FcJXFKhpsg5iGsxJSeUkCmRgTK4vs7qh95CDW88S6Uvd",
   "instructions": [
@@ -3544,10 +4630,1097 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
   "issues": [],
   "level": "expert",
   "loadedAccountsDataSizeLimit": 67108864,
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 1394649 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 1389560 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 1387099 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "13,413 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13413 of 1400000 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Sell",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: GetFeesWithQuoteMint",
+    },
+    {
+      "computeUnits": "6,121 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ consumed 6121 of 1350159 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ AgAAAAAAAABdAAAAAAAAAB4AAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 1340184 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1334982 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1331947 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1327555 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1322891 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3Cq0NNFqAAAAAAB1ee9TAAAAAAAAAAAAAAAAdXnvUwAAAAAAAAAAAAAApe4Q4Na7AACTm0PdDwAAAOUE5ggAAAAAAgAAAAAAAACjdAAAAAAAAF0AAAAAAAAAgy8VAAAAAABCkOUIAAAAADqLyQgAAAAAOsoNoB9qtw6ll6F5OAZ1Y2nX/S1BwvXNWAvJ1bn7gj7ZDsHEwtyVOKaEshRJS076ITDiXW9J/HQNIyISbGil6h4Y8zcO+8a499CwxzD6ul4QPnVaspRS5vFKqvKENMqafFAesHOcGTxKSaZRis2PgFmi9qISlrxLzi7tmgqm81yDhHQpLmdalLQ27LCpmIlCMoqD3cYjOAKWEmfFzWEXy6JjF6U7oP1oxMlT7DDw4JuOc2h1HLKBVIbK4+mdCvnd8PSGUeg9N1IbB1fcu3nvdIqjV/wF55r2ABnqtLuXQL4eAAAAAAAAAIXVBgAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 1315450 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "75,063 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 75063 of 1386587 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 1311524 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 1306055 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 1300966 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 1298505 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "13,413 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13413 of 1311406 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Sell",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: GetFeesWithQuoteMint",
+    },
+    {
+      "computeUnits": "6,121 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ consumed 6121 of 1261565 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ AgAAAAAAAABdAAAAAAAAAB4AAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 1251590 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1246388 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1243353 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1238961 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1234297 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3Cq0NNFqAAAAAAB1ee9TAAAAAAAAAAAAAAAAdXnvUwAAAAAAAAAAAAAApWOKzyq8AABRC17UDwAAAFQY3ggAAAAAAgAAAAAAAAA7dAAAAAAAAF0AAAAAAAAApRwVAAAAAAAZpN0IAAAAAAW4wQgAAAAAOsoNoB9qtw6ll6F5OAZ1Y2nX/S1BwvXNWAvJ1bn7gj4Fo3Kl0WgXLZLOlhOaTmqGHPJiIkKknhmuQmjYaD9NpGoTirW0dm/wK169uwsCgcEI5/OBhtLhpKEWBFtKWSypHtLTmxephGCs74TjPJuPpVHRa7mTF91Vk0G7lm+vYVaDhHQpLmdalLQ27LCpmIlCMoqD3cYjOAKWEmfFzWEXy6JjF6U7oP1oxMlT7DDw4JuOc2h1HLKBVIbK4+mdCvnd8PSGUeg9N1IbB1fcu3nvdIqjV/wF55r2ABnqtLuXQL4eAAAAAAAAAG/PBgAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 1226856 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "75,063 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 75063 of 1297993 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 1222930 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 1215961 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 1210872 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 1208411 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "14,913 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 14913 of 1222812 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Sell",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: GetFeesWithQuoteMint",
+    },
+    {
+      "computeUnits": "6,121 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ consumed 6121 of 1171470 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ AgAAAAAAAABdAAAAAAAAAB4AAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 1161495 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1156293 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1153258 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1148866 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1144202 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3Cq0NNFqAAAAAAB1ee9TAAAAAAAAAAAAAAAAdXnvUwAAAAAAAAAAAAAApdgDv368AAA4Z4DLDwAAAFQ21ggAAAAAAgAAAAAAAADUcwAAAAAAAF0AAAAAAAAA4AkVAAAAAACAwtUIAAAAAD7vuQgAAAAAOsoNoB9qtw6ll6F5OAZ1Y2nX/S1BwvXNWAvJ1bn7gj4YjHzeNgQVyN51DFsC0zTHw7DqSiWTtNXccA2jPs6xxqUr4vAP4ue+bpLdABNG1fToPtUwFBt+vrT/P4O3GmiCqQD2LJ/c3f9e0Cqq46D3d9AIpVXHYBx3nEFUCPzzRPGDhHQpLmdalLQ27LCpmIlCMoqD3cYjOAKWEmfFzWEXy6JjF6U7oP1oxMlT7DDw4JuOc2h1HLKBVIbK4+mdCvnd8PSGUeg9N1IbB1fcu3nvdIqjV/wF55r2ABnqtLuXQL4eAAAAAAAAAGLJBgAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 1136761 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "75,064 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 75064 of 1207899 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 1132835 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 1127366 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 1122277 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "229 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 229 of 1119816 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "13,413 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13413 of 1132717 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Sell",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: GetFeesWithQuoteMint",
+    },
+    {
+      "computeUnits": "6,121 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ consumed 6121 of 1082875 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ AgAAAAAAAABdAAAAAAAAAB4AAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+    },
+    {
+      "depth": 2,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,562 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2562 of 1072900 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1067698 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1064663 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1060271 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "112 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 1055607 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "data",
+      "text": "Program data: Pi83CqUD3Cq0NNFqAAAAAAB1ee9TAAAAAAAAAAAAAAAAdXnvUwAAAAAAAAAAAAAApU19rtK8AAC4pKrCDwAAANJezggAAAAAAgAAAAAAAABtcwAAAAAAAF0AAAAAAAAANfcUAAAAAABl680IAAAAANQwsggAAAAAOsoNoB9qtw6ll6F5OAZ1Y2nX/S1BwvXNWAvJ1bn7gj5Uiai7yHEQx4k2OJtySsa8pLJFnD1Sfp2+JlUl87GGoELKG1hIDC+0VjU1LXlUNK/6a4UnzJu60qMLRulhCl3qbnjPmmxeIzdQZU/DSb7lSsZy8w3a95/Rafs27szptueDhHQpLmdalLQ27LCpmIlCMoqD3cYjOAKWEmfFzWEXy6JjF6U7oP1oxMlT7DDw4JuOc2h1HLKBVIbK4+mdCvnd8PSGUeg9N1IbB1fcu3nvdIqjV/wF55r2ABnqtLuXQL4eAAAAAAAAAFzDBgAAAAAAAAAAAAAAAAAAAAAAAA",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "PumpSwap",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA invoke [2]",
+    },
+    {
+      "computeUnits": "2,116 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 2116 of 1048166 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "computeUnits": "75,064 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA consumed 75064 of 1119304 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "118 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 118 of 1044240 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+  ],
   "priorityFeeLamports": "48300",
   "recentBlockhash": "BzthtuH4xuh2JixUiwiEJJfnShqBsZRYam4sAjechYiG",
   "relations": [
     {
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "kind": "token-owner",
       "label": "token owner",
@@ -3555,6 +5728,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
     },
     {
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "kind": "token-mint",
       "label": "mint",
@@ -3562,6 +5736,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "kind": "ata",
       "label": "associated token account",
@@ -3569,6 +5744,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
     },
     {
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "kind": "token-owner",
       "label": "token owner",
@@ -3576,6 +5752,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "kind": "token-mint",
       "label": "mint",
@@ -3583,6 +5760,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
     },
     {
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "kind": "ata",
       "label": "associated token account",
@@ -3590,6 +5768,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "kind": "token-owner",
       "label": "token owner",
@@ -3597,6 +5776,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "9rPYyANsfQZw3DnDmKE3YCQF5E8oD89UXoHn9JFEhJUz",
     },
     {
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "kind": "token-mint",
       "label": "mint",
@@ -3604,6 +5784,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "kind": "ata",
       "label": "associated token account",
@@ -3611,6 +5792,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "9rPYyANsfQZw3DnDmKE3YCQF5E8oD89UXoHn9JFEhJUz",
     },
     {
+      "external": false,
       "from": "CA7v8gHfbquYXyDnDx6QxWW8hmL1H7X6Y2RYDrGLnuck",
       "kind": "token-owner",
       "label": "token owner",
@@ -3618,6 +5800,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
     },
     {
+      "external": false,
       "from": "CA7v8gHfbquYXyDnDx6QxWW8hmL1H7X6Y2RYDrGLnuck",
       "kind": "token-mint",
       "label": "mint",
@@ -3625,6 +5808,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "CA7v8gHfbquYXyDnDx6QxWW8hmL1H7X6Y2RYDrGLnuck",
       "kind": "ata",
       "label": "associated token account",
@@ -3632,6 +5816,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
     },
     {
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "kind": "token-owner",
       "label": "token owner",
@@ -3639,6 +5824,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "kind": "token-mint",
       "label": "mint",
@@ -3646,6 +5832,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "kind": "ata",
       "label": "associated token account",
@@ -3654,6 +5841,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "instructionIndex": 1,
       "kind": "pda",
@@ -3677,6 +5865,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
       "instructionIndex": 1,
       "kind": "pda",
@@ -3692,6 +5881,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 253,
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "instructionIndex": 1,
       "kind": "pda",
@@ -3715,6 +5905,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
       "instructionIndex": 1,
       "kind": "pda",
@@ -3733,6 +5924,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
     },
     {
+      "external": false,
       "from": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
       "instructionIndex": 1,
       "kind": "has_one",
@@ -3741,6 +5933,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "So11111111111111111111111111111111111111112",
       "instructionIndex": 1,
       "kind": "has_one",
@@ -3749,6 +5942,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "instructionIndex": 1,
       "kind": "has_one",
@@ -3757,6 +5951,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
     {
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "instructionIndex": 1,
       "kind": "has_one",
@@ -3766,6 +5961,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 254,
+      "external": false,
       "from": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
       "instructionIndex": 1,
       "kind": "pda",
@@ -3785,6 +5981,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "instructionIndex": 4,
       "kind": "pda",
@@ -3808,6 +6005,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
       "instructionIndex": 4,
       "kind": "pda",
@@ -3823,6 +6021,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 253,
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "instructionIndex": 4,
       "kind": "pda",
@@ -3846,6 +6045,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
       "instructionIndex": 4,
       "kind": "pda",
@@ -3865,6 +6065,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
       "instructionIndex": 4,
       "kind": "has_one",
@@ -3874,6 +6075,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "So11111111111111111111111111111111111111112",
       "instructionIndex": 4,
       "kind": "has_one",
@@ -3883,6 +6085,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "instructionIndex": 4,
       "kind": "has_one",
@@ -3892,6 +6095,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "instructionIndex": 4,
       "kind": "has_one",
@@ -3901,6 +6105,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
       "instructionIndex": 4,
       "kind": "pda",
@@ -3910,6 +6115,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "instructionIndex": 7,
       "kind": "pda",
@@ -3933,6 +6139,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
       "instructionIndex": 7,
       "kind": "pda",
@@ -3948,6 +6155,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 253,
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "instructionIndex": 7,
       "kind": "pda",
@@ -3971,6 +6179,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
       "instructionIndex": 7,
       "kind": "pda",
@@ -3990,6 +6199,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
       "instructionIndex": 7,
       "kind": "has_one",
@@ -3999,6 +6209,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "So11111111111111111111111111111111111111112",
       "instructionIndex": 7,
       "kind": "has_one",
@@ -4008,6 +6219,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "instructionIndex": 7,
       "kind": "has_one",
@@ -4017,6 +6229,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "instructionIndex": 7,
       "kind": "has_one",
@@ -4026,6 +6239,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
       "instructionIndex": 7,
       "kind": "pda",
@@ -4035,6 +6249,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "instructionIndex": 10,
       "kind": "pda",
@@ -4058,6 +6273,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
       "instructionIndex": 10,
       "kind": "pda",
@@ -4073,6 +6289,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 253,
+      "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "instructionIndex": 10,
       "kind": "pda",
@@ -4096,6 +6313,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "bump": 255,
+      "external": false,
       "from": "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx",
       "instructionIndex": 10,
       "kind": "pda",
@@ -4115,6 +6333,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
       "instructionIndex": 10,
       "kind": "has_one",
@@ -4124,6 +6343,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "So11111111111111111111111111111111111111112",
       "instructionIndex": 10,
       "kind": "has_one",
@@ -4133,6 +6353,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "instructionIndex": 10,
       "kind": "has_one",
@@ -4142,6 +6363,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "instructionIndex": 10,
       "kind": "has_one",
@@ -4151,6 +6373,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
     },
     {
       "detail": "pool may be modified by an earlier instruction",
+      "external": false,
       "from": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
       "instructionIndex": 10,
       "kind": "pda",
@@ -4174,6 +6397,7 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
 
 exports[`mainnet fixture sol-transfer.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.167581982",
@@ -4187,6 +6411,8 @@ exports[`mainnet fixture sol-transfer.json > explains deterministically from rec
     },
   ],
   "computeUnitPrice": "500000",
+  "computeUnits": null,
+  "externalRelations": [],
   "fee": "0.000008 SOL",
   "feePayer": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
   "instructions": [
@@ -4243,6 +6469,30 @@ exports[`mainnet fixture sol-transfer.json > explains deterministically from rec
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+  ],
   "recentBlockhash": "7jWpeUWz6P6LQt5psY3y6VeRbCKp84q4h2aWbmeXCzrf",
   "relations": [],
   "stateChanges": null,
@@ -4254,6 +6504,7 @@ exports[`mainnet fixture sol-transfer.json > explains deterministically from rec
 
 exports[`mainnet fixture squads-proposal-approve.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.00010759",
@@ -4268,6 +6519,17 @@ exports[`mainnet fixture squads-proposal-approve.json > explains deterministical
   ],
   "computeUnitLimit": 50000,
   "computeUnitPrice": "51796",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "T1pyyaTNZsKv2WcRAB8oVnk93mLJw2XzjtVYqCsaHqt",
+    },
+  ],
   "fee": "0.00000759 SOL",
   "feePayer": "3TPczDPBfQpA6KiHSwYC51Qwzn1DJApVwqCK88zB69Au",
   "instructions": [
@@ -4368,19 +6630,76 @@ exports[`mainnet fixture squads-proposal-approve.json > explains deterministical
       },
       "dataHex": "9025a488bcd82af800",
       "idl": {
-        "hash": "a04bb5ab2e4ef87291aa1cfe352669007dca363773b8698a27fa1ac3733c4bf6",
-        "source": "anchor-onchain",
-        "trust": "authority",
+        "hash": "acfe7e3ffb35e3a7d0dc237025ad218fdc69c2d1405e6f08127e626c6a17bf59",
+        "source": "bundled",
+        "trust": "curated",
       },
       "index": 3,
       "name": "proposalApprove",
       "program": "Squads v4",
       "programId": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
-      "trust": "authority",
+      "trust": "curated",
     },
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Squads v4",
+      "text": "Program SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: ProposalApprove",
+    },
+    {
+      "computeUnits": "10,955 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf consumed 10955 of 49550 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf success",
+    },
+  ],
   "recentBlockhash": "DAf6gxKCXQSwSPN2aXHBU2VkoaAHwm9dz5Fxg6cffhQt",
   "relations": [],
   "stateChanges": null,
@@ -4392,6 +6711,7 @@ exports[`mainnet fixture squads-proposal-approve.json > explains deterministical
 
 exports[`mainnet fixture stake-delegate.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-13.900025",
@@ -4406,6 +6726,49 @@ exports[`mainnet fixture stake-delegate.json > explains deterministically from r
   ],
   "computeUnitLimit": 400000,
   "computeUnitPrice": "50000",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "BbM5kJgrwEj3tYFfBPnjcARB54wDUHkXmLUTkazUmt2x",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Vote111111111111111111111111111111111111111",
+    },
+    {
+      "external": true,
+      "from": "StakeConfig11111111111111111111111111111111",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Config1111111111111111111111111111111111111",
+    },
+    {
+      "external": true,
+      "from": "SysvarC1ock11111111111111111111111111111111",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Sysvar1111111111111111111111111111111111111",
+    },
+    {
+      "external": true,
+      "from": "SysvarRent111111111111111111111111111111111",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Sysvar1111111111111111111111111111111111111",
+    },
+    {
+      "external": true,
+      "from": "SysvarStakeHistory1111111111111111111111111",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "Sysvar1111111111111111111111111111111111111",
+    },
+  ],
   "fee": "0.000025 SOL",
   "feePayer": "6pDsRCcNx9RPfugXkbS53RK3pshkqUfZv6rec5ic51zQ",
   "instructions": [
@@ -4586,6 +6949,85 @@ exports[`mainnet fixture stake-delegate.json > explains deterministically from r
     },
   ],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Stake Program",
+      "text": "Program Stake11111111111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: Initialize",
+    },
+    {
+      "computeUnits": "7,758 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program Stake11111111111111111111111111111111111111 consumed 7758 of 399550 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program Stake11111111111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Stake Program",
+      "text": "Program Stake11111111111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: DelegateStake",
+    },
+    {
+      "computeUnits": "17,794 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program Stake11111111111111111111111111111111111111 consumed 17794 of 391792 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program Stake11111111111111111111111111111111111111 success",
+    },
+  ],
   "recentBlockhash": "4dKSJ5BZ6AFd14hcuvpLjZvyiFVwVENk28F59PYPBECG",
   "relations": [],
   "stateChanges": null,
@@ -4597,6 +7039,7 @@ exports[`mainnet fixture stake-delegate.json > explains deterministically from r
 
 exports[`mainnet fixture token-2022-transfer.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.00000508",
@@ -4616,6 +7059,25 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
   ],
   "computeUnitLimit": 15980,
   "computeUnitPrice": "5000",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "5LGuRYACR9yvt7AP6S7axgbe9ZJfEpDhYKJr1cyfPd6n",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "ETJUhAGZAUous2sNuZ6L1FQoaeNdh7rdhsRFiB4ZmJJR",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+  ],
   "fee": "0.00000508 SOL",
   "feePayer": "HpU7m8syz7xNbLWSfoVNET9zQ36VMAoeQftiJMonsVXi",
   "instructions": [
@@ -4712,9 +7174,56 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token-2022 Program",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Instruction: TransferChecked",
+    },
+    {
+      "computeUnits": "2,561 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2561 of 15680 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+    },
+  ],
   "recentBlockhash": "3AfSs3QQ27FheU7JjzyfmD3yeZYRDptHnQ1vJCL5ders",
   "relations": [
     {
+      "external": false,
       "from": "5LGuRYACR9yvt7AP6S7axgbe9ZJfEpDhYKJr1cyfPd6n",
       "kind": "token-owner",
       "label": "token owner",
@@ -4722,6 +7231,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "BLvBwxmJsHrErp87wtL1zzKXtgBb2hyDpH2aG4BHdfRb",
     },
     {
+      "external": false,
       "from": "5LGuRYACR9yvt7AP6S7axgbe9ZJfEpDhYKJr1cyfPd6n",
       "kind": "token-mint",
       "label": "mint",
@@ -4729,6 +7239,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "EHJMZdc43u4dcQ9uDcUv5VuB9podCoPhx8PDtByzpump",
     },
     {
+      "external": false,
       "from": "5LGuRYACR9yvt7AP6S7axgbe9ZJfEpDhYKJr1cyfPd6n",
       "kind": "ata",
       "label": "associated token account",
@@ -4736,6 +7247,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "BLvBwxmJsHrErp87wtL1zzKXtgBb2hyDpH2aG4BHdfRb",
     },
     {
+      "external": false,
       "from": "ETJUhAGZAUous2sNuZ6L1FQoaeNdh7rdhsRFiB4ZmJJR",
       "kind": "token-owner",
       "label": "token owner",
@@ -4743,6 +7255,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "HpU7m8syz7xNbLWSfoVNET9zQ36VMAoeQftiJMonsVXi",
     },
     {
+      "external": false,
       "from": "ETJUhAGZAUous2sNuZ6L1FQoaeNdh7rdhsRFiB4ZmJJR",
       "kind": "token-mint",
       "label": "mint",
@@ -4750,6 +7263,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "EHJMZdc43u4dcQ9uDcUv5VuB9podCoPhx8PDtByzpump",
     },
     {
+      "external": false,
       "from": "ETJUhAGZAUous2sNuZ6L1FQoaeNdh7rdhsRFiB4ZmJJR",
       "kind": "ata",
       "label": "associated token account",
@@ -4766,6 +7280,7 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
 
 exports[`mainnet fixture token-approve.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.001499988",
@@ -4780,6 +7295,33 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
   ],
   "computeUnitLimit": 15480,
   "computeUnitPrice": "100000",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "3UsCVSxLJmWXBKFyVSsCJTG133dd1sMuxo1Uee5wqqUn",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "EKCB8YdZvLZfWGFtsjmu2LUZNeXoybxBUVSQJJxt1v5k",
+    },
+    {
+      "external": true,
+      "from": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "kind": "mint-authority",
+      "label": "mint authority",
+      "status": "verified",
+      "to": "Q6XprfkF8RQQKoQVG33xT88H7wi8Uk1B1CC7YAs69Gi",
+    },
+    {
+      "external": true,
+      "from": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "kind": "freeze-authority",
+      "label": "freeze authority",
+      "status": "verified",
+      "to": "Q6XprfkF8RQQKoQVG33xT88H7wi8Uk1B1CC7YAs69Gi",
+    },
+  ],
   "fee": "0.000011548 SOL",
   "feePayer": "FVZG9GCGCKdFhwQADq4dTauwsczyLiuFzGH2GDc22nYS",
   "instructions": [
@@ -4968,9 +7510,162 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Associated Token Program",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: CreateIdempotent",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "179 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 179 of 9752 compute units",
+    },
+    {
+      "depth": 2,
+      "kind": "return",
+      "text": "Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "System Program",
+      "text": "Program 11111111111111111111111111111111 invoke [2]",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program 11111111111111111111111111111111 success",
+    },
+    {
+      "depth": 1,
+      "kind": "log",
+      "text": "Program log: Initialize the associated token account",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "37 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 37 of 4663 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 1,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+    },
+    {
+      "computeUnits": "233 CU",
+      "depth": 2,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 233 of 2201 compute units",
+    },
+    {
+      "depth": 1,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "computeUnits": "13,516 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13516 of 15180 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "133 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 133 of 1664 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "123 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 123 of 1531 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+  ],
   "recentBlockhash": "J76i8KZXUNxrvNN26GgtataodBgiDVYft9gEiCLM9rRT",
   "relations": [
     {
+      "external": false,
       "from": "397V1ZYjMQmgcjjMmw3aoqeoajWFwhXAsCgMHC48gz3i",
       "kind": "token-owner",
       "label": "token owner",
@@ -4978,6 +7673,7 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
       "to": "2y31cYqJmDxP1UGrkURhUgBdtGPcrk22r3Rf7y5pSvZp",
     },
     {
+      "external": false,
       "from": "397V1ZYjMQmgcjjMmw3aoqeoajWFwhXAsCgMHC48gz3i",
       "kind": "token-mint",
       "label": "mint",
@@ -4985,6 +7681,7 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
       "to": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     },
     {
+      "external": false,
       "from": "397V1ZYjMQmgcjjMmw3aoqeoajWFwhXAsCgMHC48gz3i",
       "kind": "ata",
       "label": "associated token account",
@@ -5014,6 +7711,7 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
 
 exports[`mainnet fixture usdc-transfer.json > explains deterministically from recorded chain data 1`] = `
 {
+  "accountDiffs": null,
   "balanceChanges": [
     {
       "amount": "-0.0001065",
@@ -5032,6 +7730,49 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
     },
   ],
   "computeUnitPrice": "500000",
+  "computeUnits": null,
+  "externalRelations": [
+    {
+      "external": true,
+      "from": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
+      "kind": "program-owner",
+      "label": "program",
+      "status": "verified",
+      "to": "11111111111111111111111111111111",
+    },
+    {
+      "external": true,
+      "from": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
+      "kind": "ata-derivation",
+      "label": "derived by",
+      "status": "verified",
+      "to": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    },
+    {
+      "external": true,
+      "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "kind": "mint-authority",
+      "label": "mint authority",
+      "status": "verified",
+      "to": "BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG",
+    },
+    {
+      "external": true,
+      "from": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "kind": "freeze-authority",
+      "label": "freeze authority",
+      "status": "verified",
+      "to": "7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar",
+    },
+  ],
   "fee": "0.0001065 SOL",
   "feePayer": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
   "instructions": [
@@ -5112,9 +7853,40 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
   ],
   "issues": [],
   "level": "expert",
+  "logs": [
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Token Program",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]",
+    },
+    {
+      "computeUnits": "105 CU",
+      "depth": 1,
+      "kind": "consumed",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 203000 compute units",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success",
+    },
+    {
+      "depth": 0,
+      "kind": "invoke",
+      "program": "Compute Budget",
+      "text": "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    },
+    {
+      "depth": 0,
+      "kind": "success",
+      "text": "Program ComputeBudget111111111111111111111111111111 success",
+    },
+  ],
   "recentBlockhash": "5SndDZSEvrEdzuNuQmwbiEu9jw6pSo3ZD8bS5mNondkT",
   "relations": [
     {
+      "external": false,
       "from": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
       "kind": "token-owner",
       "label": "token owner",
@@ -5122,6 +7894,7 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
     },
     {
+      "external": false,
       "from": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
       "kind": "token-mint",
       "label": "mint",
@@ -5129,6 +7902,7 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "external": false,
       "from": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
       "kind": "ata",
       "label": "associated token account",
@@ -5136,6 +7910,7 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
     },
     {
+      "external": false,
       "from": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
       "kind": "token-owner",
       "label": "token owner",
@@ -5143,6 +7918,7 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "CFENNno45k6Di1SxCL4XXZ38taaUNYh6hquTMu1tp8U9",
     },
     {
+      "external": false,
       "from": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
       "kind": "token-mint",
       "label": "mint",
@@ -5150,6 +7926,7 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "external": false,
       "from": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
       "kind": "ata",
       "label": "associated token account",

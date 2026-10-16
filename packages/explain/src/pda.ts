@@ -120,6 +120,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         instructionIndex: ix.index,
         seeds,
         bump,
+        external: false,
       });
     } catch (e) {
       // Hostile or unusual IDLs must not abort the explanation: any failure leaves this one PDA unverified.
@@ -131,6 +132,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         status: 'unverified',
         detail: errorDetail(e),
         instructionIndex: ix.index,
+        external: false,
       });
     }
   }

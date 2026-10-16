@@ -1,9 +1,12 @@
-import type { RawAccount, TxMeta } from '@clef/rpc';
+import type { RawAccount, SimulationResult, TxMeta } from '@clef/rpc';
 import type { Address } from '@solana/kit';
 import { AccountCache, decodeTokenAccount } from './accounts';
 import { verifyAnchorExtras } from './anchor-relations';
 import { balanceChangesFromMeta, balanceChangesFromSimulation } from './balances';
 import { decodeTransaction } from './decode';
+import { computeAccountDiffs } from './diffs';
+import { externalRelations } from './external';
+import { parseLogs } from './logs';
 import { identifyInstruction, type IdentifiedInstruction } from './identify';
 import { Labeler, tokenRelations } from './labels';
 import { verifyCodamaPdas } from './pda';
@@ -14,7 +17,7 @@ import { computeStateChanges, type StateChange } from './state-changes';
 import { summarize } from './summary';
 import { sanitizeText } from './text';
 import { programDisplay } from './format';
-import type { DecodedInstruction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, RelationEdge, Warning } from './types';
+import type { AccountDiff, DecodedInstruction, DecodedTransaction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, LogLine, RelationEdge, Warning } from './types';
 
 type Unit = NonNullable<ExplainedInstruction['amountUnit']>;
 
@@ -58,6 +61,8 @@ const simError = (err: unknown) =>
 
 type Simulated = {
   balanceChanges: ExplainedTransaction['balanceChanges'];
+  /** The run's pre and post state, for account diffs. */
+  states?: { pre: (RawAccount | null)[]; post: (RawAccount | null)[] };
   stateChanges?: StateChange[];
   postTokenOwners?: Record<string, Address>;
   /** The pre-state was built conservatively (see `highestSeen`). */
@@ -67,7 +72,14 @@ type Simulated = {
  * A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. `conservative`: the
  * chain kept changing, so `pre` was built by `highestSeen`.
  */
-type SimRun = { pre: (RawAccount | null)[]; post: (RawAccount | null)[]; conservative?: true } | { failed: string };
+type SimOutput = { logs?: string[]; unitsConsumed?: bigint | null };
+type SimRun = ({ pre: (RawAccount | null)[]; post: (RawAccount | null)[]; conservative?: true } | { failed: string }) & SimOutput;
+
+/**
+ * A simulation already run by the caller (e.g. one step of a sequential batch simulation): `pre` is the state the
+ * step started from, index-aligned with the transaction's writable accounts, as is `result.postAccounts`.
+ */
+export type PresetSimulation = { pre: (RawAccount | null)[]; result: SimulationResult } | { failed: string; logs?: string[] };
 
 const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 const sameAccount = (a: RawAccount | null, b: RawAccount | null) =>
@@ -115,13 +127,15 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
   let pre = loaded as (RawAccount | null)[];
   const reads: (RawAccount | null)[][] = [pre];
   let post: (RawAccount | null)[] = [];
+  let output: SimOutput = {};
   for (let attempt = 0; attempt < 2; attempt++) {
     let now: (RawAccount | null)[];
     let simSlot: bigint | undefined;
     try {
       const minContextSlot = cache.slot;
       const sim = await ctx.reader.simulate(wire, writable, minContextSlot === undefined ? undefined : { minContextSlot });
-      if (sim.err) return { failed: `Simulation failed: ${simError(sim.err)}` };
+      output = { logs: sim.logs, unitsConsumed: sim.unitsConsumed };
+      if (sim.err) return { failed: `Simulation failed: ${simError(sim.err)}`, ...output };
       post = sim.postAccounts;
       simSlot = sim.slot;
     } catch (e) {
@@ -137,13 +151,24 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
       return { failed: `Could not confirm the pre-transaction state: ${errorDetail(e)}` };
     }
     if (now.length !== writable.length) return { failed: 'Could not confirm the pre-transaction state' };
-    if (now.every((a, i) => sameAccount(a ?? null, pre[i]!))) return { pre, post };
+    if (now.every((a, i) => sameAccount(a ?? null, pre[i]!))) return { pre, post, ...output };
     pre = now.map((a) => a ?? null);
     reads.push(pre);
     pre.forEach((a, i) => cache.set(writable[i]!, a));
   }
   const conservative = writable.map((_, i) => highestSeen(reads.map((r) => r[i]!)));
-  return { pre: conservative, post, conservative: true };
+  return { pre: conservative, post, conservative: true, ...output };
+}
+
+function presetRun(preset: PresetSimulation, writable: readonly Address[]): SimRun {
+  if ('failed' in preset) return { failed: preset.failed, ...(preset.logs && { logs: preset.logs }) };
+  const { result, pre } = preset;
+  const output = { logs: result.logs, unitsConsumed: result.unitsConsumed };
+  if (result.err) return { failed: `Simulation failed: ${simError(result.err)}`, ...output };
+  const aligned = (list: readonly (RawAccount | null)[]) =>
+    list.length === writable.length && list.every((a, i) => a === null || a.address === writable[i]);
+  if (!aligned(result.postAccounts) || !aligned(pre)) return { failed: 'Simulation returned accounts that do not match the request', ...output };
+  return { pre: [...pre], post: result.postAccounts, ...output };
 }
 
 /** Balance and state changes from a simulation run, the same index-aligned lists feeding both. */
@@ -170,6 +195,7 @@ async function fromSimulation(
   return {
     balanceChanges: balanceChangesFromSimulation(pre, post, (mint) => labeler.mintInfo(mint)),
     stateChanges: computeStateChanges(pre, post),
+    states: { pre, post },
     postTokenOwners,
     ...(run.conservative && { conservative: true as const }),
   };
@@ -219,8 +245,25 @@ export async function explain(
   input: { wire: Uint8Array; meta?: TxMeta | null },
   ctx: ExplainContext,
 ): Promise<ExplainedTransaction> {
+  return (await explainWith(input, ctx)).explained;
+}
+
+/** What `explainBatch` needs beyond the explanation: the simulated states and the labels they were read with. */
+export type ExplainRun = {
+  explained: ExplainedTransaction;
+  writable: Address[];
+  states: { pre: (RawAccount | null)[]; post: (RawAccount | null)[] } | null;
+  labeler: Labeler;
+};
+
+/** `explain`, optionally from a simulation the caller already ran (`preset`) instead of simulating itself. */
+export async function explainWith(
+  input: { wire: Uint8Array; meta?: TxMeta | null; tx?: DecodedTransaction },
+  ctx: ExplainContext,
+  preset?: PresetSimulation,
+): Promise<ExplainRun> {
   const issues: Issue[] = [];
-  const tx = await decodeTransaction(input.wire, ctx.reader, input.meta?.loadedAddresses);
+  const tx = input.tx ?? (await decodeTransaction(input.wire, ctx.reader, input.meta?.loadedAddresses));
   const addresses = tx.accounts.map((a) => a.address);
   const cache = new AccountCache(ctx.reader);
   const load = async (list: readonly Address[], what: string) => {
@@ -238,7 +281,9 @@ export async function explain(
 
   // Simulation starts right after the pre-read, while instructions are identified.
   const writable = tx.accounts.filter((a) => a.writable).map((a) => a.address);
-  const simulation = input.meta ? undefined : runSimulation(input.wire, writable, ctx, cache);
+  // A preset step starts from the state earlier steps left: it replaces the chain read for its writable accounts.
+  if (preset && 'pre' in preset && preset.pre.length === writable.length) preset.pre.forEach((a, i) => cache.set(writable[i]!, a));
+  const simulation = input.meta ? undefined : preset ? Promise.resolve(presetRun(preset, writable)) : runSimulation(input.wire, writable, ctx, cache);
 
   const relations: RelationEdge[] = [];
   try {
@@ -307,8 +352,13 @@ export async function explain(
   const solBalances: Record<string, bigint> = {};
   const accountLamports: Record<string, bigint> = {};
   let simulated: Simulated;
+  let logs: LogLine[] | null = null;
+  let computeUnits: bigint | null = null;
   if (!input.meta) {
-    simulated = await fromSimulation(await simulation!, writable, labeler, issues, load);
+    const run = await simulation!;
+    if (run.logs) logs = parseLogs(run.logs);
+    computeUnits = run.unitsConsumed ?? null;
+    simulated = await fromSimulation(run, writable, labeler, issues, load);
     // Read after the simulation: a retry may have refreshed the pre-state.
     for (const a of addresses) {
       const token = decodeTokenAccount(cache.get(a));
@@ -324,6 +374,7 @@ export async function explain(
     }
   } else {
     const meta = input.meta;
+    logs = parseLogs(meta.logMessages);
     if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
     const ownerOf = (a: Address) => decodeTokenAccount(cache.get(a))?.owner ?? null;
     simulated = { balanceChanges: balanceChangesFromMeta(addresses, meta, (mint) => labeler.mintInfo(mint), ownerOf) };
@@ -403,5 +454,30 @@ export async function explain(
   }
   if (input.meta?.err) summary = `Failed: ${summary}`;
   const stateChanges = simulated.stateChanges ?? null;
-  return { tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary };
+
+  let accountDiffs: AccountDiff[] | null = null;
+  if (simulated.states) {
+    const { pre, post } = simulated.states;
+    try {
+      accountDiffs = await computeAccountDiffs(
+        writable.map((address, i) => ({ address, pre: pre[i] ?? null, post: post[i] ?? null })),
+        { idls: ctx.idls, labeler, me, ...(ctx.addressBook && { addressBook: ctx.addressBook }) },
+      );
+    } catch (e) {
+      issues.push({ stage: 'decode', message: `Could not diff account state: ${errorDetail(e)}` });
+    }
+  }
+  let external: RelationEdge[] = [];
+  try {
+    // A program account's owner is its loader: noise, not a relation worth showing.
+    external = (await externalRelations(addresses, cache)).filter((r) => !(r.kind === 'program-owner' && cache.get(r.from)?.executable));
+  } catch (e) {
+    issues.push({ stage: 'relations', message: errorDetail(e) });
+  }
+
+  const explained: ExplainedTransaction = {
+    tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary,
+    accountDiffs, logs, computeUnits, externalRelations: external,
+  };
+  return { explained, writable, states: simulated.states ?? null, labeler };
 }

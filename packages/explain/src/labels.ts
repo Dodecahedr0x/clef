@@ -14,11 +14,11 @@ export async function tokenRelations(addresses: readonly Address[], cache: Accou
     const token = decodeTokenAccount(account);
     if (!account || !token) continue;
     edges.push(
-      { kind: 'token-owner', from: address, to: token.owner, label: 'token owner', status: 'verified' },
-      { kind: 'token-mint', from: address, to: token.mint, label: 'mint', status: 'verified' },
+      { kind: 'token-owner', from: address, to: token.owner, label: 'token owner', status: 'verified', external: false },
+      { kind: 'token-mint', from: address, to: token.mint, label: 'mint', status: 'verified', external: false },
     );
     const [ata] = await findAssociatedTokenPda({ owner: token.owner, mint: token.mint, tokenProgram: account.owner });
-    if (ata === address) edges.push({ kind: 'ata', from: address, to: token.owner, label: 'associated token account', status: 'verified' });
+    if (ata === address) edges.push({ kind: 'ata', from: address, to: token.owner, label: 'associated token account', status: 'verified', external: false });
   }
   return edges;
 }

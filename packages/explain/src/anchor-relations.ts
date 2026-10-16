@@ -113,7 +113,7 @@ export async function verifyAnchorExtras(
       const label = `${holder}.${field}`;
       // Unnamed holder: no address to point at, so the edge points at the program (as for unresolved PDAs).
       const to = byName.get(holder) ?? ix.programId;
-      const base = { kind: 'has_one' as const, from: targetAddress, to, label, instructionIndex: ix.index };
+      const base = { kind: 'has_one' as const, from: targetAddress, to, label, instructionIndex: ix.index, external: false };
       try {
         const result = await decode(holder);
         if (failed(result)) {
@@ -207,6 +207,7 @@ async function verifyNestedSeeds(
       instructionIndex: ix.index,
       seeds: info,
       bump,
+      external: false,
     };
   } catch (e) {
     return {
@@ -217,6 +218,7 @@ async function verifyNestedSeeds(
       status: e instanceof Foreign ? 'mismatch' : 'unverified',
       detail: errorDetail(e),
       instructionIndex: ix.index,
+      external: false,
     };
   }
 }
