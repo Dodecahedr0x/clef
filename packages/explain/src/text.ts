@@ -13,3 +13,17 @@ const UNSAFE = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}\u115f\u1160\u3164\uffa0\ufe00-\u
 export function sanitizeText(s: string, max = 64): string {
   return Array.from(s.replace(UNSAFE, '')).slice(0, max).join('');
 }
+
+/**
+ * For text the user signs: nothing is dropped or cut. Each unsafe character (except tab) is shown as a visible
+ * marker such as `⟨U+202E⟩`, so a right-to-left override or a zero-width space cannot hide what is signed.
+ */
+export function markUnsafe(s: string): { text: string; marked: number } {
+  let marked = 0;
+  const text = s.replace(UNSAFE, (c) => {
+    if (c === '\t') return c;
+    marked++;
+    return `⟨U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}⟩`;
+  });
+  return { text, marked };
+}

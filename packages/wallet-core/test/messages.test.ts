@@ -30,13 +30,37 @@ describe('inspectMessage', () => {
   });
 
   it('shows printable text and hex for binary', () => {
-    expect(inspectMessage(utf8('Hello\nworld'), ORIGIN)).toEqual({ kind: 'text', text: 'Hello\nworld', looksLikeTransaction: false, danger: false });
+    expect(inspectMessage(utf8('Hello\nworld'), ORIGIN)).toEqual({ kind: 'text', text: 'Hello\nworld', marked: 0, looksLikeTransaction: false, danger: false });
     expect(inspectMessage(new Uint8Array([0, 1, 2]), ORIGIN)).toMatchObject({ kind: 'binary', hex: '000102', danger: false });
     expect(inspectMessage(new Uint8Array([0xff, 0xfe]), ORIGIN)).toMatchObject({ kind: 'binary', hex: 'fffe' });
   });
 
-  it('strips bidi and control characters from displayed text', () => {
+  it('shows bidi and invisible characters as markers instead of hiding them', () => {
     const r = inspectMessage(utf8('pay \u202eevil\u200b'), ORIGIN);
-    expect(r).toMatchObject({ kind: 'text', text: 'pay evil' });
+    expect(r).toMatchObject({ kind: 'text', text: 'pay ⟨U+202E⟩evil⟨U+200B⟩', marked: 2 });
+  });
+
+  it('keeps the whole message: long lines, indentation and tabs', () => {
+    const long = 'x'.repeat(10_000);
+    const r = inspectMessage(utf8(`  indented\n\ttabbed\n${long}`), ORIGIN);
+    expect(r).toMatchObject({ kind: 'text', text: `  indented\n\ttabbed\n${long}`, marked: 0 });
+  });
+
+  it('shows a Sign In With Solana request as the exact message, resources included', () => {
+    const msg = [
+      'dapp.example wants you to sign in with your Solana account:',
+      'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk',
+      '',
+      'Please sign in',
+      '',
+      'URI: https://dapp.example',
+      'Version: 1',
+      'Nonce: abcdefgh',
+      'Issued At: 2026-10-16T10:00:00.000Z',
+      'Resources:',
+      '- https://dapp.example/terms',
+    ].join('\n');
+    const r = inspectMessage(utf8(msg), 'https://dapp.example');
+    expect(r).toMatchObject({ kind: 'siws', domainMatches: true, text: msg });
   });
 });

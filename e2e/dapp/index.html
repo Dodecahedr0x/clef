@@ -129,6 +129,17 @@
           const outs = await wallet.features['solana:signTransaction'].signTransaction(...inputs);
           return { signedTransactions: outs.map((o) => toB64(o.signedTransaction)) };
         },
+        /** A wire the test built (e.g. a large v1 transaction): `window.wire` (base64), signed or signed and sent. */
+        async signWire() {
+          const { wallet, acc } = account();
+          const [out] = await wallet.features['solana:signTransaction'].signTransaction({ account: acc, chain: CHAIN, transaction: fromB64(window.wire) });
+          return { signed: toB64(out.signedTransaction) };
+        },
+        async sendWire() {
+          const { wallet, acc } = account();
+          const [out] = await wallet.features['solana:signAndSendTransaction'].signAndSendTransaction({ account: acc, chain: CHAIN, transaction: fromB64(window.wire) });
+          return { signature: b58encode(out.signature) };
+        },
         async signAndSend() {
           const { wallet, acc } = account();
           const tx = unsignedWire(transferMessage(acc.address, RECIPIENTS[0], 10_000_000, await blockhash()));

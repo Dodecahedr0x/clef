@@ -25,7 +25,9 @@ export function MessageApproval({
   const phishing = request.phishing;
   const wrongSite = m.kind === 'siws' && !m.domainMatches;
   const blocked = m.looksLikeTransaction || wrongSite;
-  const text = m.kind === 'text' ? m.text : m.kind === 'siws' ? Object.entries(m.fields).map(([k, v]) => `${k}: ${v}`).join('\n') : '';
+  // Always the exact message signed (Sign In With Solana included), never a reconstruction.
+  const text = m.kind === 'binary' ? '' : m.text;
+  const marked = m.kind === 'binary' ? 0 : m.marked;
   const hardware = request.signer.kind !== 'software' && onSign;
 
   const toggle = (v: 'text' | 'hex', label: string, disabled = false) => (
@@ -44,7 +46,7 @@ export function MessageApproval({
     <Page banner={phishing && <BlockedSiteBanner hit={phishing} />}>
       <Header mark={<SiteMark text={host} size={32} blocked={!!phishing} />} title={host} subtitle={`Requests a message signature · ${accountName(state, request.account)}`} />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-4 pt-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-4 pt-5 pb-4">
         <h1 className="mx-1 my-0 text-[20px] font-semibold tracking-[-0.01em]">Sign a message</h1>
 
         {m.looksLikeTransaction && (
@@ -68,10 +70,16 @@ export function MessageApproval({
               {toggle('hex', 'Hex')}
             </div>
           </div>
+          {/* The full message, at its own length: the page scrolls, nothing inside is clipped. */}
           {view === 'text' ? (
-            <p className="m-0 max-h-72 overflow-auto whitespace-pre-line break-words p-[14px] font-mono text-[14px] leading-[1.6]">{text}</p>
+            <p data-testid="message-text" className="m-0 whitespace-pre-wrap p-[14px] font-mono text-[14px] leading-[1.6] [overflow-wrap:anywhere]">{text}</p>
           ) : (
-            <p className="m-0 max-h-72 overflow-auto break-all p-[14px] font-mono text-[12px] leading-[1.6]">{hexOf(request.message)}</p>
+            <p data-testid="message-hex" className="m-0 break-all p-[14px] font-mono text-[12px] leading-[1.6]">{hexOf(request.message)}</p>
+          )}
+          {view === 'text' && marked > 0 && (
+            <p className="m-0 border-t border-line-soft bg-warn-bg px-[14px] py-2 text-[12px] text-warn-ink">
+              {marked} invisible or direction-changing character{marked === 1 ? ' is' : 's are'} shown as ⟨U+…⟩ so nothing is hidden.
+            </p>
           )}
         </section>
 

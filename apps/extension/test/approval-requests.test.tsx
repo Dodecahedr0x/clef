@@ -175,6 +175,16 @@ describe('MessageApproval', () => {
   const message = new TextEncoder().encode(text);
   const request = { kind: 'signMessage', origin: 'https://forum.example', phishing: null, account: MAIN, message, signer: { kind: 'software' } } as const;
 
+  it('shows the whole message as signed: long, indented, never clipped, invisible characters marked', () => {
+    const long = `Terms:\n  1. ${'a'.repeat(6000)}\n\tend \u202e`;
+    render(<MessageApproval request={{ ...request, message: new TextEncoder().encode(long) }} state={state} onDecide={vi.fn()} />);
+    const shown = screen.getByTestId('message-text');
+    expect(shown.textContent).toBe(long.replace('\u202e', '⟨U+202E⟩'));
+    expect(shown.className).toContain('whitespace-pre-wrap');
+    expect(shown.className).not.toMatch(/max-h-|overflow-auto/);
+    expect(screen.getByText(/1 invisible or direction-changing character is shown/)).toBeTruthy();
+  });
+
   it('shows readable text, toggles to hex, and signs', () => {
     const onDecide = vi.fn();
     render(<MessageApproval request={request} state={state} onDecide={onDecide} />);

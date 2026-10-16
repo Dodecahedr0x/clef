@@ -266,7 +266,15 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
 
   // A simulate issue with balance changes (e.g. computed conservatively) is not a failed simulation.
   if (input.balanceChanges === null && input.issues.some((i) => i.stage === 'simulate')) {
-    warn('simulation-failed', 'warn', 'Simulation failed or unavailable: balance changes are unknown.');
+    // An RPC that predates v1 transactions cannot even parse them (or caps them at the legacy 1232 bytes).
+    const noV1 = input.issues.some((i) => i.stage === 'simulate' && /deserializ|too large/i.test(i.message));
+    warn(
+      'simulation-failed',
+      'warn',
+      noV1
+        ? 'Your RPC could not simulate this transaction: it does not accept this transaction format or size (version 1 transactions, up to 4 KB, need an up-to-date RPC). Balance changes are unknown.'
+        : 'Simulation failed or unavailable: balance changes are unknown.',
+    );
   }
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));

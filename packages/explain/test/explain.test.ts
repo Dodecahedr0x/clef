@@ -293,6 +293,16 @@ describe('explain', () => {
     expect(await run(address(STAKE_PROGRAM))).toBe('danger');
   });
 
+  it('says the RPC cannot simulate a v1 transaction when it fails to parse it', async () => {
+    const reader = new MemoryChainReader();
+    reader.simulateImpl = async () => {
+      throw new Error('failed to deserialize solana_transaction::versioned::VersionedTransaction: io error: failed to fill whole buffer');
+    };
+    const ex = await explain({ wire: buildV1Wire([getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL })], { config: { computeUnitLimit: 200_000 } }) }, ctx(reader));
+    expect(ex.balanceChanges).toBeNull();
+    expect(ex.warnings.find((w) => w.rule === 'simulation-failed')?.message).toMatch(/version 1 transactions, up to 4 KB, need an up-to-date RPC/);
+  });
+
   describe('v1 fees', () => {
     const SYSTEM = address('11111111111111111111111111111111');
     const v1Run = async (instructions: Instruction[], config: V1TransactionConfig, lost: bigint, balance = 5n * SOL) => {

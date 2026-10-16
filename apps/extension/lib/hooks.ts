@@ -15,6 +15,8 @@ const message = (e: unknown): string => {
     if (status === 401 || status === 403) return `Your RPC refused the request (HTTP ${status}). Check the RPC URL in Settings → Network & RPC.`;
     return `Your RPC request failed (HTTP ${status}).`;
   }
+  const server = (e as { context?: { __serverMessage?: unknown } } | null)?.context?.__serverMessage;
+  if (typeof server === 'string' && server) return `Your RPC answered: ${server}`;
   return e instanceof Error ? e.message : String(e);
 };
 

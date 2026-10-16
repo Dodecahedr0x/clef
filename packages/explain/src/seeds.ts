@@ -13,7 +13,9 @@ export function displayBytes(bytes: Uint8Array): string {
 
 /** An error as an edge detail: sanitized (messages can carry IDL names) and bounded. */
 export function errorDetail(e: unknown): string {
-  return sanitizeText(e instanceof Error ? e.message : String(e), 200);
+  // Production builds of @solana/errors replace messages with a code; the RPC's own words stay in the context.
+  const server = (e as { context?: { __serverMessage?: unknown } } | null)?.context?.__serverMessage;
+  return sanitizeText(typeof server === 'string' && server ? server : e instanceof Error ? e.message : String(e), 200);
 }
 
 /**
