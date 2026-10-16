@@ -101,6 +101,13 @@ describe('approval dispatcher, hardware signer', () => {
     expect(screen.getByText('review mount 1')).toBeTruthy();
   });
 
+  it('names Clef for a request the wallet itself made', async () => {
+    request = { ...txRequest(), origin: 'clef://wallet' };
+    render(<Approval />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    expect(await screen.findByText('device step: Sign a transaction for Clef as Ledger 1')).toBeTruthy();
+  });
+
   it('says the request is gone when the id is unknown', async () => {
     request = null;
     render(<Approval />);

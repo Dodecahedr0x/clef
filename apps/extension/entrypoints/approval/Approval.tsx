@@ -7,6 +7,7 @@ import { NavProvider, useNav } from '../../lib/nav';
 import { deserializeApproval } from '../../lib/serialize';
 import { UnlockScreen } from '../popup/screens/Unlock';
 import { ConnectApproval, HardwareSignStep, MessageApproval, SignInApproval, SquadsApproval } from './requests';
+import { siteName } from './requests/shared';
 import { TxApproval } from './tx/TxApproval';
 
 const requestId = new URLSearchParams(location.search).get('id') ?? '';
@@ -115,7 +116,7 @@ function Dispatch({ request, state }: { request: ApprovalRequest; state: FullSta
 
 /** What the hardware step says is being signed, so the user can match it against the device. */
 function signingSummary(request: ApprovalRequest, count: number): string {
-  const host = new URL(request.origin).host || 'Clef';
+  const host = siteName(request.origin);
   switch (request.kind) {
     case 'signTransactions':
       return count === 1 ? `Sign a transaction for ${host}` : `Sign ${count} transactions for ${host}`;
