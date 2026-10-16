@@ -210,6 +210,21 @@ describe('several recovery phrases', () => {
     expect(h.nav.back).toHaveBeenCalled();
   });
 
+  it('defaults to Standard when the most recent account of the phrase is standard, even with older legacy ones', async () => {
+    const st = h.state as { accounts: unknown[] };
+    st.accounts.push(
+      { kind: 'hd', address: OTHER1, label: 'Old', index: 0, phrase: 2, scheme: 'legacy' },
+      { kind: 'hd', address: OTHER2, label: 'Newer', index: 1, phrase: 2 },
+    );
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    await user.click(screen.getAllByRole('button', { name: /New account/ })[1]!);
+    const path = screen.getByRole('radiogroup', { name: 'Derivation path' });
+    expect(within(path).getByRole('radio', { name: /Standard \(Phantom, Solflare\)/ }).getAttribute('aria-checked')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Add account on this path' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', phrase: 2, scheme: 'standard' }));
+  });
+
   it('phrase 1 with only standard accounts adds directly even when another phrase has legacy ones', async () => {
     const st = h.state as { accounts: unknown[] };
     st.accounts.push({ kind: 'hd', address: OTHER1, label: 'Old', index: 0, phrase: 2, scheme: 'legacy' });
