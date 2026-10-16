@@ -33,6 +33,8 @@ const A0 = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const A1 = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
 const A2 = 'So11111111111111111111111111111111111111112';
 const WATCH = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+const STAKE = 'Stake11111111111111111111111111111111111111';
+const VOTE = 'Vote111111111111111111111111111111111111111';
 
 function setState(p: { hasVault: boolean; unlocked?: boolean }) {
   h.state = {
@@ -223,24 +225,39 @@ describe('Import', () => {
     expect(screen.getByText('✓ 24 words · valid checksum')).toBeTruthy();
   });
 
-  it('offers the legacy derivation path, derived locally and imported as keys', async () => {
+  it('offers the legacy derivation path, scanned and imported in the background', async () => {
     const user = userEvent.setup();
     render(<ImportScreen />);
     await user.click(screen.getByLabelText('Recovery phrase (12 or 24 words)'));
     await user.paste(PHRASE12);
     await screen.findByText('6.21 SOL · 3 tokens');
+    h.call.mockImplementation(async (c: { type: string }) => (c.type === 'accounts:scan' ? { accounts: [{ index: 0, address: WATCH }, { index: 1, address: STAKE }, { index: 2, address: VOTE }] } : {}));
     await user.click(screen.getByRole('button', { name: 'Use a different derivation path' }));
     expect(screen.getByText("44'/501'/n'")).toBeTruthy();
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:scan', mnemonic: PHRASE12, from: 0, count: 3, scheme: 'legacy' }));
     await waitFor(() => expect(screen.queryByText('6.21 SOL · 3 tokens')).toBeNull());
-    expect(await screen.findAllByRole('checkbox')).toHaveLength(3);
-    expect(h.call.mock.calls.filter(([c]) => c.type === 'accounts:scan')).toHaveLength(1);
+    const boxes = await screen.findAllByRole('checkbox');
+    expect(boxes).toHaveLength(3);
+    await waitFor(() => expect((boxes[0] as HTMLInputElement).checked).toBe(true));
+    await user.click(boxes[2]!);
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 account' }));
-    await waitFor(() =>
-      expect(h.call).toHaveBeenCalledWith({ type: 'vault:create', password: 'a-long-passphrase', mnemonic: PHRASE12, indexes: [] }),
-    );
-    const imp = h.call.mock.calls.find(([c]) => c.type === 'accounts:import')![0] as { secretKey: string };
-    expect(JSON.parse(imp.secretKey)).toHaveLength(64);
+    await user.click(screen.getByRole('button', { name: 'Import 2 accounts' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:importMnemonic', mnemonic: PHRASE12, indexes: [0, 2], scheme: 'legacy' }));
+    expect(h.call).toHaveBeenCalledWith({ type: 'vault:create', password: 'a-long-passphrase', mnemonic: PHRASE12, indexes: [] });
+    expect(h.call.mock.calls.some(([c]) => c.type === 'accounts:import')).toBe(false);
+  });
+
+  it('another phrase into an existing wallet goes to the background as a phrase, not as keys', async () => {
+    const user = userEvent.setup();
+    setState({ hasVault: true });
+    render(<ImportScreen />);
+    await user.click(screen.getByLabelText('Recovery phrase (12 or 24 words)'));
+    await user.paste(PHRASE12);
+    await screen.findByText('6.21 SOL · 3 tokens');
+    await user.click(screen.getByRole('button', { name: 'Import 2 accounts' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:importMnemonic', mnemonic: PHRASE12, indexes: [0, 1] }));
+    expect(h.call.mock.calls.some(([c]) => c.type === 'vault:create' || c.type === 'accounts:import')).toBe(false);
+    expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' });
   });
 
   it('private key tab: creates a vault with a fresh phrase and no HD account, then imports the key', async () => {

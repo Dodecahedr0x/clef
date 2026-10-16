@@ -1,5 +1,5 @@
-import { deriveEd25519, mnemonicToSeed, normalizeMnemonic, solanaPath, validateMnemonic, zeroize } from '@clef/vault';
-import { createKeyPairSignerFromPrivateKeyBytes, getAddressEncoder, isAddress, type Address } from '@solana/kit';
+import { normalizeMnemonic, validateMnemonic } from '@clef/vault';
+import { isAddress, type Address } from '@solana/kit';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, IconButton, Segmented, TextField } from '../../../components';
 import { call } from '../../../lib/api';
@@ -15,33 +15,6 @@ type Balance = { sol: bigint; tokens: number } | 'error';
 
 const PAGE = 3;
 const SCHEME_LABEL: Record<Scheme, string> = { standard: "44'/501'/n'/0'", legacy: "44'/501'/n'" };
-const pathFor = (scheme: Scheme, i: number) => (scheme === 'standard' ? solanaPath(i) : [44, 501, i]);
-
-async function deriveKey(mnemonic: string, scheme: Scheme, index: number): Promise<{ privateKey: Uint8Array; address: Address }> {
-  const seed = await mnemonicToSeed(mnemonic);
-  let privateKey: Uint8Array | null = null;
-  try {
-    privateKey = deriveEd25519(seed, pathFor(scheme, index));
-    const signer = await createKeyPairSignerFromPrivateKeyBytes(privateKey);
-    return { privateKey, address: signer.address };
-  } catch (e) {
-    if (privateKey) zeroize(privateKey);
-    throw e;
-  } finally {
-    zeroize(seed);
-  }
-}
-
-// The Solana CLI keypair format (64-byte JSON array), which accounts:import accepts.
-async function secretKeyFor(mnemonic: string, scheme: Scheme, index: number): Promise<string> {
-  const { privateKey, address } = await deriveKey(mnemonic, scheme, index);
-  const full = new Uint8Array(64);
-  full.set(privateKey);
-  full.set(getAddressEncoder().encode(address), 32);
-  const text = JSON.stringify(Array.from(full));
-  zeroize(privateKey, full);
-  return text;
-}
 
 function balanceText(b: Balance | undefined): string {
   if (b === undefined) return '…';
@@ -158,20 +131,8 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
     let live = true;
     const from = found.length;
     if (from >= count) return;
-    (async () => {
-      if (scheme === 'standard') {
-        const r = await call<{ accounts: Found[] }>({ type: 'accounts:scan', mnemonic, from, count: count - from });
-        return r.accounts;
-      }
-      const out: Found[] = [];
-      for (let i = from; i < count; i++) {
-        const { privateKey, address } = await deriveKey(mnemonic, 'legacy', i);
-        zeroize(privateKey);
-        out.push({ index: i, address });
-      }
-      return out;
-    })()
-      .then((accounts) => live && setScan((s) => ({ key, found: s.key === key ? [...s.found, ...accounts] : accounts, error: null })))
+    call<{ accounts: Found[] }>({ type: 'accounts:scan', mnemonic, from, count: count - from, ...(scheme === 'legacy' && { scheme }) })
+      .then(({ accounts }) => live && setScan((s) => ({ key, found: s.key === key ? [...s.found, ...accounts] : accounts, error: null })))
       .catch((e: unknown) => live && setScan({ key, found: [], error: errorText(e) }));
     return () => {
       live = false;
@@ -204,13 +165,7 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
     run(async () => {
       if (!hasVault && scheme === 'standard') return ensureVault(mnemonic, selected);
       await ensureVault(mnemonic, []);
-      for (const i of selected) {
-        try {
-          await call({ type: 'accounts:import', secretKey: await secretKeyFor(mnemonic, scheme, i) });
-        } catch (e) {
-          if (errorText(e) !== 'Account already added') throw e;
-        }
-      }
+      await call({ type: 'accounts:importMnemonic', mnemonic, indexes: selected, ...(scheme === 'legacy' && { scheme }) });
     });
 
   let status: { text: string; tone: string } | null = null;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Button, ListGroup, PasswordField, PopupScreen, SectionLabel } from '../../../components';
+import { Alert, Button, ListGroup, PasswordField, PopupScreen, SectionLabel, Segmented } from '../../../components';
 import { call } from '../../../lib/api';
+import { useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 
 const MIN_PASSWORD = 8;
@@ -10,6 +11,8 @@ function errorText(e: unknown, fallback: string): string {
 }
 
 function RevealPhrase() {
+  const phrases = useWallet().state?.phrases ?? 1;
+  const [phrase, setPhrase] = useState('1');
   const [password, setPassword] = useState('');
   const [words, setWords] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +21,7 @@ function RevealPhrase() {
   if (words) {
     return (
       <div className="flex flex-col gap-2.5">
-        <ol aria-label="Recovery phrase" className="grid grid-cols-3 gap-1.5 rounded-xl border border-line bg-surface p-2.5">
+        <ol aria-label={phrases > 1 ? `Recovery phrase ${phrase}` : 'Recovery phrase'} className="grid grid-cols-3 gap-1.5 rounded-xl border border-line bg-surface p-2.5">
           {words.map((w, i) => (
             <li key={i} className="flex gap-1.5 rounded-lg bg-surface-3 px-2 py-1.5 font-mono text-xs">
               <span className="text-faint">{i + 1}</span>
@@ -41,7 +44,7 @@ function RevealPhrase() {
         setBusy(true);
         setError(null);
         try {
-          const { mnemonic } = await call<{ mnemonic: string }>({ type: 'vault:revealMnemonic', password });
+          const { mnemonic } = await call<{ mnemonic: string }>({ type: 'vault:revealMnemonic', password, ...(phrases > 1 && { phrase: Number(phrase) }) });
           setWords(mnemonic.trim().split(/\s+/));
           setPassword('');
         } catch (err) {
@@ -54,6 +57,16 @@ function RevealPhrase() {
       <Alert severity="danger" label="DANGER" title="Anyone with this phrase owns your wallet">
         Never type it into a website or share it, not even with Clef support. Make sure no one can see your screen.
       </Alert>
+      {phrases > 1 && (
+        <Segmented
+          fill
+          size="md"
+          ariaLabel="Which recovery phrase"
+          value={phrase}
+          onChange={setPhrase}
+          options={Array.from({ length: phrases }, (_, i) => ({ value: String(i + 1), label: `Phrase ${i + 1}`, ariaLabel: `Recovery phrase ${i + 1}` }))}
+        />
+      )}
       <PasswordField label="Password" autoComplete="current-password" value={password} error={error} onChange={(e) => setPassword(e.target.value)} />
       <Button type="submit" variant="danger-outline" size="md" block disabled={busy || !password}>
         Reveal recovery phrase

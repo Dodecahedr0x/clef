@@ -162,6 +162,35 @@ describe('AddAccount', () => {
   });
 });
 
+describe('several recovery phrases', () => {
+  const ZOO0 = 'Sysvar1111111111111111111111111111111111111';
+  beforeEach(() => {
+    const st = h.state as { phrases?: number; accounts: { kind: string; phrase?: number }[] };
+    st.phrases = 2;
+    st.accounts = st.accounts.map((a) => (a.kind === 'hd' ? { ...a, phrase: 1 } : a));
+    st.accounts.splice(2, 0, { kind: 'hd', address: ZOO0, label: 'Savings', index: 0, phrase: 2 } as never);
+  });
+
+  it('Accounts groups HD accounts by phrase', () => {
+    render(<AccountsScreen />);
+    const one = screen.getByRole('heading', { name: 'Recovery phrase 1' }).closest('section')!;
+    const two = screen.getByRole('heading', { name: 'Recovery phrase 2' }).closest('section')!;
+    expect(within(one).getAllByRole('button').map((b) => b.textContent)).toEqual([expect.stringContaining('Main'), expect.stringContaining('Trading')]);
+    expect(within(two).getByRole('button', { name: /Savings/ })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Recovery phrase' })).toBeNull();
+  });
+
+  it('AddAccount offers a new account per phrase', async () => {
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    const news = screen.getAllByRole('button', { name: /New account/ });
+    expect(news.map((b) => b.textContent)).toEqual([expect.stringContaining('Recovery phrase 1'), expect.stringContaining('Recovery phrase 2')]);
+    await user.click(news[1]!);
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:derive', phrase: 2 }));
+    expect(h.nav.back).toHaveBeenCalled();
+  });
+});
+
 describe('SquadsAdd', () => {
   it('rejects addresses that are not a multisig', async () => {
     const user = userEvent.setup();

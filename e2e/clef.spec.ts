@@ -131,3 +131,22 @@ test('create, lock and unlock, connect, send at every detail level, reject', asy
   await (await nextApproval(context)).close();
   expect((await dismissed).code).toBe(4001);
 });
+
+test('a second recovery phrase is kept and derives its own accounts', async ({ context, popup, stubRpc }) => {
+  const ZOO = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong';
+  await createWallet(context, popup, stubRpc);
+  await popup.getByRole('button', { name: 'Switch account' }).first().click();
+  await popup.getByRole('button', { name: 'Add account' }).click();
+  await popup.getByRole('button', { name: /^Import/ }).click();
+  await popup.getByLabel('Recovery phrase (12 or 24 words)').fill(ZOO);
+  await popup.getByRole('button', { name: 'Import 1 account' }).click();
+  await expect.poll(async () => (await internal<{ phrases?: number }>(popup, { type: 'state' })).value.phrases).toBe(2);
+
+  await popup.getByRole('button', { name: 'Switch account' }).first().click();
+  await popup.getByRole('button', { name: 'Add account' }).click();
+  await popup.getByRole('button', { name: /New account.*Recovery phrase 2/ }).click();
+  await expect(popup.getByRole('heading', { name: 'Recovery phrase 2' })).toBeVisible();
+  await expect(popup.getByRole('heading', { name: 'Recovery phrase 1' })).toBeVisible();
+  const { value } = await internal<{ accounts: { phrase?: number; index?: number }[] }>(popup, { type: 'state' });
+  expect(value.accounts.filter((a) => a.phrase === 2).map((a) => a.index)).toEqual([0, 1]);
+});

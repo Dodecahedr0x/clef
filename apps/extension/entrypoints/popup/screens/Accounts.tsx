@@ -56,6 +56,14 @@ export function AccountsScreen() {
     };
   }, [clients, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const phrases = [...new Set(accounts.flatMap((a) => (a.kind === 'hd' && a.phrase ? [a.phrase] : [])))].sort((x, y) => x - y);
+  const byPhrase = (state?.phrases ?? 1) > 1 && phrases.length > 0;
+  const groups: { title: string; match: (a: PublicAccount) => boolean }[] = GROUPS.flatMap((g) =>
+    g.kinds.includes('hd') && byPhrase
+      ? phrases.map((n) => ({ title: `Recovery phrase ${n}`, match: (a: PublicAccount) => a.kind === 'hd' && a.phrase === n }))
+      : [{ title: g.title, match: (a: PublicAccount) => g.kinds.includes(a.kind) }],
+  );
+
   const signing = accounts.filter((a) => a.kind !== 'watch');
   const total = signing.every((a) => a.address in usd) ? signing.reduce((s, a) => s + (usd[a.address] ?? 0), 0) : null;
 
@@ -93,8 +101,8 @@ export function AccountsScreen() {
         <span className="ml-auto text-[12px] text-muted">Total {total === null ? '…' : formatUsd(total)}</span>
       </header>
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-2">
-        {GROUPS.map((g) => {
-          const items = accounts.filter((a) => g.kinds.includes(a.kind));
+        {groups.map((g) => {
+          const items = accounts.filter(g.match);
           if (!items.length) return null;
           return (
             <section key={g.title}>

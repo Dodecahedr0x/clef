@@ -3,21 +3,23 @@ import { browser } from 'wxt/browser';
 import { Icon, IconButton } from '../../../components';
 import { call } from '../../../lib/api';
 import { HARDWARE_ENABLED } from '../../../lib/features';
+import { useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 
 type Option = { mark: string; title: string; desc: string; tint: string; run: () => void | Promise<void> };
 
 export function AddAccountScreen() {
   const nav = useNav();
+  const phrases = useWallet().state?.phrases ?? 1;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const openHardware = (kind: 'ledger' | 'keystone') => void browser.tabs.create({ url: browser.runtime.getURL(`/hardware.html?kind=${kind}` as '/hardware.html') });
 
-  const derive = async () => {
+  const derive = async (phrase?: number) => {
     setBusy(true);
     setError(null);
     try {
-      await call({ type: 'accounts:derive' });
+      await call({ type: 'accounts:derive', ...(phrase && { phrase }) });
       nav.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not add an account');
@@ -27,7 +29,9 @@ export function AddAccountScreen() {
   };
 
   const options: Option[] = [
-    { mark: '+', title: 'New account', desc: 'Next address from your recovery phrase', tint: 'bg-primary-bg text-primary', run: derive },
+    ...(phrases > 1
+      ? Array.from({ length: phrases }, (_, i) => ({ mark: '+', title: 'New account', desc: `Next address from Recovery phrase ${i + 1}`, tint: 'bg-primary-bg text-primary', run: () => derive(i + 1) }))
+      : [{ mark: '+', title: 'New account', desc: 'Next address from your recovery phrase', tint: 'bg-primary-bg text-primary', run: () => derive() }]),
     { mark: '↓', title: 'Import', desc: 'Another recovery phrase or a private key', tint: 'bg-surface-2 text-ink', run: () => nav.go({ name: 'import' }) },
     ...(HARDWARE_ENABLED
       ? [
@@ -47,7 +51,7 @@ export function AddAccountScreen() {
       </header>
       <ul className="m-3 list-none overflow-hidden rounded-[14px] border border-line bg-surface p-0">
         {options.map((o, i) => (
-          <li key={o.title} className={i ? 'border-t border-line-soft' : ''}>
+          <li key={`${o.title}|${o.desc}`} className={i ? 'border-t border-line-soft' : ''}>
             <button
               type="button"
               disabled={busy}
