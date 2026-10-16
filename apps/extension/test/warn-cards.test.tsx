@@ -1,10 +1,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { Warning } from '@clef/explain';
+import { address } from '@solana/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WarnCards } from '../entrypoints/approval/tx/parts';
 import { IdlAdder } from '../entrypoints/approval/tx/source';
 
 const PROGRAM = 'KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5';
-const stale = { rule: 'unknown-program', severity: 'warn', message: "Can't decode instruction #1: its program's IDL is out of date.", instructionIndex: 0, programId: PROGRAM } as const;
+const stale: Warning = { rule: 'unknown-program', severity: 'warn', message: "Can't decode instruction #1: its program's IDL is out of date.", instructionIndex: 0, programId: address(PROGRAM) };
 
 afterEach(cleanup);
 
