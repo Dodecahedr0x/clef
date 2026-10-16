@@ -18,6 +18,7 @@ export type SerializedApproval =
       member: string;
       inner: string;
       proposals: string[];
+      step?: { index: number; of: number };
       signer: SignerInfo;
     } & Common);
 

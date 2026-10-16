@@ -38,6 +38,19 @@ const VARIANTS: ApprovalRequest[] = [
     proposals: [new Uint8Array([6, 5])],
     signer: { kind: 'software' },
   },
+  {
+    kind: 'squadsPropose',
+    origin: 'https://dapp.example',
+    phishing: null,
+    account: A,
+    multisig: B,
+    vaultIndex: 0,
+    member: A,
+    inner: new Uint8Array([9, 8, 7]),
+    proposals: [new Uint8Array([6, 5]), new Uint8Array([4])],
+    step: { index: 2, of: 3 },
+    signer: { kind: 'ledger', address: A, path: "44'/501'/0'" },
+  },
 ] as ApprovalRequest[];
 
 describe('approval serialization', () => {
