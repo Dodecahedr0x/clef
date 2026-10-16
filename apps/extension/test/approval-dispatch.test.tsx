@@ -1,0 +1,109 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const ACCOUNT = 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk';
+const decide = vi.fn(async () => ({}));
+let request: Record<string, unknown> | null = null;
+
+vi.mock('../lib/api', () => ({
+  decide: (...a: unknown[]) => decide(...(a as [])),
+  getApproval: async () => request,
+}));
+vi.mock('../lib/serialize', () => ({ deserializeApproval: (s: unknown) => s }));
+vi.mock('../lib/hooks', () => ({
+  useWallet: () => ({
+    state: { unlocked: true, hasVault: true, accounts: [{ kind: 'ledger', address: ACCOUNT, label: 'Ledger 1' }], settings: {} },
+    error: null,
+    refresh: async () => {},
+  }),
+}));
+vi.mock('../entrypoints/popup/screens/Unlock', () => ({ UnlockScreen: () => <p>unlock</p> }));
+
+// The request view records whether it was remounted and shows what onSign rejected with.
+let mounts = 0;
+vi.mock('../entrypoints/approval/tx/TxApproval', () => ({
+  TxApproval: ({ onSign, onDecide }: { onSign?: (p: Uint8Array[]) => Promise<Uint8Array[]>; onDecide: (d: unknown) => void }) => {
+    const [mount] = useState(() => ++mounts);
+    const [error, setError] = useState<string | null>(null);
+    return (
+      <div>
+        <p>review mount {mount}</p>
+        {error && <p role="alert">{error}</p>}
+        <button
+          type="button"
+          onClick={() =>
+            onSign!([new Uint8Array([1])]).then(
+              (sigs) => onDecide({ approved: true, signatures: sigs }),
+              (e: Error) => setError(e.message),
+            )
+          }
+        >
+          Sign
+        </button>
+      </div>
+    );
+  },
+}));
+vi.mock('../entrypoints/approval/requests', () => ({
+  ConnectApproval: () => null,
+  MessageApproval: () => null,
+  SignInApproval: () => null,
+  SquadsApproval: () => null,
+  HardwareSignStep: (p: { summary: string; accountLabel?: string; onCancel: () => void; onSigned: (s: Uint8Array[]) => void }) => (
+    <div>
+      <p>device step: {p.summary} as {p.accountLabel}</p>
+      <button type="button" onClick={p.onCancel}>Cancel on device step</button>
+      <button type="button" onClick={() => p.onSigned([new Uint8Array(64)])}>Device signed</button>
+    </div>
+  ),
+}));
+
+const { Approval } = await import('../entrypoints/approval/Approval');
+
+afterEach(() => {
+  cleanup();
+  decide.mockClear();
+  mounts = 0;
+});
+
+const txRequest = () => ({
+  kind: 'signTransactions',
+  origin: 'https://dapp.example',
+  phishing: null,
+  account: ACCOUNT,
+  chain: 'solana:mainnet',
+  transactions: [new Uint8Array([1])],
+  send: false,
+  signer: { kind: 'ledger', address: ACCOUNT, path: "44'/501'/0'" },
+});
+
+describe('approval dispatcher, hardware signer', () => {
+  it('shows what is signed and keeps the review mounted; a cancel comes back as an error with nothing decided', async () => {
+    request = txRequest();
+    render(<Approval />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    expect(await screen.findByText('device step: Sign a transaction for dapp.example as Ledger 1')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel on device step' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/cancelled/i);
+    expect(screen.getByText('review mount 1')).toBeTruthy();
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it('forwards the device signatures in the decision', async () => {
+    request = txRequest();
+    render(<Approval />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Device signed' }));
+    await waitFor(() => expect(decide).toHaveBeenCalledTimes(1));
+    expect(decide.mock.calls[0]).toMatchObject([expect.any(String), { approved: true, signatures: [expect.any(Uint8Array)] }]);
+    expect(screen.getByText('review mount 1')).toBeTruthy();
+  });
+
+  it('says the request is gone when the id is unknown', async () => {
+    request = null;
+    render(<Approval />);
+    expect(await screen.findByText(/no longer available/)).toBeTruthy();
+  });
+});

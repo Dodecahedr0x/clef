@@ -61,27 +61,7 @@ function Dispatch({ request, state }: { request: ApprovalRequest; state: FullSta
     );
   }
 
-  if (signing) {
-    const done = () => setSigning(null);
-    return (
-      <HardwareSignStep
-        signer={signing.signer}
-        payloads={signing.payloads}
-        payloadKind={signing.payloadKind}
-        origin={request.origin}
-        summary={null}
-        onSigned={(sigs) => {
-          done();
-          signing.resolve(sigs);
-        }}
-        onCancel={() => {
-          done();
-          signing.reject(new Error('Signing cancelled on the hardware wallet step'));
-        }}
-      />
-    );
-  }
-
+  const view = (() => {
   switch (request.kind) {
     case 'connect':
       return <ConnectApproval request={request} state={state} onDecide={onDecide} />;
@@ -103,6 +83,48 @@ function Dispatch({ request, state }: { request: ApprovalRequest; state: FullSta
       );
     case 'squadsPropose':
       return <SquadsApproval request={request} state={state} onDecide={onDecide} onSign={signWith(request.signer, 'transaction')} />;
+  }
+  })();
+
+  // The request view stays mounted (hidden) while the device signs: its state, acknowledgement and any error from a
+  // cancelled signing survive, and it cannot be approved twice.
+  return (
+    <>
+      <div hidden={signing !== null}>{view}</div>
+      {signing && (
+        <HardwareSignStep
+          signer={signing.signer}
+          payloads={signing.payloads}
+          payloadKind={signing.payloadKind}
+          origin={request.origin}
+          summary={signingSummary(request, signing.payloads.length)}
+          accountLabel={state.accounts.find((a) => a.address === signing.signer.address)?.label}
+          onSigned={(sigs) => {
+            setSigning(null);
+            signing.resolve(sigs);
+          }}
+          onCancel={() => {
+            setSigning(null);
+            signing.reject(new Error('Signing was cancelled. Nothing was signed.'));
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** What the hardware step says is being signed, so the user can match it against the device. */
+function signingSummary(request: ApprovalRequest, count: number): string {
+  const host = new URL(request.origin).host || 'Clef';
+  switch (request.kind) {
+    case 'signTransactions':
+      return count === 1 ? `Sign a transaction for ${host}` : `Sign ${count} transactions for ${host}`;
+    case 'squadsPropose':
+      return `Propose and approve a multisig transaction for ${host}`;
+    case 'signIn':
+      return `Sign in to ${host}`;
+    default:
+      return `Sign a message for ${host}`;
   }
 }
 
