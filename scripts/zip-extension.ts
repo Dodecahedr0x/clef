@@ -23,12 +23,16 @@ function crc32(data: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-function listFiles(dir: string): string[] {
+/** Dev-only pages that never ship to the store. */
+const DEV_ONLY = /(^|\/)kitchen-sink[.-]/;
+
+function listFiles(dir: string, root = dir): string[] {
   return readdirSync(dir)
     .sort()
     .flatMap((name) => {
       const path = join(dir, name);
-      return statSync(path).isDirectory() ? listFiles(path) : [path];
+      if (statSync(path).isDirectory()) return listFiles(path, root);
+      return DEV_ONLY.test(relative(root, path).split(sep).join('/')) ? [] : [path];
     });
 }
 
