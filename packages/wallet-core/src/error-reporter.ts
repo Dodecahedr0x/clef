@@ -1,3 +1,4 @@
+import { isBip39Word } from '@clef/vault';
 const B58 = /^[1-9A-HJ-NP-Za-km-z]+$/;
 const URLS = /\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>()[\]{}]+/gi;
 const TOKENS = /[A-Za-z0-9+/=]{24,}/g;
@@ -22,9 +23,32 @@ function hostOf(text: string): string | null {
   }
 }
 
+/**
+ * Redacts every stretch of 12+ consecutive BIP39 words, whatever separates them (underscores, digits, punctuation,
+ * camelCase), by splitting the text into letter runs. Catches phrase layouts a separator-based pattern misses.
+ */
+function redactBip39Runs(text: string): string {
+  const runs = [...text.matchAll(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])/g)];
+  let out = '';
+  let last = 0;
+  let i = 0;
+  while (i < runs.length) {
+    let j = i;
+    while (j < runs.length && isBip39Word(runs[j]![0].toLowerCase())) j++;
+    if (j - i >= 12) {
+      const start = runs[i]!.index!;
+      const end = runs[j - 1]!.index! + runs[j - 1]![0].length;
+      out += text.slice(last, start) + '<words>';
+      last = end;
+    }
+    i = Math.max(j, i + 1);
+  }
+  return out + text.slice(last);
+}
+
 /** Redacts anything that could identify a user or leak a secret from error text before it leaves the device. */
 export function scrub(text: string, originHost?: string): string {
-  return text
+  return redactBip39Runs(text)
     .replace(BYTE_LIST, '<bytes>')
     .replace(URLS, (u) => (originHost && hostOf(u) === originHost ? originHost : '<url>'))
     .replace(TOKENS, (t) => {

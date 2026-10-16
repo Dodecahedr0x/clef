@@ -11,3 +11,7 @@ export const validateMnemonic = (m: string): boolean => valid(normalizeMnemonic(
 export async function mnemonicToSeed(m: string, passphrase = ''): Promise<Uint8Array> {
   return toSeed(normalizeMnemonic(m), passphrase);
 }
+
+const WORDS = new Set(wordlist);
+/** True for a word of the BIP39 English list (lowercase). */
+export const isBip39Word = (w: string): boolean => WORDS.has(w);

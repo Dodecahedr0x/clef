@@ -13,10 +13,15 @@ describe('scrub', () => {
     ['newlines', (w: string[]) => w.join('\n')],
     ['upper', (w: string[]) => w.join(' ').toUpperCase()],
     ['pipes', (w: string[]) => w.join(' | ')],
+    ['underscores', (w: string[]) => w.join('_')],
+    ['glued numbers', (w: string[]) => w.map((x, i) => `${i + 1}${x}`).join(' ')],
+    ['camel case', (w: string[]) => w.map((x) => x[0]!.toUpperCase() + x.slice(1)).join('')],
+    ['long words', () => 'zebra wrestle yellow ancient bachelor bracket category cinnamon dinosaur elephant february gallery'.split(' ').join(' ')],
   ])('redacts a 12-word phrase written as %s', (_name, fmt) => {
     const words = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ');
-    const out = scrub(`seed: ${fmt(words)} end`);
-    for (const w of words) expect(out.toLowerCase()).not.toContain(w);
+    const text = fmt(words);
+    const out = scrub(`seed: ${text} end`);
+    for (const w of text.toLowerCase().match(/[a-z]+/g)!.filter((x) => x.length > 2)) expect(out.toLowerCase()).not.toContain(w);
   });
 
   it('redacts secret keys as JSON byte arrays and hex, and phrases with commas or capitals', () => {
@@ -39,7 +44,7 @@ describe('scrub', () => {
     expect(scrub('from https://dapp.example/a/b', 'dapp.example')).toBe('from dapp.example');
     expect(scrub('blob AAECAwQFBgcICQoLDA0ODxAREhMUFRYX+/==')).toBe('blob <b64>');
     const phrase = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-    expect(scrub(`mnemonic: ${phrase}.`)).toBe('<words>.') // the label word is swallowed too: over-redaction is the safe side;
+    expect(scrub(`mnemonic: ${phrase}.`)).toBe('mnemonic: <words>.');
     expect(scrub('Error: Simulation failed at instruction 2')).toBe('Error: Simulation failed at instruction 2');
   });
 });
