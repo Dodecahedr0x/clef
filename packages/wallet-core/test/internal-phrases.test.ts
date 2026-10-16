@@ -192,6 +192,22 @@ describe('InternalApi with several recovery phrases', () => {
     expect(await vault.list()).toHaveLength(3);
   });
 
+  it('derive with an explicit scheme uses the next free index on that path', async () => {
+    const { call, state } = await twoPhrases();
+    await call('accounts:importMnemonic', { mnemonic: ZOO, indexes: [0, 1], scheme: 'legacy' });
+    await call('accounts:derive', { phrase: 2, scheme: 'standard' });
+    await call('accounts:derive', { phrase: 2, scheme: 'legacy' });
+    const s = await state();
+    expect(s.accounts.slice(3)).toMatchObject([
+      { index: 0, phrase: 2, scheme: 'legacy' },
+      { index: 1, phrase: 2, scheme: 'legacy' },
+      { address: await addressFor(ZOO, [44, 501, 3, 0]), index: 3, phrase: 2 },
+      { address: await addressFor(ZOO, [44, 501, 2]), index: 2, phrase: 2, scheme: 'legacy' },
+    ]);
+    expect(s.accounts[5]!.scheme).toBeUndefined();
+    await expect(call('accounts:derive', { phrase: 2, scheme: 'other' })).rejects.toThrow(/scheme/);
+  });
+
   it('omits phrase numbers while locked', async () => {
     const { call, state } = await twoPhrases();
     await call('vault:lock');

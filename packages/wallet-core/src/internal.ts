@@ -30,6 +30,7 @@ export type PublicAccount = {
   address: Address;
   label: string;
   index?: number;
+  scheme?: DerivationScheme;
   /** 1-based position of the account's recovery phrase in the vault; present while unlocked. */
   phrase?: number;
   path?: string;
@@ -135,7 +136,7 @@ const toPublic = (a: Account, phraseIds: string[] | null): PublicAccount => {
   switch (a.kind) {
     case 'hd': {
       const n = phraseIds ? phraseIds.indexOf(a.secretId) + 1 : 0;
-      return { ...base, index: a.index, ...(n > 0 && { phrase: n }) };
+      return { ...base, index: a.index, ...(a.scheme && { scheme: a.scheme }), ...(n > 0 && { phrase: n }) };
     }
     case 'ledger':
       return { ...base, path: a.path };
@@ -229,9 +230,9 @@ export class InternalApi {
       }
       case 'accounts:derive': {
         const secretId = await this.phraseId(raw);
-        // continue on the path this phrase's accounts were last added with
+        // without an explicit scheme, continue on the path this phrase's accounts were last added with
         const last = (await accounts.list()).filter((a) => a.kind === 'hd' && a.secretId === secretId).at(-1);
-        const scheme = last?.kind === 'hd' ? last.scheme : undefined;
+        const scheme = raw.scheme !== undefined ? schemeField(raw) : last?.kind === 'hd' ? last.scheme : undefined;
         let index = await accounts.nextHdIndex(secretId, scheme);
         // an index the old import flow stored as a keypair account is taken; never retry it forever
         while (await accounts.get(await vault.withPrivateKey({ secretId, index, ...(scheme && { scheme }) }, async (_k, a) => a))) {
