@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Sign all transactions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E6E8EE">
+    <span style="width: 32px; height: 32px; border-radius: 8px; background: #DFF3EE; color: #0F7A62; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">L</span>
+    <div style="display: flex; flex-direction: column; flex: 1"><span style="font-size: 14px; font-weight: 600">lend.example</span><span style="font-size: 12px; color: #5C6475">Requests 3 signatures · Main</span></div>
+    <span style="padding: 2px 8px; border-radius: 999px; background: #EEF0F4; font-size: 12px; color: #5C6475">Intermediate</span>
+  </header>
+
+  <div style="padding: 18px 16px 0; display: flex; flex-direction: column; gap: 12px; flex: 1">
+    <h1 style="margin: 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">Deposit 2 SOL, borrow 100 USDC</h1>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+      <div style="padding: 8px 12px; display: flex; background: #F1F3F7; border-bottom: 1px solid #E6E8EE; font-size: 12px; color: #5C6475">
+        <span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em">All 3 together</span><span style="margin-left: auto">Simulated in order</span>
+      </div>
+      <div style="padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; font-size: 14px; font-variant-numeric: tabular-nums">
+        <span>SOL</span><span style="color: #C2341F; text-align: right">−2.0022 SOL</span>
+        <span>USDC</span><span style="color: #0F7A62; text-align: right">+100.00 USDC</span>
+        <span>New debt</span><span style="text-align: right">100.00 USDC</span>
+      </div>
+    </section>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+      <li style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; min-height: 52px; padding: 0 12px; display: flex; align-items: center; gap: 10px">
+        <span class="m" style="width: 22px; height: 22px; border-radius: 50%; background: #EEF0F4; display: flex; align-items: center; justify-content: center; font-size: 12px">1</span>
+        <span style="flex: 1; font-size: 14px">Open lending account <span style="display: block; font-size: 12px; color: #5C6475">rent 0.0022 SOL</span></span>
+        <span style="font-size: 12px; color: #0F7A62">✓ simulated</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </li>
+      <li style="background: #FFFFFF; border: 1.5px solid #CBD0DA; border-radius: 12px; overflow: hidden">
+        <div style="min-height: 52px; padding: 0 12px; display: flex; align-items: center; gap: 10px">
+          <span class="m" style="width: 22px; height: 22px; border-radius: 50%; background: #14171F; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px">2</span>
+          <span style="flex: 1; font-size: 14px; font-weight: 600">Deposit 2 SOL</span>
+          <span style="font-size: 12px; color: #0F7A62">✓ simulated</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>
+        </div>
+        <div style="padding: 10px 12px; border-top: 1px solid #E6E8EE; display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+          <div style="display: flex"><span style="color: #5C6475">Program</span><span style="margin-left: auto">Lending · deposit <span style="color: #4A6B12">published IDL</span></span></div>
+          <div style="display: flex"><span class="m" style="color: #5C6475">authority</span><span style="margin-left: auto">You · Main <span style="color: #0F7A62">✓ signer</span></span></div>
+          <div style="display: flex"><span class="m" style="color: #5C6475">user_account</span><span style="margin-left: auto">Your lending account <span style="color: #0F7A62">✓ PDA</span></span></div>
+          <div style="display: flex"><span class="m" style="color: #5C6475">reserve</span><span style="margin-left: auto">SOL reserve <span style="color: #0F7A62">✓ has_one pool</span></span></div>
+        </div>
+      </li>
+      <li style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; min-height: 52px; padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+        <span class="m" style="width: 22px; height: 22px; border-radius: 50%; background: #EEF0F4; display: flex; align-items: center; justify-content: center; font-size: 12px">3</span>
+        <span style="flex: 1; font-size: 14px">Borrow 100 USDC <span style="display: block; font-size: 12px; color: #A86400">Creates debt · liquidation risk</span></span>
+        <span style="font-size: 12px; color: #0F7A62">✓ simulated</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </li>
+    </ol>
+
+    <section style="padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; background: #FDF4E3; border: 1px solid #F0D9A8; border-radius: 12px; font-size: 12px; line-height: 1.45; color: #6B4A0A">
+      <span style="padding: 1px 7px; border-radius: 999px; background: #A86400; color: #FFFFFF; font-size: 12px; font-weight: 600">INFO</span>
+      <span>All three are signed together. If one fails on-chain, the dApp decides what happens to the others.</span>
+    </section>
+  </div>
+
+  <footer style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #E6E8EE">
+    <button type="button" style="height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">Reject all</button>
+    <button type="button" style="height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">Sign all 3</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Sign in with Solana</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 400px; height: 680px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <section style="padding: 28px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+    <span style="width: 56px; height: 56px; border-radius: 14px; background: #EDF3DF; color: #4A6B12; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600">J</span>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 600">Sign in to jup.ag</h1>
+    <span style="font-size: 14px; color: #5C6475">as <strong style="color: #14171F">Main</strong> <span class="m" style="font-size: 12px">7xKp…3fQa</span></span>
+  </section>
+
+  <section style="margin: 0 16px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+    <div style="padding: 8px 12px; background: #F1F3F7; border-bottom: 1px solid #E6E8EE; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Sign-in message</div>
+    <dl style="margin: 0; padding: 4px 12px; display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; column-gap: 8px; font-size: 12px; align-items: center">
+      <dt style="padding: 7px 0; color: #5C6475">Domain</dt><dd class="m" style="margin: 0">jup.ag</dd><dd style="margin: 0; color: #0F7A62">✓ matches tab</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">Address</dt><dd class="m" style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0">7xKp…3fQa</dd><dd style="margin: 0; color: #0F7A62; border-top: 1px solid #E6E8EE; padding: 7px 0">✓ yours</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">Statement</dt><dd style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0; grid-column: span 2">Sign in to Jupiter</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">URI</dt><dd class="m" style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0; grid-column: span 2">https://jup.ag</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">Chain</dt><dd style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0; grid-column: span 2">Mainnet</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">Expires</dt><dd style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0; grid-column: span 2">in 10 minutes</dd>
+      <dt style="padding: 7px 0; color: #5C6475; border-top: 1px solid #E6E8EE">Nonce</dt><dd class="m" style="margin: 0; border-top: 1px solid #E6E8EE; padding: 7px 0; grid-column: span 2">k3J9xQ2mVt</dd>
+    </dl>
+  </section>
+
+  <p style="margin: 14px 20px 0; font-size: 12px; line-height: 1.5; color: #5C6475">Signing in proves you own this address. It doesn’t approve any transaction.</p>
+
+  <footer style="margin-top: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #E6E8EE">
+    <button type="button" style="height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">Cancel</button>
+    <button type="button" style="height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">Sign in</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":680}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

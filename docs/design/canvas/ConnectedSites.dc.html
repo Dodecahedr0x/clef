@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Connected sites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Connected sites</h1>
+  </header>
+
+  <p style="margin: 14px 20px 10px; font-size: 12px; line-height: 1.45; color: #5C6475">These sites can see an account’s address and ask you to sign. Disconnecting stops both.</p>
+
+  <ul style="list-style: none; margin: 0 12px; padding: 0; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+    <sc-for list="{{sites}}" as="s" hint-placeholder-count="3">
+      <li style="min-height: 64px; padding: 0 8px 0 12px; display: flex; align-items: center; gap: 10px; border-top: {{s.border}}">
+        <span style="width: 32px; height: 32px; border-radius: 8px; background: {{s.tint}}; color: {{s.ink}}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none">{{s.mark}}</span>
+        <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 500">{{s.host}}</span><span style="font-size: 12px; color: #5C6475">{{s.acct}} · {{s.when}}</span></span>
+        <button type="button" style="height: 36px; padding: 0 10px; background: transparent; border: 1px solid #CBD0DA; border-radius: 10px; color: #14171F; font-size: 12px">Disconnect</button>
+      </li>
+    </sc-for>
+  </ul>
+
+  <div style="margin-top: auto; padding: 16px">
+    <button type="button" style="width: 100%; height: 48px; background: #FFFFFF; color: #C2341F; border: 1px solid #F2B8AC; border-radius: 12px; font-size: 14px; font-weight: 600">Disconnect all</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() {
+  var rows = [
+    ['J', 'jup.ag', 'Main', 'used today', '#EDF3DF', '#4A6B12'],
+    ['L', 'lend.example', 'Main', 'used yesterday', '#DFF3EE', '#0F7A62'],
+    ['P', 'payroll.example', 'Treasury', 'used 3 days ago', '#FDF4E3', '#A86400']
+  ];
+  return { sites: rows.map(function (r, i) { return { mark: r[0], host: r[1], acct: r[2], when: r[3], tint: r[4], ink: r[5], border: i ? '1px solid #E6E8EE' : '0' }; }) };
+}
+}
+</script>
+</body>
+</html>

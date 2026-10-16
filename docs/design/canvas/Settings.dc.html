@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 360px; height: 720px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Settings</h1>
+    <button type="button" style="margin-left: auto; height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 12px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 999px; color: #14171F; font-size: 12px; font-weight: 600">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Lock now</button>
+  </header>
+
+  <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden">
+
+    <h2 style="margin: 0 4px; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Signing detail</h2>
+    <section style="padding: 10px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column; gap: 8px">
+      <div role="radiogroup" aria-label="Signing detail level" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; background: #EEF0F4; border-radius: 10px">
+        <button type="button" role="radio" aria-checked="false" style="height: 36px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px">Basic</button>
+        <button type="button" role="radio" aria-checked="true" style="height: 36px; background: #FFFFFF; color: #14171F; border: 0; border-radius: 7px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(20,23,31,0.14)">Intermediate</button>
+        <button type="button" role="radio" aria-checked="false" style="height: 36px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px">Expert</button>
+      </div>
+      <span style="font-size: 12px; color: #5C6475; padding: 0 2px">Instruction names, decoded values and verified accounts. Warnings show at every level.</span>
+    </section>
+
+    <h2 style="margin: 16px 4px 0; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Security</h2>
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column">
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Auto-lock</span><span style="font-size: 12px; color: #5C6475">15 min</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; border-top: 1px solid #E6E8EE; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Connected sites</span><span style="font-size: 12px; color: #5C6475">3</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; border-top: 1px solid #E6E8EE; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Password &amp; recovery phrase</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+    </section>
+
+    <h2 style="margin: 16px 4px 0; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Network &amp; data</h2>
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column">
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Network</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #5C6475"><span style="width: 6px; height: 6px; border-radius: 50%; background: #0F7A62"></span>Mainnet</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; border-top: 1px solid #E6E8EE; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">RPC</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C6475">[YOUR RPC URL]</span>
+        <span style="padding: 1px 6px; border-radius: 4px; background: #E8F6F1; color: #0B5C49; font-size: 12px">DAS</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; border-top: 1px solid #E6E8EE; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Program IDLs</span><span style="font-size: 12px; color: #5C6475">2 added by you</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; border-top: 1px solid #E6E8EE; color: #14171F; font-size: 14px; text-align: left">
+        <span style="flex: 1">Address book &amp; labels</span><span style="font-size: 12px; color: #5C6475">6</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+      </button>
+      <label for="spam" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #E6E8EE; font-size: 14px; cursor: pointer">
+        <span style="flex: 1">Hide spam tokens</span>
+        <input id="spam" type="checkbox" role="switch" checked style="width: 20px; height: 20px; margin: 0; accent-color: #4A6B12">
+      </label>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":720}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

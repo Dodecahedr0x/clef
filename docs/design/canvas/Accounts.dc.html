@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Accounts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Close" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Accounts</h1>
+    <span style="margin-left: auto; font-size: 12px; color: #5C6475">Total $2,906.10</span>
+  </header>
+
+  <div style="padding: 8px 12px 0; display: flex; flex-direction: column; flex: 1; overflow: hidden">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+      <h2 style="margin: 10px 6px 4px; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">{{g.title}}</h2>
+      <ul style="list-style: none; margin: 0; padding: 0; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+        <sc-for list="{{g.items}}" as="a" hint-placeholder-count="2">
+          <li>
+            <button type="button" aria-current="{{a.current}}" style="width: 100%; min-height: 50px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: {{a.bg}}; border: 0; border-top: {{a.border}}; color: #14171F; text-align: left">
+              <span style="width: 24px; height: 24px; border-radius: {{a.shape}}; background: {{a.color}}; flex: none"></span>
+              <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 500">{{a.name}}</span><span class="m" style="font-size: 12px; color: #5C6475">{{a.addr}}</span></span>
+              <span style="display: flex; flex-direction: column; align-items: flex-end"><span style="font-size: 14px; font-variant-numeric: tabular-nums">{{a.bal}}</span><span style="font-size: 12px; color: #5C6475">{{a.tag}}</span></span>
+            </button>
+          </li>
+        </sc-for>
+      </ul>
+    </sc-for>
+  </div>
+
+  <div style="padding: 12px 16px 16px">
+    <button type="button" style="width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 600">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add account</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() {
+  function acct(name, addr, bal, tag, color, shape, current) { return { name: name, addr: addr, bal: bal, tag: tag, color: color, shape: shape || '50%', current: current ? 'true' : 'false', bg: current ? '#EEF5DD' : 'transparent' }; }
+  var groups = [
+    { title: 'Recovery phrase', items: [acct('Main', '7xKp…3fQa', '$1,284.52', '✓ selected', '#3D6FE0', 0, true), acct('Trading', '9aLq…Tz1e', '$56.64', '#1', '#0F7A62')] },
+    { title: 'Hardware', items: [acct('Ledger 1', 'Ct4m…Q8xe', '$410.00', 'Ledger', '#5B3FC4'), acct('Cold vault', 'Ks8p…Wn3H', '$0.00', 'Keystone', '#14171F')] },
+    { title: 'Multisig', items: [acct('Treasury', 'Sq4v…Lm8P', '$1,154.94', '2 of 3 · via Ledger 1', '#A86400', '6px')] },
+    { title: 'Watch-only', items: [acct('Grant wallet', 'Gw2n…Y7cR', '$9,820.00', 'view only', '#8A91A0')] }
+  ];
+  groups.forEach(function (g) { g.items.forEach(function (a, i) { a.border = i ? '1px solid #E6E8EE' : '0'; }); });
+  return { groups: groups };
+}
+}
+</script>
+</body>
+</html>

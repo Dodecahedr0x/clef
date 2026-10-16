@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Sign with Keystone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 400px; height: 760px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E6E8EE">
+    <span style="width: 32px; height: 32px; border-radius: 8px; background: #EDF3DF; color: #4A6B12; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">J</span>
+    <div style="display: flex; flex-direction: column; flex: 1"><span style="font-size: 14px; font-weight: 600">Swap 1.5 SOL → ~212.4 USDC</span><span style="font-size: 12px; color: #5C6475">jup.ag · Keystone vault</span></div>
+  </header>
+
+  <ol style="list-style: none; margin: 0; padding: 14px 16px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 12px">
+    <li style="padding: 8px 10px; border-radius: 10px; background: #14171F; color: #FFFFFF; font-weight: 600">1 · Keystone scans this</li>
+    <li style="padding: 8px 10px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E1E4EA; color: #5C6475">2 · Clef scans the signature</li>
+  </ol>
+
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1">
+    <div style="padding: 14px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 18px">
+      <div role="img" aria-label="Animated QR code containing the unsigned transaction" style="width: 232px; height: 232px; display: grid; grid-template-columns: repeat(29, minmax(0, 1fr))">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="841"><div style="background: {{c.bg}}"></div></sc-for>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5C6475">
+      <div aria-hidden="true" style="display: flex; gap: 4px">
+        <sc-for list="{{parts}}" as="p" hint-placeholder-count="8"><span style="width: 14px; height: 4px; border-radius: 2px; background: {{p.bg}}"></span></sc-for>
+      </div>
+      <span>Part 3 of 8 · looping</span>
+    </div>
+    <p style="margin: 4px 0 0; font-size: 14px; line-height: 1.5; text-align: center">On your Keystone, open the Solana wallet and tap <strong>Scan</strong>. Check the amounts it shows match this swap.</p>
+    <p style="margin: 0; font-size: 12px; line-height: 1.5; text-align: center; color: #5C6475">Clef then checks the returned signature against this transaction and your Keystone’s public key before sending.</p>
+  </div>
+
+  <footer style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #E6E8EE">
+    <button type="button" style="height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">Cancel</button>
+    <button type="button" style="height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"></path></svg>Scan signature</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":760}}'>
+class Component extends DCLogic {
+renderVals() {
+  // Decorative QR-style pattern (not a real encoding).
+  var N = 29, cells = [], seed = 19;
+  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  function finder(r, c) {
+    var spots = [[0, 0], [0, N - 7], [N - 7, 0]];
+    for (var i = 0; i < 3; i++) {
+      var y = r - spots[i][0], x = c - spots[i][1];
+      if (y >= -1 && y <= 7 && x >= -1 && x <= 7) {
+        if (y < 0 || y > 6 || x < 0 || x > 6) return 0;
+        return Math.min(y, x, 6 - y, 6 - x) === 1 ? 0 : 1;
+      }
+    }
+    return -1;
+  }
+  for (var r = 0; r < N; r++) for (var c = 0; c < N; c++) {
+    var f = finder(r, c);
+    cells.push({ bg: (f === -1 ? rnd() < 0.5 : f === 1) ? '#14171F' : 'transparent' });
+  }
+  var parts = [];
+  for (var i = 0; i < 8; i++) parts.push({ bg: i < 3 ? '#4A6B12' : '#CBD0DA' });
+  return { cells: cells, parts: parts };
+}
+}
+</script>
+</body>
+</html>

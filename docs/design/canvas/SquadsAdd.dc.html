@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Add Squads multisig</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Add Squads multisig</h1>
+  </header>
+
+  <div style="padding: 14px 16px 0; display: flex; flex-direction: column; gap: 8px; flex: 1">
+    <label for="ms" style="font-size: 12px; color: #5C6475">Multisig address</label>
+    <input id="ms" class="m" value="Sq4vR8kN…Lm8P" style="height: 44px; box-sizing: border-box; padding: 0 12px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 12px; color: #14171F; font-size: 14px; outline: none">
+
+    <section style="margin-top: 4px; padding: 12px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 14px; font-weight: 600">Squads v4</span><span style="font-size: 12px; color: #0F7A62">✓ verified program account</span></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12px; color: #5C6475">
+        <span><strong style="display: block; font-size: 14px; color: #14171F">2 of 3</strong>threshold</span>
+        <span><strong style="display: block; font-size: 14px; color: #14171F">3</strong>members</span>
+        <span><strong style="display: block; font-size: 14px; color: #14171F">$1,154.94</strong>vault 0</span>
+      </div>
+    </section>
+
+    <fieldset style="margin: 6px 0 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+      <legend style="padding: 0 0 6px; font-size: 12px; color: #5C6475">Vote with</legend>
+      <label style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 1.5px solid #4A6B12; border-radius: 12px; cursor: pointer"><input type="radio" name="m" checked style="width: 18px; height: 18px; margin: 0; accent-color: #4A6B12"><span style="flex: 1; font-size: 14px">Ledger 1 <span class="m" style="font-size: 12px; color: #5C6475">Ct4m…Q8xe</span></span><span style="font-size: 12px; color: #0F7A62">member</span></label>
+      <label style="min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: #EEF0F4; border: 1px solid #E1E4EA; border-radius: 12px; color: #5C6475"><input type="radio" name="m" disabled style="width: 18px; height: 18px; margin: 0"><span style="flex: 1; font-size: 14px">Main</span><span style="font-size: 12px">not a member</span></label>
+    </fieldset>
+
+    <label for="nm" style="margin-top: 6px; font-size: 12px; color: #5C6475">Name</label>
+    <input id="nm" value="Treasury" style="height: 44px; box-sizing: border-box; padding: 0 12px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 12px; color: #14171F; font-size: 14px; outline: none">
+  </div>
+
+  <div style="padding: 12px 16px 16px">
+    <button type="button" style="width: 100%; height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer">Add multisig</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

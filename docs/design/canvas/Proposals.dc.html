@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Squads proposals</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Treasury</h1>
+    <span style="margin-left: auto; padding: 2px 8px; border: 1px solid #CBD0DA; border-radius: 6px; font-size: 12px; color: #5C6475">Squads 2 of 3</span>
+  </header>
+
+  <div role="tablist" aria-label="Proposals" style="padding: 0 16px; display: flex; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" role="tab" aria-selected="true" style="height: 40px; padding: 0 10px; background: transparent; border: 0; border-bottom: 2px solid #4A6B12; color: #14171F; font-size: 14px; font-weight: 600">Active · 3</button>
+    <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 10px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: #5C6475; font-size: 14px">Executed</button>
+  </div>
+
+  <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; overflow: hidden">
+    <article style="padding: 12px; background: #FFFFFF; border: 1px solid #F0D9A8; border-radius: 12px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 8px"><span class="m" style="font-size: 12px; color: #5C6475">#15</span><span style="font-size: 14px; font-weight: 600">Change threshold to 1 of 3</span></div>
+      <span style="font-size: 12px; color: #6B4A0A">Lets any single member move vault funds. Proposed by Bob.</span>
+      <div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px; color: #5C6475">0 of 2 · needs your vote</span>
+        <button type="button" style="margin-left: auto; height: 36px; padding: 0 12px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 12px">Reject</button>
+        <button type="button" style="height: 36px; padding: 0 12px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 12px; font-weight: 600">Review</button></div>
+    </article>
+
+    <article style="padding: 12px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 8px"><span class="m" style="font-size: 12px; color: #5C6475">#14</span><span style="font-size: 14px; font-weight: 600">Send 500 USDC to Payroll</span></div>
+      <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px"><span style="height: 5px; border-radius: 3px; background: #4A6B12"></span><span style="height: 5px; border-radius: 3px; background: #E1E4EA"></span></div>
+      <span style="font-size: 12px; color: #5C6475">1 of 2 · you approved · waiting for Alice or Bob</span>
+    </article>
+
+    <article style="padding: 12px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 8px"><span class="m" style="font-size: 12px; color: #5C6475">#13</span><span style="font-size: 14px; font-weight: 600">Stake 40 SOL</span></div>
+      <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px"><span style="height: 5px; border-radius: 3px; background: #4A6B12"></span><span style="height: 5px; border-radius: 3px; background: #4A6B12"></span></div>
+      <div style="display: flex; align-items: center"><span style="font-size: 12px; color: #0F7A62">2 of 2 · ready</span>
+        <button type="button" style="margin-left: auto; height: 36px; padding: 0 14px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 10px; font-size: 12px; font-weight: 600">Execute</button></div>
+    </article>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Welcome</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; padding: 0 20px 20px; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div aria-hidden="true" style="height: 190px; margin: 0 -20px; position: relative; display: flex; align-items: center; justify-content: center">
+    <div style="position: absolute; left: 0; right: 0; top: 64px; display: flex; flex-direction: column; gap: 14px">
+      <div style="height: 1px; background: #E1E4EA"></div><div style="height: 1px; background: #E1E4EA"></div><div style="height: 1px; background: #E1E4EA"></div><div style="height: 1px; background: #E1E4EA"></div><div style="height: 1px; background: #E1E4EA"></div>
+    </div>
+    <svg style="position: relative" width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="#4A6B12" stroke-width="1.1" stroke-linecap="round"><circle cx="8.5" cy="12" r="4.2" fill="#F5F6F8"></circle><path d="M12.7 12H21M17.5 12v3.2M21 12v2.2"></path></svg>
+  </div>
+
+  <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15">Know what<br>you sign.</h1>
+  <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: #5C6475">Clef reads every transaction and tells you, in plain words, what it will do.</p>
+
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+    <button type="button" style="height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">Create a new wallet</button>
+    <button type="button" style="height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">I already have a wallet</button>
+    <div style="display: flex; justify-content: center; gap: 16px; font-size: 12px; padding-top: 4px">
+      <a href="#">Connect Ledger or Keystone</a><a href="#">Watch an address</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

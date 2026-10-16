@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Confirm phrase</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; padding: 0 20px 20px; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; margin: 0 -14px; display: flex; align-items: center">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <div aria-label="Step 3 of 3" style="margin-left: auto; margin-right: 14px; display: flex; gap: 4px"><span style="width: 24px; height: 4px; border-radius: 2px; background: #4A6B12"></span><span style="width: 24px; height: 4px; border-radius: 2px; background: #4A6B12"></span><span style="width: 24px; height: 4px; border-radius: 2px; background: #4A6B12"></span></div>
+  </header>
+
+  <h1 style="margin: 8px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Check your copy</h1>
+  <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: #5C6475">Pick words 3, 7 and 11 from what you wrote down.</p>
+
+  <div class="m" style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+    <div style="height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #B5E0D3; border-radius: 12px"><span style="color: #8A91A0; font-size: 12px">#3</span><span style="flex: 1">tunnel</span><span style="color: #0F7A62; font-family: 'IBM Plex Sans', sans-serif">✓</span></div>
+    <div style="height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 2px solid #4A6B12; border-radius: 12px"><span style="color: #8A91A0; font-size: 12px">#7</span><span style="flex: 1; color: #8A91A0; font-family: 'IBM Plex Sans', sans-serif">Choose below</span></div>
+    <div style="height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 12px; background: #EEF0F4; border: 1px dashed #CBD0DA; border-radius: 12px"><span style="color: #8A91A0; font-size: 12px">#11</span></div>
+  </div>
+
+  <div role="group" aria-label="Choose word 7" class="m" style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">garden</button>
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">hazard</button>
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">ribbon</button>
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">pilot</button>
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">canyon</button>
+    <button type="button" style="height: 44px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; font-size: 14px; color: #14171F">velvet</button>
+  </div>
+
+  <button type="button" disabled style="margin-top: auto; height: 48px; background: #E1E4EA; color: #5C6475; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: not-allowed">Finish setup</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Send</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Send</h1>
+  </header>
+
+  <div style="padding: 20px 16px 0; display: flex; flex-direction: column; gap: 18px; flex: 1">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="amt" style="font-size: 12px; color: #5C6475">Amount</label>
+      <div style="padding: 14px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <input id="amt" value="0.5" inputmode="decimal" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #14171F; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">
+          <button type="button" style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 6px; background: #EEF0F4; border: 1px solid #E1E4EA; border-radius: 999px; color: #14171F; cursor: pointer">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background: #ECE7FB; color: #5B3FC4; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">S</span>
+            <span style="font-size: 14px; font-weight: 500">SOL</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; font-size: 12px; color: #5C6475; font-variant-numeric: tabular-nums">
+          <span>≈ $70.80</span>
+          <span style="margin-left: auto">Balance 6.2104</span>
+          <button type="button" style="margin-left: 8px; height: 28px; padding: 0 10px; background: transparent; border: 1px solid #CBD0DA; border-radius: 999px; color: #14171F; font-size: 12px; font-weight: 600; cursor: pointer">MAX</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="to" style="font-size: 12px; color: #5C6475">To</label>
+      <div style="height: 48px; box-sizing: border-box; padding: 0 14px; background: #FFFFFF; border: 1px solid #4A6B12; border-radius: 12px; display: flex; align-items: center">
+        <input id="to" value="alice" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #14171F; font-size: 14px">
+      </div>
+      <ul style="list-style: none; margin: 0; padding: 4px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column">
+        <li style="min-height: 52px; padding: 0 10px; display: flex; align-items: center; gap: 10px; background: #EEF0F4; border-radius: 8px">
+          <span style="width: 30px; height: 30px; border-radius: 50%; background: #DFF3EE; color: #0F7A62; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex: none">A</span>
+          <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+            <span style="font-size: 14px; font-weight: 500">Alice</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C6475">9vRt…k2Lm · Address book</span>
+          </div>
+          <span style="font-size: 12px; color: #5C6475">Sent 3×</span>
+        </li>
+        <li style="min-height: 52px; padding: 0 10px; display: flex; align-items: center; gap: 10px; border-radius: 8px">
+          <span style="width: 30px; height: 30px; border-radius: 50%; background: #E5EDFC; color: #2752B8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex: none">L</span>
+          <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+            <span style="font-size: 14px; font-weight: 500">Ledger 1</span>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C6475">Ct4m…Q8xe · Your account</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div style="padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; background: #FDF4E3; border: 1px solid #F0D9A8; border-radius: 12px; font-size: 12px; line-height: 1.45; color: #6B4A0A">
+      <svg style="flex: none; margin-top: 1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A86400" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
+      <span>Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</span>
+    </div>
+  </div>
+
+  <div style="padding: 16px">
+    <button type="button" style="width: 100%; height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer">Review</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

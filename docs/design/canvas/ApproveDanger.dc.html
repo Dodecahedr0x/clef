@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Dangerous request</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 760px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="padding: 10px 16px; background: #FBE7E3; color: #8A2414; font-size: 12px; display: flex; align-items: center; gap: 8px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8402A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17v.01"></path></svg>
+    <span>This site is on a phishing list</span>
+  </div>
+
+  <header style="padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E6E8EE">
+    <span style="width: 32px; height: 32px; border-radius: 8px; background: #EEF0F4; border: 1px solid #E1E4EA; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #5C6475">?</span>
+    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+      <span style="font-size: 14px; font-weight: 600">airdrop-claim.example</span>
+      <span style="font-size: 12px; color: #5C6475">Requests signature · Main</span>
+    </div>
+    <div role="radiogroup" aria-label="Detail level" style="display: flex; padding: 3px; background: #EEF0F4; border: 1px solid #E1E4EA; border-radius: 10px">
+      <button type="button" role="radio" aria-checked="true" style="height: 30px; padding: 0 9px; background: #FFFFFF; color: #14171F; box-shadow: 0 1px 2px rgba(20,23,31,0.14); border: 0; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer">Basic</button>
+      <button type="button" role="radio" aria-checked="false" style="height: 30px; padding: 0 9px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px; cursor: pointer">Inter.</button>
+      <button type="button" role="radio" aria-checked="false" style="height: 30px; padding: 0 9px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px; cursor: pointer">Expert</button>
+    </div>
+  </header>
+
+  <div style="padding: 20px 16px 0; display: flex; flex-direction: column; gap: 14px; flex: 1">
+    <section style="display: flex; flex-direction: column; gap: 6px; padding: 0 4px">
+      <span style="font-size: 12px; color: #5C6475">The site calls this “Claim 500 JUP”. It actually would</span>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Give away control of your USDC account</h1>
+    </section>
+
+    <section aria-label="Danger" style="padding: 14px; background: #FDF0ED; border: 1px solid #F2B8AC; border-radius: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="padding: 2px 8px; border-radius: 999px; background: #C8402A; color: #FFFFFF; font-size: 12px; font-weight: 600; letter-spacing: 0.04em">DANGER</span>
+        <span style="font-size: 14px; font-weight: 600; color: #8A2414">Owner change</span>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #6E2417">Token Program · SetAuthority makes <strong style="color: #5A1409">5Qz8…uN4d</strong>, an address you have never interacted with, the owner of your USDC account. They could then move all 312.40 USDC at any time.</p>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6E2417; display: flex; flex-direction: column; gap: 2px">
+        <span>owner: 7xKp…3fQa (you) → 5Qz8…uN4d</span>
+      </div>
+    </section>
+
+    <section aria-label="Warnings" style="padding: 12px 14px; background: #FDF4E3; border: 1px solid #F0D9A8; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #6B4A0A">
+      <div style="display: flex; gap: 8px; align-items: center"><span style="padding: 1px 7px; border-radius: 999px; background: #A86400; color: #FFFFFF; font-size: 12px; font-weight: 600">WARN</span><span>Unknown program 9Wfh…Kz2r · no IDL found</span></div>
+      <div style="display: flex; gap: 8px; align-items: center"><span style="padding: 1px 7px; border-radius: 999px; background: #A86400; color: #FFFFFF; font-size: 12px; font-weight: 600">WARN</span><span>No JUP arrives in simulation</span></div>
+    </section>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; font-size: 12px; color: #5C6475; font-variant-numeric: tabular-nums">
+      <span>Simulated balance changes</span>
+      <span style="margin-left: auto; color: #14171F">none now · fee 0.000005 SOL</span>
+    </section>
+
+    <label for="ack" style="margin-top: auto; min-height: 44px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: #14171F; cursor: pointer">
+      <input id="ack" type="checkbox" style="width: 20px; height: 20px; margin: 0; accent-color: #C8402A; flex: none">
+      <span>I understand I may lose these funds</span>
+    </label>
+  </div>
+
+  <footer style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #E6E8EE">
+    <button type="button" style="height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer">Reject</button>
+    <button type="button" disabled style="height: 48px; background: #EEF0F4; color: #8A91A0; border: 1px dashed #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: not-allowed">Sign anyway</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

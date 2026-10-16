@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Program IDLs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Program IDLs</h1>
+    <button type="button" style="margin-left: auto; height: 36px; padding: 0 12px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer">Add IDL</button>
+  </header>
+
+  <div style="padding: 12px 16px 0; display: flex; flex-direction: column; gap: 10px">
+    <label for="q" style="position: absolute; left: -9999px">Search programs</label>
+    <input id="q" placeholder="Search by name or program ID" style="height: 40px; box-sizing: border-box; padding: 0 12px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 10px; color: #14171F; font-size: 14px; outline: none">
+    <p style="margin: 0; font-size: 12px; line-height: 1.45; color: #5C6475">Clef uses the first that decodes: <strong style="color: #14171F">yours → curated → published → on-chain Anchor</strong>.</p>
+  </div>
+
+  <ul style="list-style: none; margin: 10px 12px 0; padding: 0; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+    <sc-for list="{{idls}}" as="p" hint-placeholder-count="5">
+      <li style="min-height: 56px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; border-top: {{p.border}}">
+        <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 500">{{p.name}}</span><span class="m" style="font-size: 12px; color: #5C6475">{{p.id}} · {{p.net}}</span></span>
+        <span style="padding: 1px 8px; border-radius: 999px; background: {{p.tint}}; color: {{p.ink}}; font-size: 12px; font-weight: 600">{{p.tier}}</span>
+      </li>
+    </sc-for>
+  </ul>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() {
+  var T = { yours: ['Yours', '#E5EDFC', '#1A3A86'], curated: ['Curated', '#EEF5DD', '#4A6B12'], pub: ['Published', '#DFF3EE', '#0B5C49'], chain: ['On-chain', '#EEF0F4', '#3A4152'] };
+  var rows = [
+    ['my_escrow', 'Esc9…7Qbw', 'devnet', 'yours'],
+    ['lending (patched)', 'Lnd4…Xc2m', 'mainnet', 'yours'],
+    ['Jupiter v6', 'JUP6Lk…', 'mainnet', 'curated'],
+    ['Squads v4', 'SQDS…2pCf', 'mainnet', 'curated'],
+    ['Orca Whirlpool', 'whir…uctyCc', 'mainnet', 'pub'],
+    ['vault_program', 'Vlt2…Pq8d', 'mainnet', 'chain']
+  ];
+  return { idls: rows.map(function (r, i) { var t = T[r[3]]; return { name: r[0], id: r[1], net: r[2], tier: t[0], tint: t[1], ink: t[2], border: i ? '1px solid #E6E8EE' : '0' }; }) };
+}
+}
+</script>
+</body>
+</html>

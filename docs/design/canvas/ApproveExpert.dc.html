@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Approve 3 transactions (Expert)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+.tip{position:relative}
+.tip:hover::after,.tip:focus-visible::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);padding:5px 9px;border-radius:7px;background:#14171F;color:#FFFFFF;font-size:12px;font-weight:500;white-space:nowrap;z-index:10;pointer-events:none}
+</style>
+</helmet>
+<div style="width: 760px; height: {{rootH}}; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="padding: 12px 20px 14px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid #E6E8EE; background: #FFFFFF">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="width: 32px; height: 32px; border-radius: 8px; background: #EDF3DF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #4A6B12">J</span>
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 14px; font-weight: 600">jup.ag</span>
+        <span style="font-size: 12px; color: #5C6475">Main · 7xKp…3fQa · hot wallet</span>
+      </div>
+      <div role="radiogroup" aria-label="Network" style="margin-left: auto; display: flex; padding: 3px; background: #EEF0F4; border-radius: 10px">
+        <button type="button" role="radio" aria-checked="true" style="height: 30px; padding: 0 10px; display: flex; align-items: center; gap: 6px; background: #FFFFFF; color: #14171F; border: 0; border-radius: 7px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(20,23,31,0.14)"><span style="width: 7px; height: 7px; border-radius: 50%; background: #0F7A62"></span>Mainnet</button>
+        <button type="button" role="radio" aria-checked="false" style="height: 30px; padding: 0 10px; display: flex; align-items: center; gap: 6px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #A86400"></span>Devnet</button>
+      </div>
+      <div role="radiogroup" aria-label="Detail level" style="display: flex; padding: 3px; background: #EEF0F4; border-radius: 10px">
+        <button type="button" role="radio" aria-checked="false" style="height: 30px; padding: 0 9px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px">Basic</button>
+        <button type="button" role="radio" aria-checked="false" style="height: 30px; padding: 0 9px; background: transparent; color: #5C6475; border: 0; border-radius: 7px; font-size: 12px">Intermediate</button>
+        <button type="button" role="radio" aria-checked="true" style="height: 30px; padding: 0 9px; background: #FFFFFF; color: #14171F; border: 0; border-radius: 7px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(20,23,31,0.14)">Expert</button>
+      </div>
+    </div>
+
+    <div role="tablist" aria-label="Transactions in this request" style="display: flex; align-items: center; gap: 6px">
+      <sc-for list="{{txTabs}}" as="t" hint-placeholder-count="4">
+        <button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="height: 34px; padding: 0 12px; display: flex; align-items: center; gap: 6px; background: {{t.bg}}; color: {{t.fg}}; border: {{t.bd}}; border-radius: 9px; font-size: 12px; font-weight: 600">{{t.label}}</button>
+      </sc-for>
+      <span style="margin-left: auto; font-size: 12px; color: #5C6475">Signed together · sent in order</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="display: flex; align-items: baseline; gap: 14px; font-variant-numeric: tabular-nums">
+        <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em">{{head.title}}</span>
+        <span style="margin-left: auto; font-size: 12px; color: #0F7A62">No warnings</span>
+      </div>
+      <div style="display: flex; gap: 12px; font-size: 12px; font-variant-numeric: tabular-nums">
+        <sc-for list="{{head.deltas}}" as="d" hint-placeholder-count="2"><span style="color: {{d.c}}">{{d.t}}</span></sc-for>
+        <span style="color: #5C6475">{{head.sub}}</span>
+      </div>
+    </div>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: flex">
+    <nav aria-label="Transaction sections" style="width: 56px; flex: none; padding: 12px 8px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; z-index: 2; background: #FFFFFF; border-right: 1px solid #E6E8EE">
+      <a href="#exp-changes" class="tip" data-tip="{{changesTip}}" aria-label="{{changesTip}}" aria-current="{{nav.changes.cur}}" onClick="{{go.changes}}" style="text-decoration: none; position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: {{nav.changes.bg}}; color: {{nav.changes.fg}}; border-radius: 10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"></rect><path d="M12 7v6M9 10h6M9 16.5h6"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: #A86400; color: #FFFFFF; font-size: 12px; line-height: 16px">{{changeCount}}</span></a>
+      <a href="#exp-rel" class="tip" data-tip="Account relationships" aria-label="Account relationships" aria-current="{{nav.rel.cur}}" onClick="{{go.rel}}" style="text-decoration: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: {{nav.rel.bg}}; color: {{nav.rel.fg}}; border-radius: 10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M8.5 6h7M7.3 8.2l3.5 7.6M16.7 8.2l-3.5 7.6"></path></svg></a>
+      <a href="#exp-instr" class="tip" data-tip="Instructions" aria-label="Instructions" aria-current="{{nav.instr.cur}}" onClick="{{go.instr}}" style="text-decoration: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: {{nav.instr.bg}}; color: {{nav.instr.fg}}; border-radius: 10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"></path></svg></a>
+      <a href="#exp-logs" class="tip" data-tip="Simulation logs" aria-label="Simulation logs" aria-current="{{nav.logs.cur}}" onClick="{{go.logs}}" style="text-decoration: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: {{nav.logs.bg}}; color: {{nav.logs.fg}}; border-radius: 10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><path d="m7 9 3 3-3 3M12.5 15h4.5"></path></svg></a>
+      <a href="#exp-details" class="tip" data-tip="Transaction details" aria-label="Transaction details" aria-current="{{nav.details.cur}}" onClick="{{go.details}}" style="text-decoration: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: {{nav.details.bg}}; color: {{nav.details.fg}}; border-radius: 10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5M12 7.8v.01"></path></svg></a>
+    </nav>
+
+    <main style="flex: 1; min-width: 0; padding: 16px 20px 24px; box-sizing: border-box; overflow-y: {{mainOverflow}}; display: flex; flex-direction: column; gap: 32px">
+
+      <section id="exp-changes" aria-label="State changes" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600; flex: 1">State changes</h2>
+          <span class="m" style="font-size: 12px"><span style="color: #0F7A62">+{{adds}}</span> <span style="color: #C2341F">−{{dels}}</span></span>
+          <span style="font-size: 12px; color: #5C6475">· {{changeCount}} accounts</span>
+        </div>
+        <sc-if value="{{isAll}}" hint-placeholder-val="{{true}}">
+          <p style="margin: 0; padding: 10px 12px; background: #E5EDFC; border-radius: 10px; font-size: 12px; line-height: 1.5; color: #1A3A86">Net effect of all 3, simulated back-to-back from the current state. Assumes no other transaction touches these accounts in between. Notes show which transaction last changed a value.</p>
+        </sc-if>
+        <sc-for list="{{diffs}}" as="d" hint-placeholder-count="4">
+          <article style="background: #FFFFFF; border: {{d.bd}}; border-radius: 12px; overflow: hidden">
+            <div style="padding: 8px 14px; display: flex; align-items: center; gap: 8px; background: #F1F3F7; border-bottom: 1px solid #E6E8EE">
+              <span style="font-size: 12px; font-weight: 600">{{d.title}}</span>
+              <span class="m" style="font-size: 12px; color: #5C6475">{{d.addr}}</span>
+              <span style="margin-left: auto; padding: 0 6px; border-radius: 5px; background: {{d.tagBg}}; color: {{d.tagFg}}; font-size: 12px">{{d.type}}</span>
+            </div>
+            <sc-for list="{{d.lines}}" as="l" hint-placeholder-count="3">
+              <div class="m" style="display: grid; grid-template-columns: 18px 120px minmax(0, 1fr) auto; gap: 8px; padding: 2px 14px; font-size: 12px; line-height: 18px; background: {{l.bg}}; color: {{l.fg}}">
+                <span>{{l.sign}}</span><span>{{l.key}}</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{l.val}}</span><span>{{l.note}}</span>
+              </div>
+            </sc-for>
+          </article>
+        </sc-for>
+
+        <sc-if value="{{showRaw}}" hint-placeholder-val="{{true}}">
+          <article style="background: #FFFFFF; border: 1px dashed #A86400; border-radius: 12px; overflow: hidden">
+            <div style="padding: 8px 14px; display: flex; align-items: center; gap: 8px; background: #FDF4E3; border-bottom: 1px solid #F0D9A8">
+              <span style="font-size: 12px; font-weight: 600">Raydium SOL/USDC pool</span>
+              <span class="m" style="font-size: 12px; color: #5C6475">58oQ…YQo2</span>
+              <span style="margin-left: auto; padding: 0 6px; border-radius: 5px; background: #A86400; color: #FFFFFF; font-size: 12px; font-weight: 600">Not decoded</span>
+            </div>
+            <div style="padding: 8px 14px 4px; font-size: 12px; color: #6B4A0A">Owned by Raydium AMM v4 · no IDL for its 752-byte layout, so Clef shows raw bytes. Changed in tx 2.</div>
+            <sc-for list="{{rawLines}}" as="l" hint-placeholder-count="4">
+              <div class="m" style="display: grid; grid-template-columns: 18px 64px minmax(0, 1fr); gap: 8px; padding: 2px 14px; font-size: 12px; line-height: 18px; background: {{l.bg}}; color: {{l.fg}}">
+                <span>{{l.sign}}</span><span>{{l.off}}</span><span>{{l.bytes}}</span>
+              </div>
+            </sc-for>
+            <div style="padding: 8px 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #E6E8EE; font-size: 12px; color: #5C6475">
+              <span>16 bytes changed at 2 offsets · lamports and owner unchanged</span>
+              <button type="button" style="margin-left: auto; height: 32px; padding: 0 12px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 8px; font-size: 12px; color: #14171F; font-weight: 600">Add IDL</button>
+            </div>
+          </article>
+        </sc-if>
+      </section>
+
+      <section id="exp-rel" aria-label="Account relationships" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600; flex: 1">Account relationships</h2>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer">
+            <input type="checkbox" role="switch" checked="{{external}}" onChange="{{toggleExternal}}" style="width: 18px; height: 18px; margin: 0; accent-color: #4A6B12">Show accounts outside the request</label>
+        </div>
+        <span style="font-size: 12px; color: #5C6475">{{relNote}}</span>
+        <div style="position: relative; height: 440px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+          <svg aria-hidden="true" width="672" height="440" viewBox="0 0 672 440" style="position: absolute; inset: 0">
+            <g stroke="#9AA1AE" stroke-width="1.5" fill="none">
+              <path d="M144 176 C164 176 164 66 184 66"></path>
+              <path d="M144 176 C164 176 164 286 184 286"></path>
+              <path d="M320 66 H360"></path>
+              <path d="M320 286 H360"></path>
+              <path d="M320 176 H360" stroke="#0F7A62" stroke-dasharray="5 4"></path>
+            </g>
+          </svg>
+          <sc-if value="{{external}}" hint-placeholder-val="{{false}}">
+            <svg aria-hidden="true" width="672" height="440" viewBox="0 0 672 440" style="position: absolute; inset: 0">
+              <g stroke="#CBD0DA" stroke-width="1.5" stroke-dasharray="3 4" fill="none">
+                <path d="M76 202 V370"></path>
+                <path d="M252 312 V370"></path>
+                <path d="M296 312 C296 344 428 340 428 370"></path>
+                <path d="M496 286 H536"></path>
+              </g>
+            </svg>
+            <span style="position: absolute; left: 82px; top: 280px; font-size: 12px; color: #5C6475">program owner</span>
+            <span style="position: absolute; left: 160px; top: 334px; font-size: 12px; color: #5C6475">program owner</span>
+            <span style="position: absolute; left: 372px; top: 316px; font-size: 12px; color: #5C6475">derived by</span>
+            <span style="position: absolute; left: 536px; top: 240px; font-size: 12px; color: #5C6475">authority</span>
+          </sc-if>
+          <span style="position: absolute; left: 146px; top: 104px; font-size: 12px; color: #5C6475">owner</span>
+          <span style="position: absolute; left: 146px; top: 232px; font-size: 12px; color: #5C6475">owner</span>
+          <span style="position: absolute; left: 326px; top: 46px; font-size: 12px; color: #5C6475">mint</span>
+          <span style="position: absolute; left: 326px; top: 266px; font-size: 12px; color: #5C6475">mint</span>
+          <span style="position: absolute; left: 322px; top: 156px; font-size: 12px; color: #0F7A62">seeds</span>
+          <sc-for list="{{nodes}}" as="n" hint-placeholder-count="7">
+            <button type="button" onClick="{{n.pick}}" aria-pressed="{{n.on}}" style="position: absolute; left: {{n.x}}; top: {{n.y}}; width: 136px; height: 52px; box-sizing: border-box; padding: 6px 10px; background: {{n.bg}}; border: {{n.bd}}; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; color: #14171F; text-align: left; opacity: {{n.op}}">
+              <span style="font-size: 12px; font-weight: 600">{{n.t}}</span><span class="m" style="font-size: 12px; color: #5C6475">{{n.s}}</span>
+            </button>
+          </sc-for>
+          <div style="position: absolute; left: 14px; top: 12px; display: flex; gap: 14px; font-size: 12px; color: #5C6475">
+            <span>— in the request</span><span style="color: #0F7A62">- - PDA seeds</span><span>··· outside the request</span>
+          </div>
+        </div>
+        <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">{{selTitle}} · in the request</span>
+            <sc-for list="{{selIn}}" as="r" hint-placeholder-count="2">
+              <div style="display: flex; gap: 8px; font-size: 12px"><span class="m" style="color: #5C6475; width: 92px; flex: none">{{r.k}}</span><span style="flex: 1">{{r.v}}</span><span style="color: #0F7A62">{{r.ok}}</span></div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Outside the request</span>
+            <sc-for list="{{selOut}}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; gap: 8px; font-size: 12px"><span class="m" style="color: #5C6475; width: 92px; flex: none">{{r.k}}</span><span style="flex: 1">{{r.v}}</span><span style="color: #0F7A62">{{r.ok}}</span></div>
+            </sc-for>
+          </div>
+        </section>
+      </section>
+
+      <section id="exp-instr" aria-label="Instructions" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Instructions</h2>
+        <sc-for list="{{ixGroups}}" as="g" hint-placeholder-count="3">
+          <div style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+            <div style="padding: 8px 14px; background: #F1F3F7; border-bottom: 1px solid #E6E8EE; font-size: 12px; font-weight: 600; color: #5C6475">{{g.title}}</div>
+            <sc-for list="{{g.items}}" as="x" hint-placeholder-count="3">
+              <div style="min-height: 40px; padding: 0 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; background: {{x.bg}}; border-top: {{x.border}}">
+                <span class="m" style="width: 16px; font-size: 12px; color: #5C6475">{{x.n}}</span>
+                <span><span style="color: #5C6475">{{x.prog}} ·</span> {{x.name}}</span>
+                <span style="margin-left: auto; font-size: 12px; color: #5C6475">{{x.args}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-if value="{{showRoute}}" hint-placeholder-val="{{true}}">
+          <span style="font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Tx 2 · Jupiter route · accounts</span>
+          <div class="m" style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden; font-size: 12px">
+            <div style="display: grid; grid-template-columns: 24px 110px 40px minmax(0, 1fr) 64px; gap: 10px; padding: 8px 14px; color: #5C6475; border-bottom: 1px solid #E6E8EE; font-family: 'IBM Plex Sans', sans-serif">
+              <span>#</span><span>Address</span><span>Flags</span><span>IDL name</span><span>Source</span>
+            </div>
+            <sc-for list="{{accounts}}" as="a" hint-placeholder-count="7">
+              <div style="display: grid; grid-template-columns: 24px 110px 40px minmax(0, 1fr) 64px; gap: 10px; padding: 7px 14px; background: {{a.bg}}">
+                <span style="color: #5C6475">{{a.i}}</span><span>{{a.addr}}</span><span style="color: #A86400">{{a.flags}}</span><span>{{a.name}}</span><span style="color: {{a.srcColor}}">{{a.src}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+            <div class="m" style="padding: 12px 14px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; font-size: 12px; line-height: 1.7">
+              <div style="font-family: 'IBM Plex Sans', sans-serif; color: #5C6475">PDA · event_authority</div>
+              <div>seeds = [<span style="color: #6B4A0A">b"__event_authority"</span>]</div>
+              <div>bump 255 <span style="color: #0F7A62">✓ matches #5</span></div>
+            </div>
+            <div class="m" style="padding: 12px 14px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; font-size: 12px; line-height: 1.7; word-break: break-all">
+              <div style="font-family: 'IBM Plex Sans', sans-serif; color: #5C6475">Instruction data · 34 bytes</div>
+              <span style="color: #4A6B12; font-weight: 600">e517cb977ae3ad2a</span> 0100000011 002f685900000000 a067a80c00000000 3200 00
+            </div>
+          </div>
+        </sc-if>
+      </section>
+
+      <section id="exp-logs" aria-label="Simulation logs" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">Simulation logs</h2>
+          <span style="padding: 2px 8px; border-radius: 999px; background: #E8F6F1; color: #0B5C49; font-size: 12px; font-weight: 600">Succeeded</span>
+          <div role="group" aria-label="Log filter" style="margin-left: auto; display: flex; gap: 4px">
+            <button type="button" aria-pressed="true" style="height: 30px; padding: 0 10px; background: #14171F; color: #FFFFFF; border: 0; border-radius: 8px; font-size: 12px; font-weight: 600">All</button>
+            <button type="button" aria-pressed="false" style="height: 30px; padding: 0 10px; background: #FFFFFF; color: #14171F; border: 1px solid #E1E4EA; border-radius: 8px; font-size: 12px">Program logs</button>
+            <button type="button" aria-pressed="false" style="height: 30px; padding: 0 10px; background: #FFFFFF; color: #14171F; border: 1px solid #E1E4EA; border-radius: 8px; font-size: 12px">Compute</button>
+            <button type="button" style="height: 30px; padding: 0 10px; background: #FFFFFF; color: #14171F; border: 1px solid #E1E4EA; border-radius: 8px; font-size: 12px">Copy</button>
+          </div>
+        </div>
+        <span class="m" style="font-size: 12px; color: #5C6475">{{logMeta}}</span>
+        <ol class="m" style="list-style: none; margin: 0; padding: 6px 0; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; font-size: 12px; line-height: 22px; overflow: hidden">
+          <sc-for list="{{logs}}" as="l" hint-placeholder-count="16">
+            <li style="display: grid; grid-template-columns: 40px minmax(0, 1fr) 96px; padding-right: 14px; background: {{l.bg}}; font-weight: {{l.w}}">
+              <span style="text-align: right; padding-right: 12px; color: #8A91A0">{{l.n}}</span>
+              <span style="padding-left: {{l.pad}}; color: {{l.fg}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{l.text}} <span style="color: #5C6475; font-family: 'IBM Plex Sans', sans-serif">{{l.label}}</span></span>
+              <span style="text-align: right; color: #5C6475">{{l.cu}}</span>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+
+      <section id="exp-details" aria-label="Transaction details" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">{{detailsTitle}}</h2>
+        <dl class="m" style="margin: 0; padding: 6px 14px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: grid; grid-template-columns: 150px minmax(0, 1fr); font-size: 12px">
+          <sc-for list="{{details}}" as="r" hint-placeholder-count="7">
+            <dt style="padding: 9px 0; color: #5C6475; font-family: 'IBM Plex Sans', sans-serif; border-top: {{r.border}}">{{r.k}}</dt><dd style="margin: 0; padding: 9px 0; border-top: {{r.border}}">{{r.v}}</dd>
+          </sc-for>
+        </dl>
+      </section>
+    </main>
+  </div>
+
+  <footer style="padding: 14px 20px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #E6E8EE; background: #FFFFFF">
+    <button type="button" style="height: 44px; padding: 0 14px; background: transparent; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px">Copy raw</button>
+    <button type="button" style="height: 44px; padding: 0 14px; background: transparent; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px">Re-simulate</button>
+    <button type="button" style="margin-left: auto; width: 140px; height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">Reject all</button>
+    <button type="button" style="width: 140px; height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">Sign all 3</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tx":{"editor":"enum","options":["all","1","2","3"],"default":"all"},"full":{"editor":"boolean","default":false},"external":{"editor":"boolean","default":false},"$preview":{"width":760,"height":960}}'>
+class Component extends DCLogic {
+renderVals() {
+  var self = this, st = this.state || {};
+  var tx = st.tx || this.props.tx || 'all';
+  var isAll = tx === 'all';
+  var full = !!this.props.full;
+  var panel = st.panel || 'changes';
+  var external = st.external !== undefined ? st.external : !!this.props.external;
+  var sel = st.sel || 'usdcAta';
+  var SUB = '#5C6475', RED = '#C2341F', GRN = '#0F7A62';
+
+  // transaction switcher + header
+  var tabs = [['all', 'All 3 · combined'], ['1', '1 · Wrap SOL'], ['2', '2 · Swap'], ['3', '3 · Close wSOL']];
+  var txTabs = tabs.map(function (t) {
+    var on = t[0] === tx;
+    return { label: t[1], sel: on ? 'true' : 'false', bg: on ? '#14171F' : '#FFFFFF', fg: on ? '#FFFFFF' : '#14171F', bd: on ? '0' : '1px solid #CBD0DA',
+      pick: function () { self.setState({ tx: t[0] }); } };
+  });
+  var HEAD = {
+    all: { title: '1.5 SOL → ~212.4 USDC', deltas: [['−1.5001 SOL', RED], ['+212.40 USDC', GRN]], sub: 'wrap, swap, close · fees 0.000115 SOL' },
+    '1': { title: 'Wrap 1.5 SOL', deltas: [['−1.5020 SOL', RED], ['+1.5 wSOL', GRN]], sub: 'includes 0.0020 SOL refundable rent' },
+    '2': { title: 'Swap 1.5 wSOL → ~212.4 USDC', deltas: [['−1.5 wSOL', RED], ['+212.40 USDC', GRN]], sub: 'via Jupiter · Orca, Raydium' },
+    '3': { title: 'Close wSOL account', deltas: [['+0.0020 SOL', GRN]], sub: 'rent refund to you' }
+  }[tx];
+  var head = { title: HEAD.title, sub: HEAD.sub, deltas: HEAD.deltas.map(function (d) { return { t: d[0], c: d[1] }; }) };
+
+  // side rail
+  var keys = ['changes', 'rel', 'instr', 'logs', 'details'];
+  var nav = {}, go = {};
+  keys.forEach(function (k) {
+    var on = k === panel;
+    nav[k] = { bg: on ? '#EEF5DD' : 'transparent', fg: on ? '#4A6B12' : SUB, cur: on ? 'location' : 'false' };
+    go[k] = function () { self.setState({ panel: k }); };
+  });
+
+  // state changes
+  function L(sign, k, v, n) {
+    var c = sign === '−' ? ['#FDF0ED', '#8A2414'] : sign === '+' ? ['#E8F6F1', '#0B5C49'] : ['transparent', SUB];
+    return { sign: sign, key: k, val: v, note: n || '', bg: c[0], fg: c[1] };
+  }
+  function block(title, addr, type, lines, kind) {
+    var tag = kind === 'new' ? ['#E8F6F1', '#0B5C49'] : kind === 'closed' ? ['#FDF0ED', '#8A2414'] : kind === 'temp' ? ['#E5EDFC', '#1A3A86'] : ['#EEF0F4', SUB];
+    return { title: title, addr: addr, type: type, lines: lines, tagBg: tag[0], tagFg: tag[1], bd: kind === 'temp' ? '1px dashed #9CB4E8' : '1px solid #E1E4EA' };
+  }
+  function orca(n) { return block('Orca SOL/USDC pool', 'Czfq…44zE', 'Whirlpool · IDL', [L(' ', 'liquidity', '41_802_117_400_512', 'unchanged'), L('−', 'sqrt_price', '6_942_118_406_331_904', n), L('+', 'sqrt_price', '6_941_870_552_018_211', n)]); }
+  function usdc(n) { return block('Your USDC account', 'BtLe…9mHv', 'Token account', [L(' ', 'mint', 'EPjFWd…Dt1v', 'USDC'), L('−', 'amount', '312_400_000', '312.40'), L('+', 'amount', '524_800_000', n || '524.80')]); }
+  var DIFFS = {
+    all: [
+      block('You · Main', '7xKp…3fQa', 'System account', [L('−', 'lamports', '6_210_400_000', '6.2104 SOL'), L('+', 'lamports', '4_710_285_000', 'after tx 3')]),
+      usdc('after tx 2'),
+      block('Your wSOL account', '4fYN…wQ1c', 'Created & closed', [L(' ', 'created', 'tx 1 · rent 2_039_280', ''), L(' ', 'closed', 'tx 3 · rent back to you', ''), L(' ', 'net', 'no account after the batch', '')], 'temp'),
+      orca('tx 2')
+    ],
+    '1': [
+      block('You · Main', '7xKp…3fQa', 'System account', [L('−', 'lamports', '6_210_400_000', '6.2104 SOL'), L('+', 'lamports', '4_708_355_720', 'wrap + rent + fee')]),
+      block('Your wSOL account', '4fYN…wQ1c', 'New account', [L('+', 'owner', '7xKp…3fQa', 'you'), L('+', 'mint', 'So11…1112', 'wSOL'), L('+', 'amount', '1_500_000_000', '1.5 wSOL'), L('+', 'lamports', '2_039_280', 'rent')], 'new')
+    ],
+    '2': [
+      block('You · Main', '7xKp…3fQa', 'System account', [L('−', 'lamports', '4_708_355_720', ''), L('+', 'lamports', '4_708_250_720', '−0.000105 fee')]),
+      block('Your wSOL account', '4fYN…wQ1c', 'Token account', [L('−', 'amount', '1_500_000_000', '1.5 wSOL'), L('+', 'amount', '0', '')]),
+      usdc(), orca()
+    ],
+    '3': [
+      block('You · Main', '7xKp…3fQa', 'System account', [L('−', 'lamports', '4_708_250_720', ''), L('+', 'lamports', '4_710_285_000', 'rent back − fee')]),
+      block('Your wSOL account', '4fYN…wQ1c', 'Closed', [L('−', 'owner', '7xKp…3fQa', ''), L('−', 'mint', 'So11…1112', ''), L('−', 'amount', '0', ''), L('−', 'lamports', '2_039_280', 'to you')], 'closed')
+    ]
+  };
+  var diffs = DIFFS[tx];
+  var showRaw = isAll || tx === '2';
+  var adds = 0, dels = 0;
+  diffs.forEach(function (d) { d.lines.forEach(function (l) { if (l.sign === '+') adds++; if (l.sign === '−') dels++; }); });
+  if (showRaw) { adds += 2; dels += 2; }
+  var changeCount = diffs.length + (showRaw ? 1 : 0);
+  var rawLines = [
+    { sign: '−', off: '0x00c0', bytes: '00 2f 68 59 00 00 00 00  a0 67 a8 0c 00 00 00 00', bg: '#FDF0ED', fg: '#8A2414' },
+    { sign: '+', off: '0x00c0', bytes: '00 a4 3f 5e 00 00 00 00  20 3c 1f 0c 00 00 00 00', bg: '#E8F6F1', fg: '#0B5C49' },
+    { sign: '−', off: '0x01a8', bytes: '11 92 04 00 00 00 00 00', bg: '#FDF0ED', fg: '#8A2414' },
+    { sign: '+', off: '0x01a8', bytes: '12 92 04 00 00 00 00 00', bg: '#E8F6F1', fg: '#0B5C49' }
+  ];
+
+  // relations
+  var inReq = [
+    { id: 'you', x: 8, y: 150, t: 'You · Main', s: '7xKp…3fQa', base: '#E8EFFD', line: '#3D6FE0', txs: '123' },
+    { id: 'wsolAta', x: 184, y: 40, t: 'wSOL ATA ✓', s: '4fYN…wQ1c', txs: '123' },
+    { id: 'eventAuth', x: 184, y: 150, t: 'event_authority ✓', s: 'PDA · D8cy…f2Pj', txs: '2' },
+    { id: 'usdcAta', x: 184, y: 260, t: 'USDC ATA ✓', s: 'BtLe…9mHv', txs: '2' },
+    { id: 'wsolMint', x: 360, y: 40, t: 'wSOL mint', s: 'So11…1112', txs: '12' },
+    { id: 'jup', x: 360, y: 150, t: 'Jupiter v6', s: 'program', base: '#EEF5DD', line: '#C7DA9C', txs: '2' },
+    { id: 'usdcMint', x: 360, y: 260, t: 'USDC mint', s: 'EPjF…Dt1v', txs: '2' }
+  ];
+  var outReq = [
+    { id: 'sys', x: 8, y: 370, t: 'System Program', s: '1111…1111', ext: true },
+    { id: 'tok', x: 184, y: 370, t: 'Token Program', s: 'Tokenkeg…5DA', ext: true },
+    { id: 'ata', x: 360, y: 370, t: 'Assoc. Token Prog.', s: 'ATok…8knL', ext: true },
+    { id: 'mintAuth', x: 536, y: 260, t: 'USDC mint authority', s: 'BJE5…5ruG', ext: true }
+  ];
+  var nodes = (external ? inReq.concat(outReq) : inReq).map(function (n) {
+    var on = n.id === sel;
+    var dim = !isAll && !n.ext && n.txs.indexOf(tx) < 0;
+    return { x: n.x + 'px', y: n.y + 'px', t: n.t, s: n.s, on: on ? 'true' : 'false', op: dim ? '0.35' : '1',
+      bg: n.ext ? '#FAFBFC' : (n.base || '#FFFFFF'),
+      bd: on ? '2px solid #4A6B12' : (n.ext ? '1px dashed #CBD0DA' : '1px solid ' + (n.line || '#E1E4EA')),
+      pick: function () { self.setState({ sel: n.id }); } };
+  });
+  var relNote = isAll ? 'Accounts used by any of the 3 transactions.' : 'Faded accounts are in the request but not in transaction ' + tx + '.';
+  var REL = {
+    usdcAta: { title: 'USDC ATA', inn: [['owner', 'You · Main', '✓ decoded'], ['mint', 'USDC mint', '✓ decoded']],
+      out: [['program', 'Token Program', '✓ owner'], ['derived by', 'Assoc. Token Program', '✓ seeds'], ['delegate', 'none', ''], ['close auth.', 'none', '']] },
+    wsolAta: { title: 'wSOL ATA', inn: [['owner', 'You · Main', '✓ decoded'], ['mint', 'wSOL mint', '✓ decoded'], ['lifetime', 'created tx 1, closed tx 3', '']],
+      out: [['program', 'Token Program', '✓ owner'], ['derived by', 'Assoc. Token Program', '✓ seeds']] },
+    you: { title: 'You · Main', inn: [['owns', 'wSOL ATA, USDC ATA', '✓'], ['signs', 'all 3 transactions', '✓']],
+      out: [['program', 'System Program', '✓ owner'], ['other ATAs', '2 not in this request', '']] },
+    usdcMint: { title: 'USDC mint', inn: [['mint of', 'USDC ATA', '✓']],
+      out: [['mint auth.', 'BJE5…5ruG', ''], ['freeze auth.', '7dGb…Crar', ''], ['program', 'Token Program', '✓ owner']] },
+    eventAuth: { title: 'event_authority', inn: [['seeds', 'b"__event_authority"', '✓ PDA'], ['program', 'Jupiter v6', '✓']], out: [] }
+  };
+  var r = REL[sel] || { title: ((inReq.concat(outReq)).filter(function (n) { return n.id === sel; })[0] || {}).t || 'Account', inn: [], out: [['', 'Pick an account in the request to see its links', '']] };
+  function rows(list) { return list.map(function (x) { return { k: x[0], v: x[1], ok: x[2] }; }); }
+
+  // instructions
+  function ix(list) { return list.map(function (x, i) { return { n: x[0], prog: x[1], name: x[2], args: x[3], bg: x[4] ? '#F1F3F7' : 'transparent', border: i ? '1px solid #E6E8EE' : '0' }; }); }
+  var IX = {
+    '1': { title: 'Transaction 1 · Wrap SOL', items: ix([['1', 'Compute Budget', 'SetComputeUnitPrice', '50,000 µ◎/CU'], ['2', 'Associated Token', 'CreateIdempotent', 'your wSOL account'], ['3', 'System', 'Transfer', '1.5 SOL → wSOL account'], ['4', 'Token', 'SyncNative', 'your wSOL account']]) },
+    '2': { title: 'Transaction 2 · Swap', items: ix([['1', 'Compute Budget', 'SetComputeUnitPrice', '50,000 µ◎/CU'], ['2', 'Associated Token', 'CreateIdempotent', 'your USDC account'], ['3', 'Jupiter v6', 'route', '1.5 wSOL → ≥211.34 USDC', true]]) },
+    '3': { title: 'Transaction 3 · Close wSOL', items: ix([['1', 'Token', 'CloseAccount', 'rent → you ✓']]) }
+  };
+  var ixGroups = isAll ? [IX['1'], IX['2'], IX['3']] : [IX[tx]];
+  var showRoute = isAll || tx === '2';
+  var accounts = [
+    ['0', 'Tokenkeg…5DA', '', 'token_program', 'msg'], ['1', '7xKp…3fQa', 'S W', 'user_transfer_authority', 'msg'],
+    ['2', '4fYN…wQ1c', '  W', 'user_source_token_account', 'msg'], ['3', 'BtLe…9mHv', '  W', 'user_destination_token_account', 'msg'],
+    ['4', 'EPjFWd…Dt1v', '', 'destination_mint', 'ALT 0:12'], ['5', 'D8cy…f2Pj', '', 'event_authority', 'ALT 0:3'], ['6', 'JUP6Lk…', '', 'program', 'msg']
+  ].map(function (x, i) { return { i: x[0], addr: x[1], flags: x[2], name: x[3], src: x[4], srcColor: x[4] === 'msg' ? SUB : '#2752B8', bg: i === 1 ? '#F1F3F7' : 'transparent' }; });
+
+  // logs
+  var P = '#2752B8', LOG = '#14171F', OK = GRN;
+  var LOGS = {
+    '1': [
+      [0, 'Program ComputeBudget111111111111111111111111111111 invoke [1]', 'Compute Budget', '', P],
+      [0, 'Program ComputeBudget111111111111111111111111111111 success', '', '', OK],
+      [0, 'Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]', 'Associated Token', '', P],
+      [1, 'Program log: CreateIdempotent', '', '', LOG],
+      [1, 'Program ATokenGP… consumed 12,906 of 199,850', '', '12,906 CU', SUB],
+      [0, 'Program 11111111111111111111111111111111 invoke [1]', 'System', '', P],
+      [0, 'Program 11111111111111111111111111111111 success', '', '', OK],
+      [0, 'Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]', 'Token', '', P],
+      [1, 'Program log: Instruction: SyncNative', '', '', LOG],
+      [1, 'Program TokenkegQ… consumed 3,045 of 186,794', '', '3,045 CU', SUB]
+    ],
+    '2': [
+      [0, 'Program ComputeBudget111111111111111111111111111111 invoke [1]', 'Compute Budget', '', P],
+      [0, 'Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [1]', 'Associated Token', '', P],
+      [1, 'Program ATokenGP… consumed 4,338 of 399,850', '', '4,338 CU', SUB],
+      [0, 'Program JUP6Lk… invoke [1]', 'Jupiter v6', '', P],
+      [1, 'Program log: Instruction: Route', '', '', LOG],
+      [1, 'Program whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc invoke [2]', 'Orca', '', P],
+      [2, 'Program log: Instruction: Swap', '', '', LOG],
+      [2, 'Program whirLbMi… consumed 41,207 of 361,390', '', '41,207 CU', SUB],
+      [1, 'Program 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8 invoke [2]', 'Raydium AMM', '', P],
+      [1, 'Program 675kPX9M… consumed 32,880 of 318,402', '', '32,880 CU', SUB],
+      [1, 'Program JUP6Lk… consumed 168,213 of 395,512', '', '168,213 CU', SUB],
+      [0, 'Program JUP6Lk… success', '', '', OK]
+    ],
+    '3': [
+      [0, 'Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [1]', 'Token', '', P],
+      [1, 'Program log: Instruction: CloseAccount', '', '', LOG],
+      [1, 'Program TokenkegQ… consumed 2,916 of 200,000', '', '2,916 CU', SUB],
+      [0, 'Program TokenkegQ… success', '', '', OK]
+    ]
+  };
+  var SEP = { '1': ['Transaction 1 · Wrap SOL', '16,101 CU'], '2': ['Transaction 2 · Swap', '182,412 CU'], '3': ['Transaction 3 · Close wSOL', '2,916 CU'] };
+  var logs = [], n = 0;
+  (isAll ? ['1', '2', '3'] : [tx]).forEach(function (k) {
+    if (isAll) logs.push({ n: '', pad: '0px', text: SEP[k][0], label: '', cu: SEP[k][1], fg: '#14171F', bg: '#EEF0F4', w: '600' });
+    LOGS[k].forEach(function (x) {
+      n++;
+      logs.push({ n: String(n), pad: (x[0] * 18) + 'px', text: x[1], label: x[2] ? '· ' + x[2] : '', cu: x[3], fg: x[4], bg: 'transparent', w: '400' });
+    });
+  });
+  var logMeta = isAll ? 'Mainnet · slot 287,412,903 · 3 transactions in sequence · 201,429 CU' : 'Mainnet · slot 287,412,903 · ' + SEP[tx][1];
+
+  // details
+  var DET = {
+    all: [['Transactions', '3 · signed together, sent in order'], ['Fee payer', '7xKp…3fQa (you)'], ['Total fees', '0.000115 SOL'], ['Total compute', '201,429 CU'], ['Simulation', 'sequential, one fork, from slot 287,412,903'], ['Assumes', 'nothing else touches these accounts in between'], ['Blockhash', 'GHtX…pR7k · shared · valid ~58 s']],
+    '1': [['Version', 'legacy'], ['Fee payer', '7xKp…3fQa (you)'], ['Compute', '16,101 / 200,000 CU'], ['Fees', '0.000005 SOL + priority'], ['Accounts', '6'], ['Blockhash', 'GHtX…pR7k']],
+    '2': [['Version', 'v0 · 2 lookup tables'], ['Fee payer', '7xKp…3fQa (you)'], ['Compute', '182,412 / 400,000 CU'], ['Fees', '0.000105 SOL incl. priority'], ['Accounts', '21 · 11 from lookup tables'], ['IDLs', 'Jupiter curated · Orca published · Raydium none']],
+    '3': [['Version', 'legacy'], ['Fee payer', '7xKp…3fQa (you)'], ['Compute', '2,916 / 200,000 CU'], ['Fees', '0.000005 SOL'], ['Accounts', '3'], ['Blockhash', 'GHtX…pR7k']]
+  };
+  var details = DET[tx].map(function (x, i) { return { k: x[0], v: x[1], border: i ? '1px solid #E6E8EE' : '0' }; });
+
+  return {
+    txTabs: txTabs, head: head, isAll: isAll,
+    nav: nav, go: go, changeCount: String(changeCount), changesTip: 'State changes · ' + changeCount,
+    rootH: full ? 'auto' : '960px', mainOverflow: full ? 'visible' : 'auto',
+    diffs: diffs, adds: String(adds), dels: String(dels), showRaw: showRaw, rawLines: rawLines,
+    external: external, toggleExternal: function () { self.setState({ external: !external }); },
+    nodes: nodes, relNote: relNote, selTitle: r.title, selIn: rows(r.inn.length ? r.inn : [['', 'none', '']]), selOut: rows(r.out.length ? r.out : [['', 'none', '']]),
+    ixGroups: ixGroups, showRoute: showRoute, accounts: accounts,
+    logs: logs, logMeta: logMeta,
+    detailsTitle: isAll ? 'Request details' : 'Transaction ' + tx + ' details', details: details
+  };
+}
+}
+</script>
+</body>
+</html>

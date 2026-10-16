@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Sign message</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button{font:inherit;cursor:pointer}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 400px; height: 680px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E6E8EE">
+    <span style="width: 32px; height: 32px; border-radius: 8px; background: #E5EDFC; color: #2752B8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">F</span>
+    <div style="display: flex; flex-direction: column; flex: 1"><span style="font-size: 14px; font-weight: 600">forum.example</span><span style="font-size: 12px; color: #5C6475">Requests a message signature · Main</span></div>
+  </header>
+
+  <div style="padding: 20px 16px 0; display: flex; flex-direction: column; gap: 14px; flex: 1">
+    <h1 style="margin: 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">Sign a message</h1>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow: hidden">
+      <div style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; background: #F1F3F7; border-bottom: 1px solid #E6E8EE; font-size: 12px; color: #5C6475">
+        <span>UTF-8 text · 118 bytes</span>
+        <div role="group" aria-label="Message view" style="margin-left: auto; display: flex; gap: 2px">
+          <button type="button" aria-pressed="true" style="height: 28px; padding: 0 8px; background: #FFFFFF; border: 1px solid #CBD0DA; border-radius: 6px; font-size: 12px; color: #14171F; font-weight: 600">Text</button>
+          <button type="button" aria-pressed="false" style="height: 28px; padding: 0 8px; background: transparent; border: 0; font-size: 12px; color: #5C6475">Hex</button>
+        </div>
+      </div>
+      <p class="m" style="margin: 0; padding: 14px; font-size: 14px; line-height: 1.6; white-space: pre-line">Welcome to Forum!
+Sign to prove you own this wallet.
+This costs nothing.
+
+Nonce: 8f2c41a9e7</p>
+    </section>
+
+    <section style="padding: 12px 14px; background: #E8F6F1; border: 1px solid #B5E0D3; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #0B5C49">
+      <div style="display: flex; gap: 8px"><span style="font-weight: 600">✓</span><span>Readable text — not a hidden transaction</span></div>
+      <div style="display: flex; gap: 8px"><span style="font-weight: 600">✓</span><span>Signing a message can’t move funds by itself</span></div>
+    </section>
+
+    <section style="padding: 12px 14px; background: #FFFFFF; border: 1px dashed #CBD0DA; border-radius: 12px; display: flex; gap: 10px; font-size: 12px; line-height: 1.45; color: #5C6475">
+      <svg style="flex: none; margin-top: 1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A86400" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
+      <span>If a message ever decodes as transaction bytes, Clef blocks it here with a danger warning.</span>
+    </section>
+  </div>
+
+  <footer style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #E6E8EE">
+    <button type="button" style="height: 48px; background: #FFFFFF; color: #14171F; border: 1px solid #CBD0DA; border-radius: 12px; font-size: 14px; font-weight: 500">Reject</button>
+    <button type="button" style="height: 48px; background: #4A6B12; color: #FFFFFF; border: 0; border-radius: 12px; font-size: 14px; font-weight: 600">Sign</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":680}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

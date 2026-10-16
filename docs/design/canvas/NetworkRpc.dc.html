@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clef — Network and RPC</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F8}
+a{color:#2752B8}a:hover{color:#1A3A86}
+button,input{font:inherit}
+.m{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="width: 360px; height: 600px; box-sizing: border-box; background: #F5F6F8; color: #14171F; font-family: 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 56px; box-sizing: border-box; padding: 0 12px 0 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E6E8EE">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14171F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-size: 18px; font-weight: 600">Network &amp; RPC</h1>
+  </header>
+
+  <fieldset style="margin: 14px 12px 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+    <legend style="padding: 0 4px 6px; font-size: 12px; font-weight: 600; color: #5C6475; text-transform: uppercase; letter-spacing: 0.06em">Network</legend>
+    <label style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 1.5px solid #4A6B12; border-radius: 12px; cursor: pointer">
+      <input type="radio" name="net" checked style="width: 18px; height: 18px; margin: 0; accent-color: #4A6B12">
+      <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 600">Mainnet</span><span class="m" style="font-size: 12px; color: #5C6475">[YOUR RPC URL]</span></span>
+      <span style="display: flex; flex-direction: column; align-items: flex-end; font-size: 12px"><span style="color: #0F7A62">84 ms</span><span style="color: #0B5C49">DAS</span></span>
+    </label>
+    <label style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; cursor: pointer">
+      <input type="radio" name="net" style="width: 18px; height: 18px; margin: 0; accent-color: #4A6B12">
+      <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 600">Devnet</span><span class="m" style="font-size: 12px; color: #5C6475">api.devnet.solana.com</span></span>
+      <span style="font-size: 12px; color: #0F7A62">132 ms</span>
+    </label>
+    <label style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; cursor: pointer">
+      <input type="radio" name="net" style="width: 18px; height: 18px; margin: 0; accent-color: #4A6B12">
+      <span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-size: 14px; font-weight: 600">Local</span><span class="m" style="font-size: 12px; color: #5C6475">127.0.0.1:8899</span></span>
+      <span style="font-size: 12px; color: #5C6475">offline</span>
+    </label>
+    <button type="button" style="align-self: flex-start; min-height: 32px; padding: 0 4px; background: transparent; border: 0; color: #2752B8; font-size: 12px; cursor: pointer">+ Add custom RPC</button>
+  </fieldset>
+
+  <section style="margin: 10px 12px 0; background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px">
+    <label for="hdr" style="min-height: 56px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; cursor: pointer">
+      <span style="display: flex; flex-direction: column; flex: 1"><span style="font-size: 14px">Network switch in header</span><span style="font-size: 12px; color: #5C6475">On by default in Expert · <span class="m">⌥N</span> toggles</span></span>
+      <input id="hdr" type="checkbox" role="switch" checked style="width: 20px; height: 20px; margin: 0; accent-color: #4A6B12">
+    </label>
+    <label for="dev" style="min-height: 56px; padding: 8px 12px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; border-top: 1px solid #E6E8EE; cursor: pointer">
+      <span style="display: flex; flex-direction: column; flex: 1"><span style="font-size: 14px">Tint the wallet on devnet</span><span style="font-size: 12px; color: #5C6475">Amber edge so test funds never look real</span></span>
+      <input id="dev" type="checkbox" role="switch" checked style="width: 20px; height: 20px; margin: 0; accent-color: #4A6B12">
+    </label>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":360,"height":600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
