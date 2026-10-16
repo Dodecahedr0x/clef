@@ -39,13 +39,25 @@ export function WarnCards({ warnings }: { warnings: Warning[] }) {
   return (
     <section aria-label="Warnings" className="flex flex-col gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-xs text-warn-ink">
       {warnings.map((w, i) => (
-        <div key={i} className="flex items-start gap-2">
-          <span className={`flex-none rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
-          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{w.message}</span>
-          {w.programId && addIdl && (
-            <button type="button" onClick={() => addIdl(w.programId!)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold whitespace-nowrap text-info underline">
-              Add IDL
-            </button>
+        <div key={i} className="flex flex-col gap-1">
+          <div className="flex items-start gap-2">
+            <span className={`flex-none rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{w.message}</span>
+            {w.programId && addIdl && (
+              <button type="button" onClick={() => addIdl(w.programId!)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold whitespace-nowrap text-info underline">
+                Add IDL
+              </button>
+            )}
+          </div>
+          {w.details && w.details.length > 0 && (
+            <details className="ml-[46px]">
+              <summary className="cursor-pointer text-xs font-semibold text-warn-ink">Why?</summary>
+              <ul className="m-0 mt-1 flex list-disc flex-col gap-1 pl-4 [overflow-wrap:anywhere]">
+                {w.details.map((d, j) => (
+                  <li key={j}>{d}</li>
+                ))}
+              </ul>
+            </details>
           )}
         </div>
       ))}

@@ -381,7 +381,7 @@ export class InternalApi {
         return need(this.deps.service).submit({ account: addressField(raw, 'account'), transactions, send: raw.send });
       }
       default:
-        throw new Error('Unknown call');
+        throw new Error(`Unknown call "${String(raw.type).slice(0, 40)}"`);
     }
   }
 

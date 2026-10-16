@@ -58,6 +58,43 @@ export const PRIORITY_FEE_LIMIT = 10_000_000n;
 const HIGH_FEE_DANGER = 50_000_000n;
 
 /** How much of `fee` counts as expected spend: the base fee plus at most `PRIORITY_FEE_LIMIT` of priority fee. */
+const IDL_SOURCE: Record<string, string> = {
+  user: 'Your IDL',
+  bundled: "Clef's curated IDL",
+  'program-metadata': 'The IDL published with Program Metadata',
+  'anchor-onchain': 'The Anchor IDL stored on chain',
+};
+
+const hex = (b: Uint8Array) => [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+
+/** Why an instruction could not be decoded: which IDLs Clef found, what they declare, and what would help. */
+export function decodeDetails(
+  ix: { programId: string; data: Uint8Array; idlMismatch?: { source: string; programName: string; instructions: string[] }[] },
+  loadErrors: string[] = [],
+): string[] {
+  const prefix = ix.data.length ? `Its data starts with ${hex(ix.data.subarray(0, 8))}${ix.data.length > 8 ? '…' : ''} (${ix.data.length} bytes).` : 'It carries no data.';
+  // A source that failed to load is not "no IDL": say so, with the reason (often a rate-limited RPC).
+  const failed = loadErrors.slice(0, 3).map((m) => `Clef could not load an IDL (${m}). Try again later or use another RPC.`);
+  if (!ix.idlMismatch?.length && failed.length) return [...failed, prefix];
+  if (!ix.idlMismatch?.length) {
+    return [
+      `Clef found no IDL for program ${ix.programId}: none curated, none published with Program Metadata, no Anchor IDL on chain.`,
+      prefix,
+      'If the program publishes its IDL elsewhere (its repository or docs), add it to decode this instruction.',
+    ];
+  }
+  const found = ix.idlMismatch.map((m) => {
+    const list = m.instructions.slice(0, 8).join(', ') + (m.instructions.length > 8 ? `, and ${m.instructions.length - 8} more` : '');
+    return `${IDL_SOURCE[m.source] ?? m.source}${m.programName ? ` (${m.programName})` : ''} declares ${m.instructions.length} instruction${m.instructions.length === 1 ? '' : 's'}: ${list || 'none'}.`;
+  });
+  return [
+    ...found,
+    ...failed,
+    `${prefix} None of those instructions matches it.`,
+    'The program was most likely upgraded after this IDL was published. Adding the same IDL again will not help: you need the IDL of the current program version (from its repository or release).',
+  ];
+}
+
 export function feeAllowance(fee: bigint | undefined, baseFee = 0n): bigint {
   if (fee === undefined) return 0n;
   return fee < baseFee + PRIORITY_FEE_LIMIT ? fee : baseFee + PRIORITY_FEE_LIMIT;
@@ -172,7 +209,9 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
           stale ? `Can't decode instruction #${i + 1}: its program's IDL is out of date.` : `Can't decode instruction #${i + 1} (program ${shortAddress(ix.programId)}).`,
           i,
         );
-        warnings[warnings.length - 1]!.programId = ix.programId;
+        const last = warnings[warnings.length - 1]!;
+        last.programId = ix.programId;
+        last.details = decodeDetails(ix, input.issues.filter((x) => x.stage === 'idl' && x.instructionIndex === i && !x.message.includes(' ignored:')).map((x) => x.message.slice(0, 160)));
       }
       continue;
     }

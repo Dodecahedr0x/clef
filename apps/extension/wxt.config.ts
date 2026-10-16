@@ -1,6 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'wxt';
 
+// One id per build (WXT builds each entrypoint in its own pass; they must all agree).
+const BUILD = process.env.CLEF_BUILD ?? String(Date.now());
+
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   imports: false, // explicit imports everywhere
@@ -29,6 +32,8 @@ export default defineConfig({
     define: {
       'import.meta.env.CLEF_ERROR_ENDPOINT': JSON.stringify(process.env.CLEF_ERROR_ENDPOINT ?? ''),
       'import.meta.env.CLEF_HARDWARE': JSON.stringify(process.env.CLEF_HARDWARE ?? ''),
+      // Pages and the background compare it: a rebuilt extension whose background was not reloaded is detected.
+      'import.meta.env.CLEF_BUILD': JSON.stringify(BUILD),
     },
   }),
 });

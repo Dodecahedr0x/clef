@@ -3,6 +3,7 @@ import { Alert, Spinner } from '../../components';
 import type { FullState } from '../../lib/api';
 import { useWallet } from '../../lib/hooks';
 import { NavProvider, useNav } from '../../lib/nav';
+import { StaleBackgroundBanner } from '../../lib/stale-banner';
 import type { Route, RouteName } from './routes';
 import { AccountsScreen } from './screens/Accounts';
 import { AddAccountScreen } from './screens/AddAccount';
@@ -106,7 +107,12 @@ export function App() {
   return (
     <NavProvider initial={entryRoute(state)}>
       <Guard state={state} />
-      <Router />
+      <div className="flex h-full flex-col">
+        <StaleBackgroundBanner />
+        <div className="min-h-0 flex-1">
+          <Router />
+        </div>
+      </div>
     </NavProvider>
   );
 }

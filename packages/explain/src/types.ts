@@ -20,6 +20,8 @@ export type Warning = {
   instructionIndex?: number;
   /** The program a decode warning is about, so the UI can offer to add its IDL. */
   programId?: Address;
+  /** Why, in a few plain lines, for the UI to show on demand. */
+  details?: string[];
 };
 
 export type AccountRef = { address: Address; signer: boolean; writable: boolean; lookupTable?: Address };
@@ -68,6 +70,8 @@ export type ExplainedInstruction = {
   data: Uint8Array;
   /** How to format an `amount` argument, when known. */
   amountUnit?: { symbol: string; decimals: number };
+  /** IDLs that exist for the program but declare no instruction matching this one (names sanitized, bounded). */
+  idlMismatch?: { source: IdlSourceKind; programName: string; instructions: string[] }[];
 };
 
 export type SeedInfo = { kind: 'const' | 'account' | 'arg'; display: string };

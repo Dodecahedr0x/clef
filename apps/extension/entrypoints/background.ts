@@ -162,6 +162,7 @@ export default defineBackground(() => {
   });
 
   const handleInternal = async (msg: InternalMessage): Promise<unknown> => {
+    if (msg.channel === 'build') return { build: import.meta.env.CLEF_BUILD ?? '' };
     if (msg.channel === 'internal') {
       await autoLock.touch();
       return internal.call(msg.call);

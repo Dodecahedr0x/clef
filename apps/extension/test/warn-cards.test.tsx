@@ -24,6 +24,15 @@ describe('WarnCards · Add IDL', () => {
     expect(add).toHaveBeenCalledWith(PROGRAM);
   });
 
+  it('expands to show why', () => {
+    render(<WarnCards warnings={[{ ...stale, details: ['The Anchor IDL stored on chain (gpl_session) declares 2 instructions: createSession, revokeSession.'] }]} />);
+    const why = screen.getByText('Why?');
+    expect(why.closest('details')?.open).toBe(false);
+    fireEvent.click(why);
+    expect(why.closest('details')?.open).toBe(true);
+    expect(screen.getByText(/declares 2 instructions: createSession, revokeSession/)).toBeTruthy();
+  });
+
   it('shows no link where Clef cannot add one', () => {
     render(<WarnCards warnings={[stale]} />);
     expect(screen.queryByRole('button', { name: 'Add IDL' })).toBeNull();

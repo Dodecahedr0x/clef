@@ -13,6 +13,7 @@ export type DappPortReply = { type: 'response'; response: unknown } | { type: 'e
 /** Extension page -> background via runtime.sendMessage. */
 export type InternalMessage =
   | { channel: 'internal'; call: unknown }
+  | { channel: 'build' }
   | { channel: 'approval'; op: 'get'; id: string }
   | { channel: 'approval'; op: 'decide'; id: string; decision: unknown }
   /** Sent by an open approval every few seconds: keeps the service worker (and the request in it) alive. */

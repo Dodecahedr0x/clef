@@ -5,7 +5,7 @@ import { getTransferSolInstruction } from '@solana-program/system';
 import { getApproveInstruction, getTransferCheckedInstruction, getTransferInstruction } from '@solana-program/token';
 import { AccountRole, address, createNoopSigner, type Address, type Instruction, type V1TransactionConfig } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { decodeTransaction, explain, shortAddress, viewFor, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
+import { decodeDetails, decodeTransaction, explain, shortAddress, viewFor, CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, STAKE_PROGRAM, TOKEN_PROGRAM, type ExplainContext } from '../src';
 import { buildV1Wire, buildWire, ME, OTHER, setLookupTable, simulateWith, tokenAccountData, USDC } from './helpers';
 import { AUTHORITY, VAULT, depositInstruction, setPool, vaultAddresses } from './vault';
 import vaultJson from './fixtures/vault-anchor.json' with { type: 'json' };
@@ -395,7 +395,24 @@ describe('explain', () => {
     const ex = await explain({ wire: buildWire([stale]) }, ctx(new MemoryChainReader(), { idls: new IdlResolver([user]) }));
     const w = ex.warnings.find((x) => x.rule === 'unknown-program');
     expect(w).toMatchObject({ message: "Can't decode instruction #1: its program's IDL is out of date.", programId: VAULT });
+    // Why: which IDL was found, what it declares, the instruction's own bytes, and what would help.
+    expect(w?.details?.[0]).toBe('Your IDL (vault) declares 1 instruction: deposit.');
+    expect(w?.details?.[1]).toBe('Its data starts with 0909090909090909 (8 bytes). None of those instructions matches it.');
+    expect(w?.details?.[2]).toMatch(/Adding the same IDL again will not help/);
+    expect(ex.instructions[0]?.idlMismatch).toEqual([{ source: 'user', programName: 'vault', instructions: ['deposit'] }]);
     expect(viewFor(ex, 'intermediate').instructions[0]).toMatchObject({ name: 'Unknown instruction', idlOutdated: true });
+  });
+
+  it('explains an instruction with no IDL anywhere', () => {
+    const d = decodeDetails({ programId: 'KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5', data: new Uint8Array([1, 2, 3]) });
+    expect(d[0]).toMatch(/^Clef found no IDL for program KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5/);
+    expect(d[1]).toBe('Its data starts with 010203 (3 bytes).');
+  });
+
+  it('says the IDL could not be loaded, rather than that none exists, when loading failed', () => {
+    const d = decodeDetails({ programId: 'KeyspM2ssCJbqUhQ4k7sveSiY4WjnYsrXkC8oDbwde5', data: new Uint8Array([1]) }, ['anchor-onchain: HTTP error (429): Too Many Requests']);
+    expect(d[0]).toBe('Clef could not load an IDL (anchor-onchain: HTTP error (429): Too Many Requests). Try again later or use another RPC.');
+    expect(d.join(' ')).not.toMatch(/found no IDL/);
   });
 
   it('keeps the compute units a landed transaction recorded', async () => {

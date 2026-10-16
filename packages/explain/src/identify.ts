@@ -90,6 +90,7 @@ export async function identifyInstruction(
   const onError = (e: { source: string; message: string }) =>
     issues.push({ stage: 'idl', instructionIndex: ix.index, message: `${e.source}: ${e.message}` });
   const unmatched: string[] = [];
+  const mismatch: NonNullable<ExplainedInstruction['idlMismatch']> = [];
 
   const curatedOnly = BUNDLED_PROGRAM_IDS.has(ix.programId);
   for await (const idl of idls.candidates(ix.programId, onError)) {
@@ -111,6 +112,12 @@ export async function identifyInstruction(
           issues.push({ stage: 'parse', instructionIndex: ix.index, message: `${name} matched but its data did not decode (${ix.data.length} bytes)` });
         } else {
           unmatched.push(idl.source);
+          const program = idl.root.program;
+          mismatch.push({
+            source: idl.source,
+            programName: sanitizeText(program.name ?? '', 64),
+            instructions: (program.instructions ?? []).slice(0, 50).map((i) => sanitizeText(i.name, 64)),
+          });
         }
         continue;
       }
@@ -134,5 +141,5 @@ export async function identifyInstruction(
   if (unmatched.length) {
     issues.push({ stage: 'parse', instructionIndex: ix.index, message: `no instruction in ${unmatched.join(', ')} IDL matched` });
   }
-  return raw;
+  return mismatch.length ? { ...raw, idlMismatch: mismatch } : raw;
 }
