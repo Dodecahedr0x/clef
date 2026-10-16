@@ -24,6 +24,7 @@ import {
   buildProposeTransactions,
   buildVoteTransaction,
   encodeTransactionMessage,
+  outerInstructionNames,
   SQUADS_PROGRAM_ID,
   ephemeralSignerPda,
   transactionBufferPda,
@@ -284,6 +285,19 @@ describe('buildProposeTransactions', () => {
       expect(discs(wires)).toEqual(discs(fresh.slice(1)));
       const chunks = wires.slice(0, -1).map((w) => Buffer.from(decode(w).instructions[0]!.data, 'hex').subarray(12));
       expect(new Uint8Array(Buffer.concat([uploaded, ...chunks]))).toEqual(bytes);
+    });
+
+    it('outerInstructionNames reads what each outer transaction does', async () => {
+      const names = (wires: Uint8Array[]) => wires.map(outerInstructionNames);
+      const extendCount = fresh.length - 2;
+      expect(names(fresh)).toEqual([
+        ['transaction_buffer_create'],
+        ...Array.from({ length: extendCount }, () => ['transaction_buffer_extend']),
+        ['vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve'],
+      ]);
+      expect(names(await buildProposeTransactions(withBuffer(bytes), p))).toEqual([['vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve']]);
+      expect(names(await buildProposeTransactions(withBuffer(new Uint8Array(10), new Uint8Array(32).fill(1)), p))[0]).toEqual(['transaction_buffer_close']);
+      expect(outerInstructionNames(await buildProposeTransaction({ ...p, innerWire: b64(sdk.innerWire) }))).toEqual(['vault_transaction_create', 'proposal_create', 'proposal_approve']);
     });
 
     it('a complete buffer goes straight to create-from-buffer', async () => {

@@ -1,6 +1,6 @@
 import type { ChangeView, Warning } from '@clef/explain';
 import type { ApprovalDecision, ApprovalRequest } from '@clef/wallet-core';
-import { fetchMultisig, type MultisigInfo } from '@clef/squads';
+import { fetchMultisig, outerInstructionNames, type MultisigInfo } from '@clef/squads';
 import { getCompiledTransactionMessageDecoder, getTransactionDecoder } from '@solana/kit';
 import { useEffect, useMemo, useState } from 'react';
 import type { FullState } from '../../../lib/api';
@@ -9,13 +9,22 @@ import { useExplainBatch } from '../../../lib/hooks';
 import { BlockedSiteBanner } from './BlockedSiteBanner';
 import { accountName, Acknowledge, CardLabel, DangerBox, errorText, ErrorLine, Footer, Header, Page, siteName, SiteMark, useApprove } from './shared';
 
-const PROPOSE = ['proposal_create', 'proposal_approve'];
-
-/** Instructions the member signs, in order; buffered proposals upload the message first. */
-function signsNow(outer: number): string[] {
-  if (outer <= 1) return ['vault_transaction_create', ...PROPOSE];
-  const extends_ = outer - 2;
-  return ['transaction_buffer_create', ...(extends_ > 0 ? [`transaction_buffer_extend${extends_ > 1 ? ` ×${extends_}` : ''}`] : []), 'vault_transaction_create_from_buffer', ...PROPOSE];
+/** What the member signs, read from the outer wires themselves; consecutive repeats are folded ("x ×3"). */
+function signsNow(proposals: Uint8Array[]): string[] {
+  const names = proposals.flatMap((w) => {
+    try {
+      return outerInstructionNames(w);
+    } catch {
+      return ['undecodable transaction'];
+    }
+  });
+  const out: { name: string; n: number }[] = [];
+  for (const name of names) {
+    const last = out.at(-1);
+    if (last?.name === name) last.n++;
+    else out.push({ name, n: 1 });
+  }
+  return out.map(({ name, n }) => (n > 1 ? `${name} ×${n}` : name));
 }
 
 /** Signers of the inner transaction besides the vault; Clef replaces them with ephemeral signers. */
@@ -68,6 +77,9 @@ export function SquadsApproval({
   const needsAck = !!request.phishing || failed || dangers.length > 0;
   const hardware = request.signer.kind !== 'software' && onSign;
   const outer = request.proposals.length;
+  const signs = useMemo(() => signsNow(request.proposals), [request.proposals]);
+  const closesStale = signs.includes('transaction_buffer_close');
+  const resumes = !signs.some((n) => n.startsWith('transaction_buffer_create')) && signs.includes('vault_transaction_create_from_buffer');
   const ephemeral = useMemo(() => extraSigners(request.inner, request.account), [request.inner, request.account]);
 
   const title = combined ? `Propose: ${combined.summary}` : failed ? 'Propose a vault transaction' : 'Explaining the proposal…';
@@ -114,7 +126,7 @@ export function SquadsApproval({
         <section className="overflow-hidden rounded-[12px] border border-line bg-surface">
           <CardLabel>What you sign now</CardLabel>
           <ol className="m-0 py-[10px] pl-8 pr-3 font-mono text-[12px] leading-[1.8]">
-            {signsNow(outer).map((ix) => (
+            {signs.map((ix) => (
               <li key={ix}>
                 <span>{ix}</span>
                 {ix === 'proposal_approve' && <span className="font-sans text-muted"> · your vote</span>}
@@ -122,12 +134,12 @@ export function SquadsApproval({
             ))}
           </ol>
           <div className="flex flex-col gap-1 border-t border-line-soft px-3 py-2 text-[12px]">
-            {request.step && (
-              <p className="m-0 font-semibold">{`Step ${request.step.index} of ${request.step.of}: a hardware signer signs this proposal in parts so each part stays valid; Clef asks again for the rest.`}</p>
+            {outer > 1 && <p className="m-0 text-muted">{`You sign ${outer} transactions, sent one after another.`}</p>}
+            {closesStale && <p className="m-0 text-muted">Clef first closes a transaction buffer an earlier attempt left behind; its rent comes back to you.</p>}
+            {!resumes && signs.some((n) => n.startsWith('transaction_buffer_create')) && (
+              <p className="m-0 text-muted">The proposal is too large for one transaction, so Clef uploads it to a Squads transaction buffer first.</p>
             )}
-            {outer > 1 && (
-              <p className="m-0 text-muted">{`You sign ${outer} transactions, sent one after another: the proposal is too large for one transaction, so Clef uploads it to a Squads transaction buffer first.`}</p>
-            )}
+            {resumes && <p className="m-0 text-muted">Clef resumes an upload an earlier attempt left unfinished.</p>}
             {ephemeral > 0 && (
               <p className="m-0 text-warn-ink">
                 {ephemeral === 1

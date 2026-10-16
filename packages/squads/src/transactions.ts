@@ -5,6 +5,7 @@ import {
   compileTransaction,
   createTransactionMessage,
   getAddressDecoder,
+  getCompiledTransactionMessageDecoder,
   getTransactionDecoder,
   getTransactionEncoder,
   getU64Encoder,
@@ -215,6 +216,24 @@ export async function buildProposeTransactions(chain: ChainReader, p: ProposePar
   );
   wires.push(toWire(p.member, p.blockhash, [fromBuffer, parts.propose, approve]));
   return wires;
+}
+
+const SNAKE: Record<string, string> = Object.fromEntries(
+  Object.entries(DISC).map(([name, disc]) => [hexOf(disc), name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)]),
+);
+function hexOf(b: ArrayLike<number>): string {
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+/** Instruction names of an outer wire, in order: Squads ones in snake_case (e.g. `transaction_buffer_extend`), others by program address. */
+export function outerInstructionNames(wire: Uint8Array): string[] {
+  const msg = getCompiledTransactionMessageDecoder().decode(getTransactionDecoder().decode(wire).messageBytes);
+  if (msg.version !== 0 && msg.version !== 'legacy') throw new Error(`Unsupported transaction version ${String(msg.version)}`);
+  return msg.instructions.map((ix) => {
+    const program = msg.staticAccounts[ix.programAddressIndex];
+    if (program !== SQUADS_PROGRAM_ID) return String(program);
+    return SNAKE[hexOf((ix.data ?? new Uint8Array()).subarray(0, 8))] ?? 'unknown_squads_instruction';
+  });
 }
 
 const equal = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);

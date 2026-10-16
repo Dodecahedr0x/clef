@@ -37,8 +37,6 @@ export type ApprovalRequest =
       /** Unsigned outer transactions, sent in order; more than one when the inner message goes through a transaction buffer. */
       proposals: Uint8Array[];
       signer: SignerInfo;
-      /** Present when a hardware member signs a large proposal over several approvals. */
-      step?: { index: number; of: number };
     };
 
 /** What the approval page saw, for the local request log. */
@@ -284,52 +282,42 @@ export class WalletService {
       return { wires, lastValidBlockHeight: latest.lastValidBlockHeight };
     };
     const phishing = await this.phishing(origin);
-    // Hardware signs what the page shows, so its batch is built before the prompt and capped to what a device signs
-    // well within one blockhash's lifetime; software rebuilds with a fresh blockhash after approval.
-    let built = await build();
-    if (built.wires.length > 1 && !confirm) throw new ProtocolError(ERR.UNSUPPORTED, 'Multisig transaction too large');
-    const steps = hardware ? Math.ceil(built.wires.length / HARDWARE_BATCH) : 1;
-    const sent: string[] = [];
-    for (let step = 1; ; step++) {
-      const batch = hardware ? built.wires.slice(0, HARDWARE_BATCH) : built.wires;
-      const final = batch.length === built.wires.length;
-      const req: ApprovalRequest = {
-        kind: 'squadsPropose',
-        origin,
-        phishing,
-        account: vault.address,
-        multisig: vault.multisig,
-        vaultIndex: vault.vaultIndex,
-        member: member.address,
-        inner,
-        proposals: batch,
-        signer: signerInfo(member),
-        ...(steps > 1 && { step: { index: step, of: Math.max(steps, step) } }),
-      };
-      const signatures = await this.run(req, async (d) => {
-        const fresh = hardware ? { wires: batch, lastValidBlockHeight: built.lastValidBlockHeight } : await build();
-        const signed = await this.signWires(member, fresh.wires, d);
-        const out: string[] = [];
-        for (const [i, wire] of signed.entries()) {
-          const where = `transaction ${i + 1} of ${signed.length}`;
-          let signature: string;
-          try {
-            signature = await this.deps.sender.send(wire, { skipPreflight });
-          } catch (e) {
-            throw interrupted(where, e instanceof Error ? e.message : 'not sent');
-          }
-          out.push(signature);
-          if (i < signed.length - 1 || !final) {
-            const status = await confirm!(signature, fresh.lastValidBlockHeight);
-            if (status !== 'confirmed') throw interrupted(where, status);
-          }
+    // Built last before the prompt: a hardware member signs exactly these wires, so their blockhash is as fresh as the
+    // flow allows. Software members' wires are rebuilt on a fresh blockhash after approval.
+    const preview = await build();
+    if (preview.wires.length > 1 && !confirm) throw new ProtocolError(ERR.UNSUPPORTED, 'Multisig transaction too large');
+    const req: ApprovalRequest = {
+      kind: 'squadsPropose',
+      origin,
+      phishing,
+      account: vault.address,
+      multisig: vault.multisig,
+      vaultIndex: vault.vaultIndex,
+      member: member.address,
+      inner,
+      proposals: preview.wires,
+      signer: signerInfo(member),
+    };
+    return this.run(req, async (d) => {
+      const fresh = hardware ? preview : await build();
+      const signed = await this.signWires(member, fresh.wires, d);
+      const out: string[] = [];
+      for (const [i, wire] of signed.entries()) {
+        const where = `transaction ${i + 1} of ${signed.length}`;
+        let signature: string;
+        try {
+          signature = await this.deps.sender.send(wire, { skipPreflight });
+        } catch (e) {
+          throw interrupted(where, e instanceof Error ? e.message : 'not sent');
         }
-        return { result: out, signatures: out };
-      });
-      sent.push(...signatures);
-      if (final) return sent.at(-1)!;
-      built = await build(); // resumes from the buffer the previous step left on chain
-    }
+        out.push(signature);
+        if (i < signed.length - 1) {
+          const status = await confirm!(signature, fresh.lastValidBlockHeight);
+          if (status !== 'confirmed') throw interrupted(where, status);
+        }
+      }
+      return { result: out.at(-1)!, signatures: out };
+    });
   }
 
   /** Prompts, then runs `after` on approval; every outcome is written to the request log. */
@@ -447,9 +435,6 @@ function signerInfo(a: Account): SignerInfo {
   if (a.kind === 'keystone') return { kind: 'keystone', address: a.address, path: a.path, xfp: a.xfp };
   return { kind: 'software' };
 }
-
-/** Max outer transactions a hardware member signs per approval (one blockhash, one device session). */
-const HARDWARE_BATCH = 4;
 
 const interrupted = (where: string, why: string) =>
   new ProtocolError(ERR.INTERNAL, `Multisig proposal stopped at ${where} (${why}). Send the request again: Clef resumes the upload where it stopped.`);

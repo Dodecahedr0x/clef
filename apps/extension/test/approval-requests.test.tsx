@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { getBase58Decoder, type Address } from '@solana/kit';
+import { SQUADS_PROGRAM_ID } from '@clef/squads';
+import { getAddressEncoder, getBase58Decoder, type Address } from '@solana/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hw = vi.hoisted(() => ({
@@ -276,9 +277,24 @@ describe('SignInApproval', () => {
   });
 });
 
+/** A legacy outer wire whose instructions are Squads instructions with the given discriminators (hex). */
+function squadsWire(...discs: string[]): Uint8Array {
+  const ixs = discs.flatMap((d) => [1, 0, 8, ...Buffer.from(d, 'hex')]);
+  return new Uint8Array([1, ...new Array(64).fill(0), 1, 0, 1, 2, ...new Array(32).fill(5), ...getAddressEncoder().encode(SQUADS_PROGRAM_ID), ...new Array(32).fill(9), discs.length, ...ixs]);
+}
+const SQ = {
+  create: '30fa4ea8d0e2dad3',
+  propose: 'dc3c49e01e6c4f9f',
+  approve: '9025a488bcd82af8',
+  bufferCreate: 'f5c9716c253f1d59',
+  bufferExtend: 'e69d433805eef592',
+  bufferClose: '11b6d0e48818b266',
+  fromBuffer: 'de36954457f630e7',
+};
+
 describe('SquadsApproval', () => {
   const inner = new Uint8Array([1, 2, 3]);
-  const proposal = new Uint8Array([4, 5, 6]);
+  const proposal = squadsWire(SQ.create, SQ.propose, SQ.approve);
   const request = { kind: 'squadsPropose', origin: 'https://payroll.example', phishing: null, account: VAULT, multisig: MULTISIG, vaultIndex: 0, member: LEDGER, inner, proposals: [proposal] as Uint8Array[], signer: ledgerSigner } as const;
 
   beforeEach(() => {
@@ -333,12 +349,15 @@ describe('SquadsApproval', () => {
     const vault = getBase58Decoder().decode(new Uint8Array(32).fill(5)) as Address;
     // legacy wire: 2 signers (vault, a fresh account), system program; one createAccount-like instruction
     const twoSigners = new Uint8Array([2, ...new Array(128).fill(0), 2, 0, 1, 3, ...new Array(32).fill(5), ...new Array(32).fill(6), ...new Array(32).fill(0), ...new Array(32).fill(7), 1, 2, 2, 0, 1, 0]);
-    const outer = [new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3]), new Uint8Array([4])];
+    const outer = [squadsWire(SQ.bufferCreate), squadsWire(SQ.bufferExtend), squadsWire(SQ.bufferExtend), squadsWire(SQ.fromBuffer, SQ.propose, SQ.approve)];
     const onDecide = vi.fn();
     const onSign = vi.fn().mockResolvedValue([SIG, SIG, SIG, SIG]);
     render(<SquadsApproval request={{ ...request, account: vault, inner: twoSigners, proposals: outer }} state={state} onDecide={onDecide} onSign={onSign} />);
     for (const ix of ['transaction_buffer_create', 'transaction_buffer_extend ×2', 'vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve']) expect(screen.getByText(ix)).toBeTruthy();
-    expect(screen.getByText(/You sign 4 transactions, sent one after another/)).toBeTruthy();
+    expect(screen.getByText('You sign 4 transactions, sent one after another.')).toBeTruthy();
+    expect(screen.getByText(/too large for one transaction, so Clef uploads it to a Squads transaction buffer first/)).toBeTruthy();
+    expect(screen.queryByText(/resumes an upload/)).toBeNull();
+    expect(screen.queryByText(/closes a transaction buffer/)).toBeNull();
     expect(screen.getByText(/1 extra signer\. The multisig signs for it with an ephemeral signer/)).toBeTruthy();
     expect(await screen.findByText('✓ member · can vote')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Propose & approve' }));
@@ -346,9 +365,22 @@ describe('SquadsApproval', () => {
     expect(onSign).toHaveBeenCalledWith(outer);
   });
 
-  it('a multi-step hardware proposal says which step this is', async () => {
-    render(<SquadsApproval request={{ ...request, proposals: [proposal, proposal], step: { index: 2, of: 3 } }} state={state} onDecide={vi.fn()} onSign={vi.fn()} />);
-    expect(screen.getByText(/^Step 2 of 3: a hardware signer signs this proposal in parts/)).toBeTruthy();
+  const signList = () => Array.from(screen.getByText('What you sign now').parentElement!.querySelectorAll('li'), (li) => li.textContent);
+
+  it('a resumed upload lists only what is left: create from buffer, propose, approve', async () => {
+    render(<SquadsApproval request={{ ...request, proposals: [squadsWire(SQ.fromBuffer, SQ.propose, SQ.approve)] }} state={state} onDecide={vi.fn()} onSign={vi.fn()} />);
+    expect(signList()).toEqual(['vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve · your vote']);
+    expect(screen.getByText('Clef resumes an upload an earlier attempt left unfinished.')).toBeTruthy();
+    expect(screen.queryByText(/You sign \d+ transactions/)).toBeNull();
+    expect(await screen.findByText('✓ member · can vote')).toBeTruthy();
+  });
+
+  it('close-then-restart lists the buffer close first', async () => {
+    const proposals = [squadsWire(SQ.bufferClose), squadsWire(SQ.bufferCreate), squadsWire(SQ.bufferExtend), squadsWire(SQ.fromBuffer, SQ.propose, SQ.approve)];
+    render(<SquadsApproval request={{ ...request, proposals }} state={state} onDecide={vi.fn()} onSign={vi.fn()} />);
+    expect(signList()).toEqual(['transaction_buffer_close', 'transaction_buffer_create', 'transaction_buffer_extend', 'vault_transaction_create_from_buffer', 'proposal_create', 'proposal_approve · your vote']);
+    expect(screen.getByText(/first closes a transaction buffer an earlier attempt left behind/)).toBeTruthy();
+    expect(screen.getByText(/uploads it to a Squads transaction buffer first/)).toBeTruthy();
     expect(await screen.findByText('✓ member · can vote')).toBeTruthy();
   });
 

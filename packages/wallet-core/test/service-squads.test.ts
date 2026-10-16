@@ -107,7 +107,6 @@ describe('WalletService with a Squads vault', () => {
     expect(built[1]).toEqual({ multisig: MULTISIG, vaultIndex: 0, member: A, innerWire: inner, transactionIndex: 7n, blockhash: BLOCKHASHES[1] });
     expect(approvals.at(-1)).toMatchObject({ kind: 'squadsPropose', account: VAULT, multisig: MULTISIG, vaultIndex: 0, member: A, inner, signer: { kind: 'software' }, phishing: null });
     expect((approvals.at(-1) as Propose).proposals).toHaveLength(1);
-    expect((approvals.at(-1) as Propose).step).toBeUndefined();
     expect(sent).toHaveLength(1);
     expect(getTransactionDecoder().decode(sent[0]!).signatures[A]).toBeTruthy();
     expect(logged.at(-1)).toMatchObject({ kind: 'squadsPropose', outcome: 'approved', signatures: ['sig1'] });
@@ -176,18 +175,27 @@ describe('WalletService with a Squads vault', () => {
     ]);
   });
 
-  it('buffered, hardware: more than 4 outer transactions are signed in steps, each rebuilt from chain on a fresh blockhash', async () => {
+  it('buffered, hardware: every outer transaction is signed in one approval, built right before the prompt', async () => {
     let ctx!: Awaited<ReturnType<typeof squadsWallet>>;
-    ctx = await squadsWallet({ member: 'ledger', outer: [6, 2], decide: (r) => ctx.deviceSign(r) });
-    expect(await propose(ctx.service)).toMatchObject({ ok: true, result: { signature: b64sig('sig6') } });
-    const steps = ctx.approvals.filter((r): r is Propose => r.kind === 'squadsPropose');
-    expect(steps.map((r) => [r.step, r.proposals.map(position)])).toEqual([
-      [{ index: 1, of: 2 }, [1, 2, 3, 4]],
-      [{ index: 2, of: 2 }, [5, 6]],
-    ]);
-    expect(ctx.events).toEqual(['hash:EETu', 'build:EETu', 'approval', 'hash:4vJ9', 'build:4vJ9', 'approval']);
-    expect(ctx.sent.map(position)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(ctx.confirmed.map(([s, h]) => `${s}@${h}`)).toEqual(['sig1@100', 'sig2@100', 'sig3@100', 'sig4@100', 'sig5@101']);
+    ctx = await squadsWallet({ member: 'ledger', outer: [9], decide: (r) => ctx.deviceSign(r) });
+    expect(await propose(ctx.service)).toMatchObject({ ok: true, result: { signature: b64sig('sig9') } });
+    const requests = ctx.approvals.filter((r): r is Propose => r.kind === 'squadsPropose');
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.proposals.map(position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect('step' in requests[0]!).toBe(false);
+    expect(ctx.events).toEqual(['hash:EETu', 'build:EETu', 'approval']);
+    expect(ctx.sent.map(position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(ctx.confirmed.map(([s, h]) => `${s}@${h}`)).toEqual(['sig1@100', 'sig2@100', 'sig3@100', 'sig4@100', 'sig5@100', 'sig6@100', 'sig7@100', 'sig8@100']);
+  });
+
+  it('buffered, hardware: an expired blockhash mid-way stops with the retry message', async () => {
+    let ctx!: Awaited<ReturnType<typeof squadsWallet>>;
+    ctx = await squadsWallet({ member: 'ledger', outer: [5], confirm: (sig) => (sig === 'sig3' ? 'expired' : 'confirmed'), decide: (r) => ctx.deviceSign(r) });
+    expect(await propose(ctx.service)).toMatchObject({
+      ok: false,
+      error: { message: 'Multisig proposal stopped at transaction 3 of 5 (expired). Send the request again: Clef resumes the upload where it stopped.' },
+    });
+    expect(ctx.sent).toHaveLength(3);
   });
 
   it('a hardware member must sign every outer transaction', async () => {
