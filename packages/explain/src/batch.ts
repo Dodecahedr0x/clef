@@ -142,6 +142,12 @@ async function combine(all: readonly Step[], included: readonly Step[], mode: Ex
       }
     }
   }
+  // A step Clef could not decode, or whose effects were never simulated, is unknown: never let it pass quietly.
+  const unexplained = all.filter((s) => s.explained === null || s.status === 'not-simulated').map((s) => s.index + 1);
+  if (unexplained.length) {
+    const which = unexplained.length === 1 ? `transaction ${unexplained[0]}` : `transactions ${unexplained.join(', ')}`;
+    warnings.unshift({ rule: 'unexplained-step', severity: 'danger', message: `Clef could not explain ${which} in this request; its effects are unknown.` });
+  }
   const fees = explained.map((e) => e.fee);
   const units = explained.map((e) => e.computeUnits).filter((u): u is bigint => u !== null);
   // Sequential: a step that didn't run leaves every later state unknown. Independent: the rest still adds up.

@@ -105,6 +105,8 @@ describe('explainBatch sequential', () => {
     expect(batch.steps[2]!.explained!.balanceChanges).toBeNull();
     expect(batch.combined).toMatchObject({ incomplete: true, balanceChanges: null, accountDiffs: null });
     expect(batch.combined.summary).toMatch(/failed/i);
+    expect(batch.combined.warnings).toContainEqual(expect.objectContaining({ rule: 'unexplained-step', severity: 'danger' }));
+    expect(batch.combined.warnings.find((w) => w.rule === 'unexplained-step')!.message).toMatch(/transaction 3/);
   });
 });
 
@@ -153,5 +155,6 @@ describe('explainBatch independent fallback', () => {
     expect(batch.steps[0]).toMatchObject({ status: 'failed', explained: null });
     expect(batch.combined.incomplete).toBe(true);
     expect(batch.issues.some((i) => i.stage === 'decode')).toBe(true);
+    expect(batch.combined.warnings).toContainEqual(expect.objectContaining({ rule: 'unexplained-step', severity: 'danger', message: expect.stringMatching(/transaction 1/) }));
   });
 });
