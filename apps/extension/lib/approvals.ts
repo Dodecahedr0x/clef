@@ -12,7 +12,7 @@ export class ApprovalQueue implements Approver {
   private readonly closedEarly = new Set<number>();
 
   constructor(
-    private readonly open: (id: string) => Promise<number | undefined>,
+    private readonly open: (id: string, request: ApprovalRequest) => Promise<number | undefined>,
     private readonly close: (windowId: number) => void,
   ) {}
 
@@ -21,7 +21,7 @@ export class ApprovalQueue implements Approver {
     return new Promise((resolve) => {
       const entry: Pending = { request, resolve };
       this.pending.set(id, entry);
-      this.open(id).then(
+      this.open(id, request).then(
         (windowId) => {
           if (windowId === undefined) return;
           entry.windowId = windowId;

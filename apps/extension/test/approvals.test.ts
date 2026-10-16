@@ -1,26 +1,30 @@
 import type { ApprovalRequest } from '@clef/wallet-core';
 import { describe, expect, it, vi } from 'vitest';
 import { ApprovalQueue } from '../lib/approvals';
+import { APPROVAL_SIZE, EXPERT_APPROVAL_SIZE, approvalWindowSize, hardwareTabUrl, openApprovalWindow } from '../lib/windows';
 
-const CONNECT: ApprovalRequest = { kind: 'connect', origin: 'https://dapp.example' };
+const CONNECT: ApprovalRequest = { kind: 'connect', origin: 'https://dapp.example', phishing: null };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 function queue(open: (id: string) => Promise<number | undefined> = async () => 7) {
   const opened: string[] = [];
+  const requests: ApprovalRequest[] = [];
   const close = vi.fn();
-  const q = new ApprovalQueue(async (id) => {
+  const q = new ApprovalQueue(async (id, request) => {
     opened.push(id);
+    requests.push(request);
     return open(id);
   }, close);
-  return { q, opened, close };
+  return { q, opened, requests, close };
 }
 
 describe('ApprovalQueue', () => {
   it('opens a window per request and resolves with the decision', async () => {
-    const { q, opened, close } = queue();
+    const { q, opened, requests, close } = queue();
     const decision = q.request(CONNECT);
     await tick();
     expect(opened).toHaveLength(1);
+    expect(requests).toEqual([CONNECT]);
     expect(q.get(opened[0]!)).toEqual(CONNECT);
     q.decide(opened[0]!, { approved: true, accounts: ['a'] });
     expect(await decision).toEqual({ approved: true, accounts: ['a'] });
@@ -66,5 +70,49 @@ describe('ApprovalQueue', () => {
     await tick();
     q.windowClosed(9);
     expect(await decision).toEqual({ approved: false });
+  });
+});
+
+const A = 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk' as never;
+const TX = { kind: 'signTransactions', origin: 'https://d.example', phishing: null, account: A, chain: 'solana:mainnet', transactions: [], send: false, signer: { kind: 'software' } } as ApprovalRequest;
+const SQUADS = { kind: 'squadsPropose' } as ApprovalRequest;
+const MSG = { kind: 'signMessage' } as ApprovalRequest;
+const SIWS = { kind: 'signIn' } as ApprovalRequest;
+
+describe('approval window size', () => {
+  it('is 400x680 by default and 760x960 for transactions at Expert level', () => {
+    expect(APPROVAL_SIZE).toEqual({ width: 400, height: 680 });
+    expect(EXPERT_APPROVAL_SIZE).toEqual({ width: 760, height: 960 });
+    expect(approvalWindowSize(TX, 'expert')).toEqual(EXPERT_APPROVAL_SIZE);
+    expect(approvalWindowSize(SQUADS, 'expert')).toEqual(EXPERT_APPROVAL_SIZE);
+  });
+
+  it.each([
+    ['tx basic', TX, 'basic'],
+    ['tx intermediate', TX, 'intermediate'],
+    ['connect expert', CONNECT, 'expert'],
+    ['message expert', MSG, 'expert'],
+    ['sign-in expert', SIWS, 'expert'],
+    ['squads basic', SQUADS, 'basic'],
+  ] as const)('%s -> default size', (_n, req, level) => {
+    expect(approvalWindowSize(req, level)).toEqual(APPROVAL_SIZE);
+  });
+
+  it('opens a focused popup window on the approval page with that size', async () => {
+    const create = vi.fn(async (_o: unknown) => ({ id: 42 }));
+    const api = { windows: { create }, runtime: { getURL: (p: string) => `chrome-extension://x${p}` } };
+    expect(await openApprovalWindow(api, 'a b', { width: 760, height: 960 })).toBe(42);
+    expect(create).toHaveBeenCalledWith({
+      url: 'chrome-extension://x/approval.html?id=a%20b',
+      type: 'popup',
+      focused: true,
+      width: 760,
+      height: 960,
+    });
+  });
+
+  it('hardware connect opens in a tab', () => {
+    expect(hardwareTabUrl('ledger')).toBe('/hardware.html?kind=ledger');
+    expect(hardwareTabUrl('keystone')).toBe('/hardware.html?kind=keystone');
   });
 });
