@@ -1,0 +1,75 @@
+[
+ {
+  "id": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "name": "USD Coin",
+  "symbol": "USDC",
+  "icon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+  "decimals": 6,
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "isVerified": true,
+  "tags": [
+   "verified",
+   "stable",
+   "community",
+   "moonshot-verified",
+   "strict"
+  ]
+ },
+ {
+  "id": "9BEcn9aPEmhSPbPQeFGjidRiEKki46fVQDyPpSQXPA2D",
+  "name": "Jupiter Lend USDC",
+  "symbol": "jlUSDC",
+  "icon": "https://cdn.instadapp.io/solana/tokens/icons/usdc.png",
+  "decimals": 6,
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "isVerified": true,
+  "tags": [
+   "jup-lend-earn",
+   "yb",
+   "yield",
+   "community-assist",
+   "verified"
+  ]
+ },
+ {
+  "id": "AvZZF1YaZDziPY2RCK4oJrRVrbN3mTD9NL24hPeaZeUj",
+  "name": "Syrup USDC",
+  "symbol": "syrupUSDC",
+  "icon": "https://raw.githubusercontent.com/maple-labs/maple-metadata/refs/heads/main/assets/syrupUSDC.svg",
+  "decimals": 6,
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "isVerified": true,
+  "tags": [
+   "community-assist",
+   "verified",
+   "yb",
+   "yield"
+  ]
+ },
+ {
+  "id": "59obFNBzyTBGowrkif5uK7ojS58vsuWz3ZCvg6tfZAGw",
+  "name": "PayFi Strategy Token USDC",
+  "symbol": "PST",
+  "icon": "https://meta.huma.finance/pst.svg",
+  "decimals": 6,
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "isVerified": true,
+  "tags": [
+   "community-assist",
+   "verified",
+   "yb",
+   "yield"
+  ]
+ },
+ {
+  "id": "4gzEcpFzKDaWJjSYP3XdgUYdfY18Q5T9LApJESSbpump",
+  "name": "Ugly Stupid Duck Coin",
+  "symbol": "USDC",
+  "decimals": 6,
+  "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  "tags": [
+   "unknown",
+   "token-2022"
+  ]
+ }
+]
