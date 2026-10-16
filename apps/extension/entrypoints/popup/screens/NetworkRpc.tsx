@@ -20,9 +20,7 @@ export function rpcUrlError(text: string): string | null {
   return 'RPC URL must use https (http only for localhost)';
 }
 
-function Status({ active, das }: { active: boolean; das: boolean | null }) {
-  const { latencyMs } = useHealth();
-  if (!active) return null;
+function Status({ latencyMs, das }: { latencyMs: number | null; das: boolean | null }) {
   return (
     <span className="flex flex-col items-end text-xs">
       {latencyMs === null ? <span className="text-muted">offline</span> : <span className="text-ok">{latencyMs} ms</span>}
@@ -36,6 +34,7 @@ export function NetworkRpcScreen() {
   const { state } = useWallet();
   const { save, error } = useSettingsPatch();
   const das = useDas();
+  const { latencyMs } = useHealth();
   const [customOpen, setCustomOpen] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [cluster, setCluster] = useState<Cluster | null>(null);
@@ -94,7 +93,7 @@ export function NetworkRpcScreen() {
                 </span>
                 <span className="truncate font-mono text-xs text-muted">{rpcHost(r.url)}</span>
               </span>
-              <Status active={active} das={das} />
+              {active && <Status latencyMs={latencyMs} das={das} />}
             </label>
           );
         })}

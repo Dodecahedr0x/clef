@@ -86,6 +86,7 @@ export function SettingsScreen() {
   const nav = useNav();
   const { state } = useWallet();
   const { save, error } = useSettingsPatch();
+  const [lockError, setLockError] = useState<string | null>(null);
   const contacts = useCall<Contact[]>('contacts:list');
   const idls = useCall<UserIdl[]>('idls:list');
   const das = useDas();
@@ -115,7 +116,13 @@ export function SettingsScreen() {
           size="sm"
           icon="lock"
           onClick={async () => {
-            await call({ type: 'vault:lock' });
+            setLockError(null);
+            try {
+              await call({ type: 'vault:lock' });
+            } catch (e) {
+              setLockError(e instanceof Error ? e.message : 'Could not lock the wallet');
+              return;
+            }
             nav.reset({ name: 'unlock' });
           }}
         >
@@ -124,6 +131,7 @@ export function SettingsScreen() {
       }
     >
       <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
+        {lockError && <Alert severity="danger">{lockError}</Alert>}
         {error && <Alert severity="danger">{error}</Alert>}
 
         <SectionLabel>Signing detail</SectionLabel>

@@ -47,6 +47,7 @@ const PROG = 'AzzkBZvWX8xXeQ27ZDGz4ZDu8W8ngQcMhPe7dFdfaJjd';
 
 let nav: Nav & { go: ReturnType<typeof vi.fn>; back: ReturnType<typeof vi.fn>; reset: ReturnType<typeof vi.fn> };
 let hasDas: () => Promise<boolean>;
+let getHealth: ReturnType<typeof vi.fn>;
 let contacts: { address: string; name: string; kind: 'contact' | 'label'; note?: string; createdAt: number }[];
 let idls: { programId: string; network: string; name: string; json: string; hash: string; addedAt: number }[];
 
@@ -80,6 +81,7 @@ beforeEach(() => {
   api.calls = [];
   api.state = baseState();
   hasDas = async () => true;
+  getHealth = vi.fn(async () => ({ slot: 1n, latencyMs: 84 }));
   contacts = [
     { address: ALICE, name: 'Alice', kind: 'contact', note: 'sent 3x', createdAt: 1 },
     { address: BOB, name: 'Bob', kind: 'contact', createdAt: 2 },
@@ -117,7 +119,7 @@ beforeEach(() => {
 
 const factory = () =>
   ({
-    portfolio: { hasDas: () => hasDas(), getHealth: async () => ({ slot: 1n, latencyMs: 84 }) },
+    portfolio: { hasDas: () => hasDas(), getHealth: () => getHealth() },
   }) as never;
 
 function renderScreen(ui: ReactElement) {
@@ -174,6 +176,17 @@ describe('SettingsScreen', () => {
     await user.click(screen.getByRole('button', { name: /Program IDLs/ }));
     await user.click(screen.getByRole('button', { name: /Address book & labels/ }));
     expect(nav.go.mock.calls.map((c) => c[0].name)).toEqual(['settings/sites', 'settings/security', 'settings/network', 'settings/idls', 'settings/contacts']);
+  });
+
+  it('stays put and shows the error when locking fails', async () => {
+    api.handlers['vault:lock'] = () => {
+      throw new Error('The wallet did not respond');
+    };
+    const user = userEvent.setup();
+    renderScreen(<SettingsScreen />);
+    await user.click(await screen.findByRole('button', { name: /Lock now/ }));
+    expect(await screen.findByText('The wallet did not respond')).toBeInTheDocument();
+    expect(nav.reset).not.toHaveBeenCalled();
   });
 
   it('locks now and returns to the unlock screen', async () => {
@@ -415,6 +428,15 @@ describe('NetworkRpcScreen', () => {
     expect(within(screen.getByRole('radio', { name: /Devnet/ }).closest('label')!).getByText('api.devnet.solana.com')).toBeInTheDocument();
     expect(within(screen.getByRole('radio', { name: /Local/ }).closest('label')!).getByText('127.0.0.1:8899')).toBeInTheDocument();
     expect(screen.getAllByText(/\d+ ms/)).toHaveLength(1);
+  });
+
+  it('probes health once for the whole screen, not once per network row', async () => {
+    api.state.settings = { ...api.state.settings, network: 'custom', rpcUrl: 'https://custom.example.com' };
+    renderScreen(<NetworkRpcScreen />);
+    expect(await screen.findAllByRole('radio')).toHaveLength(4);
+    expect(await screen.findByText('84 ms')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getHealth).toHaveBeenCalledTimes(1);
   });
 
   it('switches network with the default RPC', async () => {
