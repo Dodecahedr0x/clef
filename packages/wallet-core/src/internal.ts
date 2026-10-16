@@ -1,6 +1,7 @@
 import {
   deriveEd25519,
   fromBase64,
+  legacySolanaPath,
   generateMnemonic,
   LockedError,
   mnemonicToSeed,
@@ -9,6 +10,7 @@ import {
   solanaPath,
   validateMnemonic,
   zeroize,
+  type DerivationScheme,
   type Vault,
 } from '@clef/vault';
 import { address as toAddress, createKeyPairSignerFromPrivateKeyBytes, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
@@ -28,6 +30,8 @@ export type PublicAccount = {
   address: Address;
   label: string;
   index?: number;
+  /** 1-based position of the account's recovery phrase in the vault; present while unlocked. */
+  phrase?: number;
   path?: string;
   xfp?: string;
   multisig?: Address;
@@ -40,6 +44,8 @@ export type WalletState = {
   accounts: PublicAccount[];
   settings: Settings;
   permissions: Permission[];
+  /** How many recovery phrases the vault holds; present while unlocked. */
+  phrases?: number;
 };
 export type FullWalletState = WalletState & { activeAccount: Address | null; errorReportsAvailable: boolean };
 
@@ -105,16 +111,32 @@ function mnemonicField(call: Record<string, unknown>): string {
   return m;
 }
 
+function schemeField(call: Record<string, unknown>): DerivationScheme | undefined {
+  const v = call.scheme;
+  if (v === undefined || v === 'standard') return undefined;
+  if (v !== 'legacy') throw new Error('Invalid scheme');
+  return v;
+}
+
+function indexesField(call: Record<string, unknown>, fallback?: number[]): number[] {
+  const indexes = call.indexes === undefined ? fallback : call.indexes;
+  if (!Array.isArray(indexes) || indexes.length === 0 || indexes.length > MAX_SCAN) throw new Error('Invalid indexes');
+  if (!indexes.every((i) => Number.isInteger(i) && i >= 0 && i <= MAX_INDEX)) throw new Error('Invalid indexes');
+  return [...new Set(indexes as number[])];
+}
+
 function base64Field(v: unknown, name: string): Uint8Array {
   if (typeof v !== 'string' || v.length === 0 || v.length > MAX_TX_BASE64 || v.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(v)) throw new Error(`Invalid ${name}`);
   return fromBase64(v);
 }
 
-const toPublic = (a: Account): PublicAccount => {
+const toPublic = (a: Account, phraseIds: string[] | null): PublicAccount => {
   const base = { kind: a.kind, address: a.address, label: a.label };
   switch (a.kind) {
-    case 'hd':
-      return { ...base, index: a.index };
+    case 'hd': {
+      const n = phraseIds ? phraseIds.indexOf(a.secretId) + 1 : 0;
+      return { ...base, index: a.index, ...(n > 0 && { phrase: n }) };
+    }
     case 'ledger':
       return { ...base, path: a.path };
     case 'keystone':
@@ -126,8 +148,8 @@ const toPublic = (a: Account): PublicAccount => {
   }
 };
 
-async function addressAt(seed: Uint8Array, index: number): Promise<Address> {
-  const key = deriveEd25519(seed, solanaPath(index));
+async function addressAt(seed: Uint8Array, index: number, scheme?: DerivationScheme): Promise<Address> {
+  const key = deriveEd25519(seed, scheme === 'legacy' ? legacySolanaPath(index) : solanaPath(index));
   try {
     return (await createKeyPairSignerFromPrivateKeyBytes(key)).address;
   } finally {
@@ -163,10 +185,8 @@ export class InternalApi {
       case 'state':
         return this.state();
       case 'vault:create': {
-        const indexes = raw.indexes === undefined ? [0] : raw.indexes;
-        if (!Array.isArray(indexes) || indexes.length === 0 || indexes.length > MAX_SCAN) throw new Error('Invalid indexes');
-        if (!indexes.every((i) => Number.isInteger(i) && i >= 0 && i <= MAX_INDEX)) throw new Error('Invalid indexes');
-        const unique = [...new Set(indexes as number[])];
+        // [] (onboarding by private key or watch-only) keeps the phrase without accounts
+        const unique = Array.isArray(raw.indexes) && raw.indexes.length === 0 ? [] : indexesField(raw, [0]);
         const secretIds = await vault.create(field(raw, 'password'), [{ kind: 'mnemonic', phrase: field(raw, 'mnemonic') }]);
         for (const index of unique) await this.addHdAccount(secretIds[0]!, index);
         await this.deps.onUnlock();
@@ -183,8 +203,9 @@ export class InternalApi {
       case 'vault:revealMnemonic': {
         // unlock() re-derives the key from the password and fails on a wrong one
         await vault.unlock(field(raw, 'password'));
-        const mnemonic = (await vault.secrets()).find((s) => s.kind === 'mnemonic');
-        if (!mnemonic) throw new Error('No recovery phrase in this wallet');
+        const id = await this.phraseId(raw);
+        const mnemonic = (await vault.secrets()).find((s) => s.id === id);
+        if (mnemonic?.kind !== 'mnemonic') throw new Error('No recovery phrase in this wallet');
         return { mnemonic: mnemonic.phrase };
       }
       case 'vault:changePassword':
@@ -196,20 +217,40 @@ export class InternalApi {
         const mnemonic = mnemonicField(raw);
         const from = intField(raw, 'from', 0, MAX_INDEX - MAX_SCAN, 0);
         const count = intField(raw, 'count', 1, MAX_SCAN, 5);
+        const scheme = schemeField(raw);
         const seed = await mnemonicToSeed(mnemonic);
         try {
           const out: { index: number; address: Address }[] = [];
-          for (let index = from; index < from + count; index++) out.push({ index, address: await addressAt(seed, index) });
+          for (let index = from; index < from + count; index++) out.push({ index, address: await addressAt(seed, index, scheme) });
           return { accounts: out };
         } finally {
           zeroize(seed);
         }
       }
       case 'accounts:derive': {
-        const mnemonic = (await vault.secrets()).find((s) => s.kind === 'mnemonic');
-        if (!mnemonic) throw new Error('No recovery phrase in this wallet');
-        await this.addHdAccount(mnemonic.id, await accounts.nextHdIndex(mnemonic.id));
+        const secretId = await this.phraseId(raw);
+        // continue on the path this phrase's accounts were last added with
+        const last = (await accounts.list()).filter((a) => a.kind === 'hd' && a.secretId === secretId).at(-1);
+        const scheme = last?.kind === 'hd' ? last.scheme : undefined;
+        await this.addHdAccount(secretId, await accounts.nextHdIndex(secretId, scheme), scheme);
         return {};
+      }
+      case 'accounts:importMnemonic': {
+        await this.requireUnlocked();
+        const mnemonic = mnemonicField(raw);
+        const indexes = indexesField(raw);
+        const scheme = schemeField(raw);
+        const secretId = await vault.addSecret({ kind: 'mnemonic', phrase: mnemonic });
+        const seed = await mnemonicToSeed(mnemonic);
+        try {
+          for (const index of indexes) {
+            if (await accounts.get(await addressAt(seed, index, scheme))) continue;
+            await this.addHdAccount(secretId, index, scheme);
+          }
+        } finally {
+          zeroize(seed);
+        }
+        return { phrase: (await this.phraseIds()).indexOf(secretId) + 1 };
       }
       case 'accounts:import': {
         await this.requireUnlocked();
@@ -331,10 +372,13 @@ export class InternalApi {
 
   private async state(): Promise<FullWalletState> {
     const { vault, accounts, permissions, settings } = this.deps;
+    const unlocked = await vault.isUnlocked();
+    const phraseIds = unlocked ? await this.phraseIds() : null;
     return {
       hasVault: await vault.exists(),
-      unlocked: await vault.isUnlocked(),
-      accounts: (await accounts.list()).map(toPublic),
+      unlocked,
+      ...(phraseIds && { phrases: phraseIds.length }),
+      accounts: (await accounts.list()).map((a) => toPublic(a, phraseIds)),
       settings: await settings.get(),
       permissions: await permissions.list(),
       activeAccount: await accounts.active(),
@@ -346,9 +390,22 @@ export class InternalApi {
     if (!(await this.deps.vault.isUnlocked())) throw new LockedError();
   }
 
-  private async addHdAccount(secretId: string, index: number): Promise<void> {
-    const address = await this.deps.vault.withPrivateKey({ secretId, index }, async (_key, addr) => addr);
+  /** Mnemonic secret ids in vault order: extension pages name phrases by position, never by id. */
+  private async phraseIds(): Promise<string[]> {
+    return (await this.deps.vault.list()).filter((s) => s.kind === 'mnemonic').map((s) => s.id);
+  }
+
+  private async phraseId(call: Record<string, unknown>): Promise<string> {
+    const n = intField(call, 'phrase', 1, MAX_SCAN, 1);
+    const id = (await this.phraseIds())[n - 1];
+    if (!id) throw new Error('No recovery phrase in this wallet');
+    return id;
+  }
+
+  private async addHdAccount(secretId: string, index: number, scheme?: DerivationScheme): Promise<void> {
+    const ref = { secretId, index, ...(scheme && { scheme }) };
+    const address = await this.deps.vault.withPrivateKey(ref, async (_key, addr) => addr);
     const n = (await this.deps.accounts.list()).filter((a) => a.kind === 'hd').length + 1;
-    await this.deps.accounts.add({ kind: 'hd', address, label: `Account ${n}`, secretId, index });
+    await this.deps.accounts.add({ kind: 'hd', address, label: `Account ${n}`, ...ref });
   }
 }
