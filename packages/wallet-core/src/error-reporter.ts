@@ -2,7 +2,10 @@ const B58 = /^[1-9A-HJ-NP-Za-km-z]+$/;
 const URLS = /\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>()[\]{}]+/gi;
 const TOKENS = /[A-Za-z0-9+/=]{24,}/g;
 const DIGITS = /\d{7,}/g;
-const PHRASE = /\b(?:[a-z]{3,8}\s+){11,}[a-z]{3,8}\b/g;
+const PHRASE = /\b(?:[a-z]{3,8}[\s,;]+){11,}[a-z]{3,8}\b/gi;
+/** A keypair or seed as a byte list, e.g. a Solana keypair JSON file: 16+ small integers, bracketed or not. */
+const BYTE_LIST = /\[\s*\d{1,3}(?:\s*,\s*\d{1,3}){15,}\s*\]|\d{1,3}(?:\s*,\s*\d{1,3}){15,}/g;
+const HEX = /\b(?:0x)?[0-9a-f]{16,}\b/gi;
 const MAX_MESSAGE = 2000;
 const MAX_STACK = 8000;
 
@@ -17,12 +20,14 @@ function hostOf(text: string): string | null {
 /** Redacts anything that could identify a user or leak a secret from error text before it leaves the device. */
 export function scrub(text: string, originHost?: string): string {
   return text
+    .replace(BYTE_LIST, '<bytes>')
     .replace(URLS, (u) => (originHost && hostOf(u) === originHost ? originHost : '<url>'))
     .replace(TOKENS, (t) => {
       if (t.length >= 32 && B58.test(t)) return '<b58>';
       if (/[+=]/.test(t) || (/[A-Z]/.test(t) && /[a-z]/.test(t) && /\d/.test(t))) return '<b64>';
       return t;
     })
+    .replace(HEX, '<hex>')
     .replace(/[1-9A-HJ-NP-Za-km-z]{32,}/g, '<b58>')
     .replace(DIGITS, '<num>')
     .replace(PHRASE, '<words>');

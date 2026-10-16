@@ -5,6 +5,18 @@ const ADDR = 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk';
 const SIG = '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW';
 
 describe('scrub', () => {
+  it('redacts secret keys as JSON byte arrays and hex, and phrases with commas or capitals', () => {
+    const bytes = `[${Array.from({ length: 64 }, (_, i) => (i * 37) % 256).join(',')}]`;
+    expect(scrub(`bad key ${bytes} here`)).toBe('bad key <bytes> here');
+    expect(scrub('bytes 174, 47, 154, 16, 202, 193, 206, 113, 199, 190, 53, 133, 169, 175, 31, 56 end')).toBe('bytes <bytes> end');
+    expect(scrub('hex 9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0 end')).toBe('hex <hex> end');
+    expect(scrub('id 0xdeadbeefcafebabe0011')).toBe('id <hex>');
+    const words = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ');
+    expect(scrub(`p ${words.join(', ')} end`)).not.toMatch(/abandon|accident/);
+    expect(scrub(`p ${words.map((w) => w[0]!.toUpperCase() + w.slice(1)).join(' ')} end`)).not.toMatch(/Abandon|accident/i);
+    expect(scrub('short list 1, 2, 3 and hex abc123')).toBe('short list 1, 2, 3 and hex abc123');
+  });
+
   it('redacts addresses, signatures, long numbers, urls, blobs and phrases', () => {
     expect(scrub(`account ${ADDR} failed`)).toBe('account <b58> failed');
     expect(scrub(`sig ${SIG}`)).toBe('sig <b58>');
