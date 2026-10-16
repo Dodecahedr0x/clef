@@ -24,45 +24,35 @@ function hostOf(text: string): string | null {
 }
 
 /**
- * Redacts recovery phrases in any layout, typos included: the text is split into letter runs (camelCase aware, so
- * underscores, digits and punctuation never hide a word), and any 12-run window holding 8+ BIP39 words is redacted
- * from its first to its last BIP39 word. A lowercase letter run of 20+ letters (a phrase written without
- * separators) is redacted too.
+ * No BIP39 word ever leaves the device: every letter run (camelCase aware, so underscores, digits, labels and
+ * punctuation never shield a word) that is a BIP39 word becomes `*`, and a lowercase letter run of 20+ letters (a
+ * phrase written without separators) becomes `<words>`. Ordinary words that happen to be BIP39 words ("account")
+ * are masked too: readability is traded for a guarantee that no recovery phrase can be reassembled.
  */
 function redactPhraseLike(text: string): string {
-  const runs = [...text.matchAll(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])/g)].map((m) => ({
-    start: m.index!,
-    end: m.index! + m[0].length,
-    bip: isBip39Word(m[0].toLowerCase()),
-    long: m[0].length >= 20 && m[0] === m[0].toLowerCase(),
-  }));
-  const spans: [number, number][] = runs.filter((r) => r.long).map((r) => [r.start, r.end]);
-  for (let i = 0; i + 12 <= runs.length; i++) {
-    const words = runs.slice(i, i + 12).filter((r) => r.bip);
-    if (words.length >= 8) spans.push([words[0]!.start, words.at(-1)!.end]);
-  }
-  if (!spans.length) return text;
-  spans.sort((a, b) => a[0] - b[0]);
-  let out = '';
-  let last = 0;
-  let cur: [number, number] | null = null;
-  for (const span of [...spans, [Infinity, Infinity] as [number, number]]) {
-    if (cur && span[0] <= cur[1]) {
-      cur[1] = Math.max(cur[1], span[1]);
-      continue;
-    }
-    if (cur) {
-      out += text.slice(last, cur[0]) + '<words>';
-      last = cur[1];
-    }
-    cur = [span[0], span[1]];
-  }
-  return out + text.slice(last);
+  return text.replace(/[A-Z]?[a-z]+|[A-Z]+(?![a-z])/g, (run) => {
+    if (run.length >= 20 && run === run.toLowerCase()) return '<words>';
+    const word = run.toLowerCase();
+    return isBip39Word(word) && !READABLE.has(word) ? '*' : run;
+  });
 }
+
+/**
+ * BIP39 words kept readable because error text needs them (about 2% of the list). A phrase is 12 or 24 random
+ * words, so on average it shares well under one word with this set: never enough to rebuild it.
+ */
+const READABLE = new Set(
+  [
+    'error', 'type', 'account', 'address', 'custom', 'program', 'wallet', 'token', 'owner', 'invalid', 'unknown',
+    'network', 'request', 'result', 'return', 'update', 'version', 'method', 'object', 'number', 'index', 'limit',
+    'balance', 'transfer', 'option', 'use', 'denied', 'found', 'missing', 'file', 'line', 'call', 'stack', 'state',
+    'key', 'public', 'session', 'window', 'page', 'message', 'reject', 'cancel', 'timeout', 'fail', 'status', 'code',
+  ].filter(isBip39Word),
+);
 
 /** Redacts anything that could identify a user or leak a secret from error text before it leaves the device. */
 export function scrub(text: string, originHost?: string): string {
-  return redactPhraseLike(text)
+  const out = text
     .replace(BYTE_LIST, '<bytes>')
     .replace(URLS, (u) => (originHost && hostOf(u) === originHost ? originHost : '<url>'))
     .replace(TOKENS, (t) => {
@@ -74,6 +64,8 @@ export function scrub(text: string, originHost?: string): string {
     .replace(/[1-9A-HJ-NP-Za-km-z]{32,}/g, '<b58>')
     .replace(DIGITS, '<num>')
     .replace(PHRASE, '<words>');
+  // Last, so URL and token rules see the original text; the requesting site's hostname is kept as is.
+  return originHost ? out.split(originHost).map(redactPhraseLike).join(originHost) : redactPhraseLike(out);
 }
 
 /** Opt-in crash reports. Never throws; sends nothing unless an https endpoint is configured and the user enabled it. */

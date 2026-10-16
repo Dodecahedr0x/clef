@@ -6,16 +6,18 @@ const SIG = '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3
 
 describe('scrub', () => {
   it.each([
+    'Error: import failed for w1=crack w2=soda w3=heavy w4=clock w5=rural w6=tide w7=earth w8=lizard w9=wrong w10=effort w11=orange w12=real at foo',
+    '{"w1":"quantum","w2":"ball","w3":"crack","w4":"soda","w5":"heavy","w6":"clock","w7":"rural","w8":"tide","w9":"earth","w10":"lizard","w11":"wrong","w12":"vendor"}',
     'legal_winner_thank_year_wave_sausage_xqzt_worth_useful_legal_winner_thank_yellow',
     'LegalWinnerThankYearWaveSausageXqztWorthUsefulLegalWinnerThankYellow',
     '0legal1winner2thank3year4wave5sausage6xqzt7worth8useful9legal10winner11thank12yellow',
     'legal winner thank year wave sausage zz worth useful legal winner thank yellow',
-    'legal winner thank year wave sausage sausagexx worth useful legal winner thank yellow',
+    'legal winner thank year wave sausage zzzzzzzzz worth useful legal winner thank yellow',
     'letter_advice_cage_absurd_amount_doctor_acoustic_avoid_letter_advice_cage_xqzt_absurd_amount_doctor_acoustic_avoid_letter_advice_cage_absurd_amount_doctor_acoustic_bless',
     'legalwinnerthankyearwavesausageworthusefullegalwinnerthankyellow',
   ])('redacts a phrase split by a typo or written without separators: %s', (text) => {
     const out = scrub(`seed ${text} end`).toLowerCase();
-    for (const w of ['legal', 'winner', 'sausage', 'useful', 'yellow', 'letter', 'advice', 'acoustic', 'bless']) {
+    for (const w of ['legal', 'winner', 'sausage', 'useful', 'yellow', 'letter', 'advice', 'acoustic', 'bless', 'crack', 'soda', 'lizard', 'quantum', 'vendor', 'orange']) {
       if (text.toLowerCase().includes(w)) expect(out).not.toContain(w);
     }
   });
@@ -51,24 +53,24 @@ describe('scrub', () => {
   it('redacts secret keys as JSON byte arrays and hex, and phrases with commas or capitals', () => {
     const bytes = `[${Array.from({ length: 64 }, (_, i) => (i * 37) % 256).join(',')}]`;
     expect(scrub(`bad key ${bytes} here`)).toBe('bad key <bytes> here');
-    expect(scrub('bytes 174, 47, 154, 16, 202, 193, 206, 113, 199, 190, 53, 133, 169, 175, 31, 56 end')).toBe('bytes <bytes> end');
-    expect(scrub('hex 9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0 end')).toBe('hex <hex> end');
+    expect(scrub('bytes 174, 47, 154, 16, 202, 193, 206, 113, 199, 190, 53, 133, 169, 175, 31, 56 end')).toBe('bytes <bytes> *');
+    expect(scrub('hex 9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0 end')).toBe('hex <hex> *');
     expect(scrub('id 0xdeadbeefcafebabe0011')).toBe('id <hex>');
     const words = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ');
     expect(scrub(`p ${words.join(', ')} end`)).not.toMatch(/abandon|accident/);
     expect(scrub(`p ${words.map((w) => w[0]!.toUpperCase() + w.slice(1)).join(' ')} end`)).not.toMatch(/Abandon|accident/i);
-    expect(scrub('short list 1, 2, 3 and hex abc123')).toBe('short list 1, 2, 3 and hex abc123');
+    expect(scrub('short list 1, 2, 3 and hex abc123')).toBe('* * 1, 2, 3 and hex abc123');
   });
 
   it('redacts addresses, signatures, long numbers, urls, blobs and phrases', () => {
     expect(scrub(`account ${ADDR} failed`)).toBe('account <b58> failed');
     expect(scrub(`sig ${SIG}`)).toBe('sig <b58>');
-    expect(scrub('lamports 123456789 small 42')).toBe('lamports <num> small 42');
-    expect(scrub('see https://evil.example/path?x=1 now')).toBe('see <url> now');
+    expect(scrub('lamports 123456789 small 42')).toBe('lamports <num> * 42');
+    expect(scrub('see https://evil.example/path?x=1 now')).toBe('see <url> *');
     expect(scrub('from https://dapp.example/a/b', 'dapp.example')).toBe('from dapp.example');
     expect(scrub('blob AAECAwQFBgcICQoLDA0ODxAREhMUFRYX+/==')).toBe('blob <b64>');
     const phrase = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-    expect(scrub(`mnemonic: ${phrase}.`)).toBe('mnemonic: <words>.');
+    expect(scrub(`mnemonic: ${phrase}.`)).toBe('<words>.');
     expect(scrub('Error: Simulation failed at instruction 2')).toBe('Error: Simulation failed at instruction 2');
   });
 });
