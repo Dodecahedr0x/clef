@@ -24,6 +24,9 @@ import { fund, rpcCall } from '../../../test/surfpool/cheats';
 import {
   buildExecuteTransaction,
   buildProposeTransaction,
+  buildProposeTransactions,
+  ephemeralSignerPda,
+  transactionPda,
   buildVoteTransaction,
   decodeProgramConfig,
   fetchMultisig,
@@ -147,5 +150,74 @@ describe('Squads v4 against surfpool', () => {
     expect(await balance(recipient!.address)).toBe(SOL / 2n);
     [proposal] = await listProposals(chain, multisig, { limit: 5 });
     expect(proposal!.status).toBe('executed');
+  });
+});
+
+const SYSTEM = '11111111111111111111111111111111' as Address;
+
+/** A fresh 2-of-2 with a funded vault 0. */
+async function twoOfTwo(): Promise<{ chain: KitChainReader; m1: KeyPairSigner; m2: KeyPairSigner; multisig: Address; vault: Address }> {
+  const chain = new KitChainReader(url);
+  const [m1, m2, createKey] = await Promise.all(Array.from({ length: 3 }, () => generateKeyPairSigner()));
+  for (const m of [m1!, m2!]) await fund(url, m.address, 10n * SOL);
+  const multisig = await createMultisig(m1!, createKey!, [m1!.address, m2!.address], 2);
+  const vault = await vaultPda(multisig, 0);
+  await fund(url, vault, 2n * SOL);
+  return { chain, m1: m1!, m2: m2!, multisig, vault };
+}
+
+/** Proposes `inner` as m1 (every outer transaction in order), approves as m2, executes as m2. */
+async function proposeApproveExecute(ctx: Awaited<ReturnType<typeof twoOfTwo>>, inner: Uint8Array): Promise<number> {
+  const { chain, m1, m2, multisig } = ctx;
+  const index = (await fetchMultisig(chain, multisig))!.transactionIndex + 1n;
+  const wires = await buildProposeTransactions({ multisig, vaultIndex: 0, member: m1.address, innerWire: inner, transactionIndex: index, blockhash: await blockhash() });
+  for (const wire of wires) await send(wire, [m1]);
+  let [proposal] = await listProposals(chain, multisig, { limit: 5 });
+  expect(proposal).toMatchObject({ index, status: 'active', approved: [m1.address] });
+  await send(await buildVoteTransaction({ multisig, member: m2.address, transactionIndex: index, vote: 'approve', blockhash: await blockhash() }), [m2]);
+  await send(await buildExecuteTransaction(chain, { multisig, member: m2.address, transactionIndex: index, blockhash: await blockhash() }), [m2]);
+  [proposal] = await listProposals(chain, multisig, { limit: 5 });
+  expect(proposal!.status).toBe('executed');
+  return wires.length;
+}
+
+describe('Squads v4 buffers and ephemeral signers against surfpool', () => {
+  it('proposes a message too large for one transaction through a transaction buffer, then executes it', async () => {
+    const ctx = await twoOfTwo();
+    const recipients = await Promise.all(Array.from({ length: 4 }, () => generateKeyPairSigner()));
+    const transfers: Instruction[] = Array.from({ length: 60 }, (_, i) => ({
+      programAddress: SYSTEM,
+      accounts: [
+        { address: ctx.vault, role: AccountRole.WRITABLE_SIGNER },
+        { address: recipients[i % 4]!.address, role: AccountRole.WRITABLE },
+      ],
+      data: new Uint8Array([2, 0, 0, 0, ...getU64Encoder().encode(SOL / 100n)]),
+    }));
+    const before = await balance(ctx.vault);
+    const outer = await proposeApproveExecute(ctx, unsignedWire(ctx.vault, await blockhash(), transfers));
+    expect(outer).toBeGreaterThanOrEqual(2);
+    expect(await balance(ctx.vault)).toBe(before - (60n * SOL) / 100n);
+    for (const r of recipients) expect(await balance(r.address)).toBe((15n * SOL) / 100n);
+  });
+
+  it('proposes a createAccount for a fresh keypair as an ephemeral signer, then executes it', async () => {
+    const ctx = await twoOfTwo();
+    const fresh = await generateKeyPairSigner();
+    const rent = 890_880n;
+    const createAccount: Instruction = {
+      programAddress: SYSTEM,
+      accounts: [
+        { address: ctx.vault, role: AccountRole.WRITABLE_SIGNER },
+        { address: fresh.address, role: AccountRole.WRITABLE_SIGNER },
+      ],
+      data: new Uint8Array([0, 0, 0, 0, ...getU64Encoder().encode(rent), ...getU64Encoder().encode(0n), ...getAddressEncoder().encode(SYSTEM)]),
+    };
+    const index = (await fetchMultisig(ctx.chain, ctx.multisig))!.transactionIndex + 1n;
+    const ephemeral = await ephemeralSignerPda(await transactionPda(ctx.multisig, index), 0);
+    const before = await balance(ctx.vault);
+    expect(await proposeApproveExecute(ctx, unsignedWire(ctx.vault, await blockhash(), [createAccount]))).toBe(1);
+    expect(await balance(ephemeral)).toBe(rent);
+    expect(await balance(fresh.address)).toBe(0n);
+    expect(await balance(ctx.vault)).toBe(before - rent);
   });
 });

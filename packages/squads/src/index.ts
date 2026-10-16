@@ -8,7 +8,7 @@ export * from './pda';
 export { decodeMultisig, decodeProgramConfig, decodeProposal, decodeVaultTransaction } from './accounts';
 export type { Member, MultisigInfo, ProposalStatus, VaultMessage } from './accounts';
 export { encodeTransactionMessage, vaultMessageFromWire, vaultMessageToV0 } from './message';
-export { buildExecuteTransaction, buildProposeTransaction, buildVoteTransaction } from './transactions';
+export { buildExecuteTransaction, buildProposeTransaction, buildProposeTransactions, buildVoteTransaction } from './transactions';
 
 export type ProposalInfo = { index: bigint; status: ProposalStatus; approved: Address[]; rejected: Address[]; cancelled: Address[]; transaction: Address; innerMessage: Uint8Array | null };
 

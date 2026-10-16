@@ -1,6 +1,34 @@
-import { getCompiledTransactionMessageDecoder, getTransactionDecoder } from '@solana/kit';
+import { createHash } from 'node:crypto';
+import {
+  AccountRole,
+  address,
+  appendTransactionMessageInstructions,
+  compileTransaction,
+  createTransactionMessage,
+  getCompiledTransactionMessageDecoder,
+  getTransactionDecoder,
+  getTransactionEncoder,
+  getU64Encoder,
+  pipe,
+  setTransactionMessageFeePayer,
+  setTransactionMessageLifetimeUsingBlockhash,
+  type Address,
+  type Blockhash,
+  type Instruction,
+} from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { buildExecuteTransaction, buildProposeTransaction, buildVoteTransaction, vaultPda } from '../src';
+import {
+  buildExecuteTransaction,
+  buildProposeTransaction,
+  buildProposeTransactions,
+  buildVoteTransaction,
+  encodeTransactionMessage,
+  ephemeralSignerPda,
+  transactionBufferPda,
+  transactionPda,
+  vaultMessageFromWire,
+  vaultPda,
+} from '../src';
 import { b64, hex, mainnetReader, MEMBER, MULTISIG, sdk } from './helpers';
 
 const BLOCKHASH = 'DAf6gxKCXQSwSPN2aXHBU2VkoaAHwm9dz5Fxg6cffhQt';
@@ -105,3 +133,117 @@ describe('buildExecuteTransaction', () => {
   });
 });
 
+
+const SYSTEM = '11111111111111111111111111111111' as Address;
+const NEW_ACCOUNT = address('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
+
+function innerWire(feePayer: Address, instructions: Instruction[]): Uint8Array {
+  const message = pipe(
+    createTransactionMessage({ version: 0 }),
+    (m) => setTransactionMessageFeePayer(feePayer, m),
+    (m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: BLOCKHASH as Blockhash, lastValidBlockHeight: 0n }, m),
+    (m) => appendTransactionMessageInstructions(instructions, m),
+  );
+  return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
+}
+
+const transfer = (from: Address, to: Address, lamports: bigint): Instruction => ({
+  programAddress: SYSTEM,
+  accounts: [
+    { address: from, role: AccountRole.WRITABLE_SIGNER },
+    { address: to, role: AccountRole.WRITABLE },
+  ],
+  data: new Uint8Array([2, 0, 0, 0, ...getU64Encoder().encode(lamports)]),
+});
+
+const createAccount = (from: Address, to: Address): Instruction => ({
+  programAddress: SYSTEM,
+  accounts: [
+    { address: from, role: AccountRole.WRITABLE_SIGNER },
+    { address: to, role: AccountRole.WRITABLE_SIGNER },
+  ],
+  data: new Uint8Array([0, 0, 0, 0, ...getU64Encoder().encode(1_000_000n), ...getU64Encoder().encode(0n), ...new Uint8Array(32)]),
+});
+
+/** Squads' `vault_transaction_create` args after the discriminator: vault index, ephemeral signers, message. */
+function createArgs(data: string) {
+  const b = Buffer.from(data, 'hex');
+  const len = b.readUInt32LE(10);
+  return { vaultIndex: b[8], ephemeralSigners: b[9], message: new Uint8Array(b.subarray(14, 14 + len)) };
+}
+
+describe('buildProposeTransactions', () => {
+  it('returns the single proposal transaction when it fits', async () => {
+    const p = { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: b64(sdk.innerWire), transactionIndex: 390n, blockhash: BLOCKHASH };
+    expect(await buildProposeTransactions(p)).toEqual([await buildProposeTransaction(p)]);
+  });
+
+  it('buffers a message too large for one transaction: create, extend*, create-from-buffer + propose + approve', async () => {
+    const vault = await vaultPda(MULTISIG, 0);
+    const recipients = await Promise.all(Array.from({ length: 4 }, (_, i) => vaultPda(MULTISIG, i + 10)));
+    const inner = innerWire(vault, Array.from({ length: 60 }, (_, i) => transfer(vault, recipients[i % 4]!, BigInt(i + 1))));
+    const p = { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH };
+    await expect(buildProposeTransaction(p)).rejects.toThrow(/buffer/i);
+
+    const wires = await buildProposeTransactions(p);
+    expect(wires.length).toBeGreaterThanOrEqual(2);
+    const txs = wires.map(decode);
+    for (const [i, w] of wires.entries()) {
+      expect(w.length).toBeLessThanOrEqual(1232);
+      expect(txs[i]!.feePayer).toBe(MEMBER);
+      expect(txs[i]!.signatures).toEqual([[MEMBER, null]]);
+    }
+    const discs = txs.map((t) => t.instructions.map((ix) => ix.data.slice(0, 16)));
+    expect(discs[0]).toEqual(['f5c9716c253f1d59']);
+    for (const d of discs.slice(1, -1)) expect(d).toEqual(['e69d433805eef592']);
+    expect(discs.at(-1)).toEqual(['de36954457f630e7', 'dc3c49e01e6c4f9f', '9025a488bcd82af8']);
+
+    const buffer = await transactionBufferPda(MULTISIG, MEMBER, 390 % 256);
+    const expected = encodeTransactionMessage(vaultMessageFromWire(inner));
+    const first = Buffer.from(txs[0]!.instructions[0]!.data, 'hex');
+    expect(first[8]).toBe(390 % 256); // buffer index
+    expect(first[9]).toBe(0); // vault index
+    expect(new Uint8Array(first.subarray(10, 42))).toEqual(new Uint8Array(createHash('sha256').update(expected).digest()));
+    expect(first.readUInt16LE(42)).toBe(expected.length);
+    const chunks = [first.subarray(48)];
+    for (const t of txs.slice(1, -1)) chunks.push(Buffer.from(t.instructions[0]!.data, 'hex').subarray(12));
+    expect(new Uint8Array(Buffer.concat(chunks))).toEqual(expected);
+    expect(txs[0]!.instructions[0]!.keys.map((k) => k[0])).toEqual([MULTISIG, buffer, MEMBER, MEMBER, SYSTEM]);
+    for (const t of txs.slice(1, -1)) expect(t.instructions[0]!.keys.map((k) => k[0])).toEqual([MULTISIG, buffer, MEMBER]);
+
+    const fromBuffer = txs.at(-1)!.instructions[0]!;
+    const transaction = await transactionPda(MULTISIG, 390n);
+    expect(fromBuffer.keys.map((k) => k[0])).toEqual([MULTISIG, transaction, MEMBER, MEMBER, SYSTEM, buffer, MEMBER]);
+    expect(fromBuffer.data.slice(16)).toBe('0000' + '06000000' + '000000000000' + '00');
+  });
+
+  it('replaces extra unsigned signers with ephemeral signers', async () => {
+    const vault = await vaultPda(MULTISIG, 0);
+    const inner = innerWire(vault, [createAccount(vault, NEW_ACCOUNT)]);
+    const [wire, ...rest] = await buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH });
+    expect(rest).toEqual([]);
+    const create = decode(wire!).instructions[0]!;
+    const args = createArgs(create.data);
+    expect(args).toMatchObject({ vaultIndex: 0, ephemeralSigners: 1 });
+    const ephemeral = await ephemeralSignerPda(await transactionPda(MULTISIG, 390n), 0);
+    const expected = vaultMessageFromWire(inner);
+    expected.accountKeys = expected.accountKeys.map((k) => (k === NEW_ACCOUNT ? ephemeral : k));
+    expect(args.message).toEqual(encodeTransactionMessage(expected));
+    expect(args.message.length).toBeGreaterThan(0);
+  });
+
+  it('refuses an extra signer the dApp already signed for', async () => {
+    const vault = await vaultPda(MULTISIG, 0);
+    const inner = innerWire(vault, [createAccount(vault, NEW_ACCOUNT)]);
+    const signed = new Uint8Array(inner);
+    signed.fill(9, 1 + 64, 1 + 128); // second signature slot
+    await expect(
+      buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: signed, transactionIndex: 390n, blockhash: BLOCKHASH }),
+    ).rejects.toThrow(NEW_ACCOUNT);
+  });
+
+  it('still requires the vault to sign', async () => {
+    const vault3 = await vaultPda(MULTISIG, 3);
+    await expect(buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 3, member: MEMBER, innerWire: b64(sdk.innerWire), transactionIndex: 390n, blockhash: BLOCKHASH })).rejects.toThrow(vault3);
+  });
+});
