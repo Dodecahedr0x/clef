@@ -6,6 +6,7 @@ import { call } from '../../../lib/api';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { RpcNotice } from './RpcNotice';
 
 const NETWORK_LABEL: Record<Settings['network'], string> = { mainnet: 'Mainnet', devnet: 'Devnet', localnet: 'Localnet', custom: 'Custom RPC' };
 const LEVEL_LABEL = { basic: 'Basic', intermediate: 'Intermediate', expert: 'Expert' } as const;
@@ -285,6 +286,7 @@ function BasicPortfolio() {
           </button>
         ))}
       </nav>
+      <RpcNotice tokensUnavailable={!!data?.tokensUnavailable} />
 
       <div className="px-4 border-b border-line-soft shrink-0">
         <Tabs
@@ -378,6 +380,7 @@ function ExpertPortfolio() {
           </button>
         ))}
       </nav>
+      <RpcNotice tokensUnavailable={!!data?.tokensUnavailable} />
 
       <div className="px-4 pb-1.5 flex items-center text-[12px] text-muted shrink-0">
         <span className="font-semibold uppercase tracking-[0.06em]">Token accounts</span>

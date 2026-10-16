@@ -26,6 +26,8 @@ export type Holding = {
   delegate?: string | null;
 };
 export type Portfolio = { owner: Address; totalUsd: number | null; change24hUsd: number | null; holdings: Holding[]; hiddenSpam: number; source: 'das' | 'rpc';
+  /** Set when the RPC refused to list token accounts (e.g. a free public endpoint): only SOL is shown. */
+  tokensUnavailable?: true;
   /** Set when the price source rejected the configured API key: prices are missing until the user fixes it. */
   priceError?: 'invalid-key';
 };
@@ -75,7 +77,11 @@ export async function loadPortfolio(
   owner: Address,
   opts: { hideSpam: boolean },
 ): Promise<Portfolio> {
-  const [lamports, accounts] = await Promise.all([deps.reader.getBalance(owner), deps.reader.getTokenAccounts(owner)]);
+  const [lamports, listed] = await Promise.all([
+    deps.reader.getBalance(owner),
+    deps.reader.getTokenAccounts(owner).catch(() => null),
+  ]);
+  const accounts = listed ?? [];
 
   // Accounts of one mint merge; the largest is the one to send from.
   const byMint = new Map<string, { accounts: TokenAccountInfo[]; amount: bigint }>();
@@ -153,5 +159,5 @@ export async function loadPortfolio(
     ? counted.reduce((s, h) => (h.usdValue === null || h.change24h === null || h.change24h <= -100 ? s : s + h.usdValue - h.usdValue / (1 + h.change24h / 100)), 0)
     : null;
   const shown = opts.hideSpam ? counted : holdings;
-  return { owner, totalUsd, change24hUsd, holdings: shown, hiddenSpam: holdings.length - shown.length, source, ...(loaded === 'invalid-key' && { priceError: 'invalid-key' as const }) };
+  return { owner, totalUsd, change24hUsd, holdings: shown, hiddenSpam: holdings.length - shown.length, source, ...(listed === null && { tokensUnavailable: true as const }), ...(loaded === 'invalid-key' && { priceError: 'invalid-key' as const }) };
 }

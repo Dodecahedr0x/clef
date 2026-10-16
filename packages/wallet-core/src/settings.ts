@@ -19,8 +19,12 @@ export type Settings = {
 
 export const NETWORKS: readonly Network[] = ['mainnet', 'devnet', 'localnet', 'custom'];
 
+/**
+ * api.mainnet-beta.solana.com refuses browser requests (403 "Access forbidden"), so mainnet defaults to publicnode,
+ * which accepts them but blocks token-account scans and keeps little history. A provider URL (custom) fixes both.
+ */
 export const DEFAULT_RPC: Record<Exclude<Network, 'custom'>, string> = {
-  mainnet: 'https://api.mainnet-beta.solana.com',
+  mainnet: 'https://solana-rpc.publicnode.com',
   devnet: 'https://api.devnet.solana.com',
   localnet: 'http://127.0.0.1:8899',
 };
@@ -65,8 +69,11 @@ function validRpcUrl(network: Network, text: string): boolean {
 }
 
 /** M2 stored mainnet/devnet with any URL, incl. loopback http (now localnet's job). */
+const BROWSER_BLOCKED_MAINNET = 'https://api.mainnet-beta.solana.com';
+
 function migrate(stored: Partial<Settings>): Settings {
   const s = { ...DEFAULT_SETTINGS, ...stored };
+  if (s.network === 'mainnet' && s.rpcUrl.replace(/\/+$/, '') === BROWSER_BLOCKED_MAINNET) s.rpcUrl = DEFAULT_RPC.mainnet;
   const url = parseUrl(s.rpcUrl);
   if ((s.network === 'mainnet' || s.network === 'devnet') && url?.protocol === 'http:' && isLoopback(url)) s.network = 'localnet';
   return s;

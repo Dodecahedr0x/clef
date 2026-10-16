@@ -108,7 +108,7 @@ export function NetworkRpcScreen() {
               mono
               spellCheck={false}
               autoComplete="off"
-              placeholder="https://"
+              placeholder="https://mainnet.helius-rpc.com/?api-key=…"
               value={draftUrl}
               error={urlError}
               onChange={(e) => {
@@ -116,6 +116,9 @@ export function NetworkRpcScreen() {
                 setUrlError(null);
               }}
             />
+            <p className="m-0 text-[12px] leading-normal text-muted">
+              Paste the URL from your RPC provider. Free tiers from Helius or QuickNode are enough for one wallet and unlock token holdings and full history on mainnet.
+            </p>
             <Segmented<Cluster>
               ariaLabel="Cluster served by the custom RPC"
               size="sm"

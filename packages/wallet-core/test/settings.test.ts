@@ -17,6 +17,16 @@ describe('Settings v2', () => {
       errorReports: false,
     });
     expect(DEFAULT_RPC.localnet).toBe('http://127.0.0.1:8899');
+    // api.mainnet-beta.solana.com answers browser requests with 403
+    expect(DEFAULT_RPC.mainnet).toBe('https://solana-rpc.publicnode.com');
+  });
+
+  it('moves mainnet off the browser-blocked official endpoint, keeping custom URLs', async () => {
+    const local = new MemoryStore();
+    await local.set('settings', { network: 'mainnet', rpcUrl: 'https://api.mainnet-beta.solana.com/' });
+    expect(await new SettingsStore(local).get()).toMatchObject({ network: 'mainnet', rpcUrl: DEFAULT_RPC.mainnet });
+    await local.set('settings', { network: 'custom', rpcUrl: 'https://api.mainnet-beta.solana.com', customCluster: 'mainnet' });
+    expect(await new SettingsStore(local).get()).toMatchObject({ network: 'custom', rpcUrl: 'https://api.mainnet-beta.solana.com' });
   });
 
   it('migrates an M2-shaped stored object by filling defaults', async () => {

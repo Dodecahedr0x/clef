@@ -24,7 +24,7 @@ Clef only contacts these services, and only for the purposes listed:
 
 | Service | What is sent | Why |
 |---|---|---|
-| The Solana RPC endpoint you choose (default: `api.mainnet-beta.solana.com`) | Your public addresses, transactions you are asked to sign (to simulate them), signed transactions you approve | Read balances and history, simulate and send transactions |
+| The Solana RPC endpoint you choose (mainnet default: `solana-rpc.publicnode.com`, operated by Allnodes; devnet: `api.devnet.solana.com`) | Your public addresses, transactions you are asked to sign (to simulate them), signed transactions you approve | Read balances and history, simulate and send transactions |
 | Jupiter (`api.jup.ag`) | Token mint addresses; for swaps, the amounts and your public address; your Jupiter API key if you set one | Token prices and swap routes |
 | The Solana programs' on-chain accounts (through your RPC) | Program addresses | Load program IDLs to explain transactions |
 | GitHub (`raw.githubusercontent.com`) | Nothing about you; a plain download | Refresh the public phishing domain list once a day |

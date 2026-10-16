@@ -176,6 +176,33 @@ describe('Portfolio', () => {
     expect(m.go).toHaveBeenCalledWith({ name: 'settings' });
   });
 
+  describe('free public mainnet RPC notice', () => {
+    afterEach(() => localStorage.clear());
+
+    it('offers to add a provider on the default mainnet RPC, and Not now hides it for good', () => {
+      m.state.settings = settings({ network: 'mainnet', rpcUrl: 'https://solana-rpc.publicnode.com' });
+      const { unmount } = render(<PortfolioScreen />);
+      expect(screen.getByRole('note').textContent).toMatch(/free public RPC/);
+      fireEvent.click(screen.getByRole('button', { name: 'Add a provider' }));
+      expect(m.go).toHaveBeenCalledWith({ name: 'settings/network' });
+      fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+      expect(screen.queryByRole('note')).toBeNull();
+      unmount();
+      render(<PortfolioScreen />);
+      expect(screen.queryByRole('note')).toBeNull();
+    });
+
+    it('stays hidden on a provider URL, but says so when tokens could not be listed', () => {
+      render(<PortfolioScreen />);
+      expect(screen.queryByRole('note')).toBeNull();
+      cleanup();
+      m.portfolio = portfolio({ tokensUnavailable: true });
+      render(<PortfolioScreen />);
+      expect(screen.getByRole('note').textContent).toMatch(/only SOL is shown/);
+      expect(screen.queryByRole('button', { name: 'Not now' })).toBeNull();
+    });
+  });
+
   it('reveals spam holdings that the loader returned flagged', () => {
     m.portfolio = portfolio({ holdings: [SOL, SPAM], hiddenSpam: 0 });
     render(<PortfolioScreen />);

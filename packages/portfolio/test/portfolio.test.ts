@@ -119,6 +119,16 @@ describe('loadPortfolio', () => {
     expect(p.change24hUsd).toBeCloseTo(300 - 300 / 1.02 + (2 - 2 / 0.9));
   });
 
+  it('shows SOL only and flags it when the RPC refuses to list token accounts', async () => {
+    const r = reader({ das: false });
+    r.getTokenAccounts = () => Promise.reject(new Error('Request blocked'));
+    const p = await loadPortfolio({ reader: r, chain: await chain(), prices }, OWNER, { hideSpam: true });
+    expect(p.tokensUnavailable).toBe(true);
+    expect(p.holdings.map((h) => h.symbol)).toEqual(['SOL']);
+    const ok = await loadPortfolio({ reader: reader({ das: false }), chain: await chain(), prices }, OWNER, { hideSpam: true });
+    expect(ok.tokensUnavailable).toBeUndefined();
+  });
+
   it('hides USD when prices are unavailable and flags no spam on missing prices', async () => {
     const failing: PriceSource = { prices: () => Promise.reject(new Error('429')) };
     for (const src of [null, failing]) {

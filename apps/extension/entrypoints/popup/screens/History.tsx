@@ -5,6 +5,7 @@ import { Button, Chips, EmptyState, Icon, PopupScreen, Spinner, type IconName } 
 import { shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, useHistory } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { RpcNotice } from './RpcNotice';
 import { dayLabel } from './TokenDetail';
 
 type Filter = 'all' | 'sent' | 'received' | 'swaps' | 'blocked';
@@ -188,6 +189,7 @@ export function HistoryScreen() {
       <div className="px-4 py-2.5 border-b border-line-soft">
         <Chips ariaLabel="Filter" chips={FILTERS} value={filter} onChange={setFilter} />
       </div>
+      <RpcNotice className="mt-3" />
       <div className="px-3 pt-3 pb-4 flex flex-col gap-1.5">
         {history.error && <p className="m-0 text-[12px] text-danger-text">{history.error}</p>}
         {history.loading && rows.length === 0 && (
