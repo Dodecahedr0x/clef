@@ -19,10 +19,14 @@ const pathFor = (scheme: Scheme, i: number) => (scheme === 'standard' ? solanaPa
 
 async function deriveKey(mnemonic: string, scheme: Scheme, index: number): Promise<{ privateKey: Uint8Array; address: Address }> {
   const seed = await mnemonicToSeed(mnemonic);
+  let privateKey: Uint8Array | null = null;
   try {
-    const privateKey = deriveEd25519(seed, pathFor(scheme, index));
+    privateKey = deriveEd25519(seed, pathFor(scheme, index));
     const signer = await createKeyPairSignerFromPrivateKeyBytes(privateKey);
     return { privateKey, address: signer.address };
+  } catch (e) {
+    if (privateKey) zeroize(privateKey);
+    throw e;
   } finally {
     zeroize(seed);
   }
