@@ -20,7 +20,6 @@ export class JupiterClient implements PriceSource {
   readonly #fetch: typeof fetch;
   readonly #now: () => number;
   readonly #apiKey: string | null;
-  #keyRejected = false;
   readonly #priceCache = new Map<string, { at: number; quote: PriceQuote | null }>();
 
   constructor(cfg: JupiterConfig) {
@@ -28,11 +27,6 @@ export class JupiterClient implements PriceSource {
     this.#fetch = cfg.fetch ?? ((...a) => globalThis.fetch(...a));
     this.#now = cfg.now ?? Date.now;
     this.#apiKey = cfg.apiKey || null;
-  }
-
-  /** True once the server rejected the configured key and a keyless retry succeeded; later calls go keyless. */
-  get keyRejected(): boolean {
-    return this.#keyRejected;
   }
 
   async prices(mints: readonly string[]): Promise<Record<string, PriceQuote>> {
@@ -111,12 +105,8 @@ export class JupiterClient implements PriceSource {
 
   async #get(path: string, params: Record<string, string>): Promise<unknown> {
     const url = `${this.#host}${path}?${new URLSearchParams(params)}`;
-    const key = this.#keyRejected ? null : this.#apiKey;
-    let res = await this.#send(url, key);
-    if ((res.status === 401 || res.status === 403) && key) {
-      res = await this.#send(url, null);
-      if (res.ok) this.#keyRejected = true;
-    }
+    // A rejected key fails loudly (invalid-key); there is no silent keyless fallback.
+    const res = await this.#send(url, this.#apiKey);
     if (res.ok) {
       try {
         return await res.json();

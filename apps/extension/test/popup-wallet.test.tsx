@@ -397,7 +397,7 @@ describe('Swap', () => {
     render(<SwapScreen />);
     fireEvent.change(screen.getByLabelText('You pay'), { target: { value: '1.5' } });
     await waitFor(() => expect(m.jupiter.quoteAndBuild).toHaveBeenCalledTimes(1));
-    expect(m.jupiter.quoteAndBuild).toHaveBeenCalledWith({ inputMint: WSOL, outputMint: USDC, amount: 1_500_000_000n, slippageBps: 50, taker: ME });
+    expect(m.jupiter.quoteAndBuild).toHaveBeenCalledWith({ inputMint: WSOL, outputMint: USDC, amount: 1_500_000_000n, slippageBps: 100, taker: ME });
     expect(await screen.findByText('1 SOL = 141.60 USDC')).toBeTruthy();
     expect(screen.getByTestId('swap-out').textContent).toBe('212.40');
     expect(screen.getByText('211.338 USDC')).toBeTruthy();
@@ -440,10 +440,10 @@ describe('Swap', () => {
     render(<SwapScreen />);
     fireEvent.change(screen.getByLabelText('You pay'), { target: { value: '1.5' } });
     await waitFor(() => expect(m.jupiter.quoteAndBuild).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Slippage settings, currently 0.5%' }));
-    fireEvent.click(screen.getByText('1.0%'));
-    await waitFor(() => expect(m.jupiter.quoteAndBuild).toHaveBeenLastCalledWith(expect.objectContaining({ slippageBps: 100 })));
-    expect(screen.getByRole('button', { name: 'Slippage settings, currently 1.0%' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Slippage settings, currently 1.0%' }));
+    fireEvent.click(screen.getByText('3.0%'));
+    await waitFor(() => expect(m.jupiter.quoteAndBuild).toHaveBeenLastCalledWith(expect.objectContaining({ slippageBps: 300 })));
+    expect(screen.getByRole('button', { name: 'Slippage settings, currently 3.0%' })).toBeTruthy();
   });
 
   it('picks an output token from Jupiter search', async () => {

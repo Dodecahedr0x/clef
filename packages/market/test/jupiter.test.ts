@@ -65,27 +65,24 @@ describe('JupiterClient error mapping', () => {
     return e as JupiterError;
   }
 
-  it('401/403 with a key: one keyless retry, then invalid-key', async () => {
+  it('401/403 with a key: invalid-key, no keyless retry', async () => {
     for (const status of [401, 403]) {
       const f = mockFetch({ status, body: { code: status, message: 'Unauthorized' } });
       const e = await failure(new JupiterClient({ apiKey: KEY, fetch: f }).prices([USDC]));
       expect(e.code).toBe('invalid-key');
-      expect(f).toHaveBeenCalledTimes(2);
+      expect(f).toHaveBeenCalledTimes(1);
       expect(headersOf(f.mock.calls[0]!).get('x-api-key')).toBe(KEY);
-      expect(headersOf(f.mock.calls[1]!).has('x-api-key')).toBe(false);
       expect(e.message).not.toContain(KEY);
     }
   });
 
-  it('401 with a key and a successful keyless retry: returns data and stops sending the key', async () => {
-    const f = mockFetch({ status: 401, body: { message: 'Unauthorized' } }, { body: priceBody([USDC]) }, { body: {} });
+  it('401 with a key fails loudly every time, never retrying keyless', async () => {
+    const f = mockFetch({ status: 401, body: {} }, { status: 401, body: {} });
     const client = new JupiterClient({ apiKey: KEY, fetch: f });
-    const prices = await client.prices([USDC]);
-    expect(prices[USDC]?.usdPrice).toBe(1);
-    expect(client.keyRejected).toBe(true);
-    await client.prices(['other']);
-    expect(f).toHaveBeenCalledTimes(3);
-    expect(headersOf(f.mock.calls[2]!).has('x-api-key')).toBe(false);
+    expect((await failure(client.prices([USDC]))).code).toBe('invalid-key');
+    expect((await failure(client.prices(['other']))).code).toBe('invalid-key');
+    expect(f).toHaveBeenCalledTimes(2);
+    for (const call of f.mock.calls) expect(headersOf(call).get('x-api-key')).toBe(KEY);
   });
 
   it('401 without a key: invalid-key, no retry', async () => {

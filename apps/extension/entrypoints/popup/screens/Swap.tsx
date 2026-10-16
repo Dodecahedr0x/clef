@@ -129,7 +129,7 @@ export function SwapScreen() {
   const [outMint, setOutMint] = useState(route?.outputMint ?? (route?.inputMint === USDC ? 'SOL' : USDC));
   const [extra, setExtra] = useState<Record<string, TokenMeta>>({});
   const [amountText, setAmountText] = useState('');
-  const [slippageBps, setSlippageBps] = useState(50);
+  const [slippageBps, setSlippageBps] = useState(100);
   const [slippageOpen, setSlippageOpen] = useState(false);
   const [picking, setPicking] = useState<'in' | 'out' | null>(null);
   const [quote, setQuote] = useState<SwapQuote | null>(null);
