@@ -52,9 +52,7 @@ async function createWallet(context: BrowserContext, popup: Page, rpcUrl: string
   await expect.poll(async () => (await internal<{ hasVault: boolean }>(popup, { type: 'state' })).value.hasVault).toBe(true);
 }
 
-// App bug: ConfirmPhrase.finish() calls nav.reset({name:'home'}) before the shared wallet snapshot learns hasVault=true,
-// so the App.tsx Guard resets the route to 'welcome' and the popup shows Welcome over a created vault.
-test.fixme('onboarding CREATE lands on home after Finish setup', async ({ context, popup, stubRpc }) => {
+test('onboarding CREATE lands on home after Finish setup', async ({ context, popup, stubRpc }) => {
   await createWallet(context, popup, stubRpc);
   await expect(popup.getByRole('button', { name: 'Switch account' }).first()).toBeVisible();
 });
@@ -62,9 +60,8 @@ test.fixme('onboarding CREATE lands on home after Finish setup', async ({ contex
 test('create, lock and unlock, connect, send at every detail level, reject', async ({ context, popup, dapp, base, validator }) => {
   test.setTimeout(240_000);
 
-  // 1. Onboarding: create a new wallet. Reopen the popup to reach home (see the fixme test above).
+  // 1. Onboarding: create a new wallet.
   await createWallet(context, popup, validator);
-  await popup.reload();
   await expect(popup.getByRole('button', { name: 'Switch account' }).first()).toBeVisible();
   const account = (await internal<{ activeAccount: string | null; unlocked: boolean }>(popup, { type: 'state' })).value.activeAccount;
   expect(account).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
