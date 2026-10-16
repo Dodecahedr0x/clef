@@ -30,7 +30,7 @@ export function UnlockScreen() {
   };
 
   return (
-    <div className="flex h-[600px] w-[360px] flex-col overflow-hidden bg-bg px-6 pb-6 font-sans text-ink">
+    <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg px-6 pb-6 font-sans text-ink">
       <div className="-mx-6 flex h-[260px] items-center justify-center">
         <div className="w-full"><Logo size={96} staff /></div>
       </div>

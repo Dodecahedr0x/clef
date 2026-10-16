@@ -15,6 +15,7 @@ describe('Settings v2', () => {
       devnetTint: true,
       jupiterApiKey: null,
       errorReports: false,
+      openIn: 'popup',
     });
     expect(DEFAULT_RPC.localnet).toBe('http://127.0.0.1:8899');
     // api.mainnet-beta.solana.com answers browser requests with 403
@@ -58,6 +59,12 @@ describe('Settings v2', () => {
     await expect(s.update({ network: 'custom', rpcUrl: 'http://rpc.example.com' })).rejects.toThrow(/https/);
     expect(await s.update({ network: 'custom', rpcUrl: 'https://rpc.example.com', customCluster: 'devnet' })).toMatchObject({ network: 'custom', customCluster: 'devnet' });
     await expect(s.update({ network: 'mainnet', rpcUrl: 'http://127.0.0.1:8899' })).rejects.toThrow(/https/);
+  });
+
+  it('openIn is popup or panel only', async () => {
+    const s = new SettingsStore(new MemoryStore());
+    expect((await s.update({ openIn: 'panel' })).openIn).toBe('panel');
+    await expect(s.update({ openIn: 'window' as never })).rejects.toThrow('Unknown openIn');
   });
 
   it('validates the new fields', async () => {

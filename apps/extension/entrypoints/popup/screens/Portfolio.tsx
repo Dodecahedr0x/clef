@@ -6,6 +6,7 @@ import { call } from '../../../lib/api';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { PanelButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
 
 const NETWORK_LABEL: Record<Settings['network'], string> = { mainnet: 'Mainnet', devnet: 'Devnet', localnet: 'Localnet', custom: 'Custom RPC' };
@@ -233,11 +234,12 @@ function BasicPortfolio() {
   const sol = data?.holdings.find((h) => h.mint === 'SOL');
 
   return (
-    <div className="w-[360px] h-[600px] bg-bg text-ink font-sans flex flex-col overflow-hidden">
-      <header className="h-14 pl-4 pr-3 flex items-center gap-2 border-b border-line-soft shrink-0">
+    <div className="w-(--popup-w) h-(--popup-h) bg-bg text-ink font-sans flex flex-col overflow-hidden">
+      <header className="group h-14 pl-4 pr-3 flex items-center gap-2 border-b border-line-soft shrink-0">
         <span className="flex items-center gap-2">
           <Logo size={22} staff />
-          <span className="font-mono font-semibold text-[18px] tracking-[-0.02em]">clef</span>
+          {/* The popup is too narrow for the wordmark next to the side-panel button. */}
+          <span className="font-mono font-semibold text-[18px] tracking-[-0.02em] group-has-[[data-panel-button]]:hidden">clef</span>
         </span>
         <button
           type="button"
@@ -250,6 +252,7 @@ function BasicPortfolio() {
           {account && <span className="font-mono text-[12px] text-muted whitespace-nowrap shrink-0">{shortAddress(account.address)}</span>}
           <span className="ml-auto text-muted"><Icon name="chevron-down" size={14} /></span>
         </button>
+        <PanelButton />
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-11 h-11 flex items-center justify-center bg-transparent border-0 rounded-[10px] text-muted">
           <Icon name="settings" size={20} />
         </button>
@@ -328,21 +331,22 @@ function ExpertPortfolio() {
   const tokens = spam.visible.filter((h) => h.program !== 'native');
 
   return (
-    <div className="w-[360px] h-[600px] bg-bg text-ink font-sans flex flex-col overflow-hidden">
-      <header className="h-14 pl-3.5 pr-2 flex items-center gap-2 border-b border-line-soft shrink-0">
+    <div className="w-(--popup-w) h-(--popup-h) bg-bg text-ink font-sans flex flex-col overflow-hidden">
+      <header className="h-14 pl-3.5 pr-2 flex items-center gap-1.5 border-b border-line-soft shrink-0">
         <Logo size={22} staff />
         <button
           type="button"
           aria-label="Switch account"
           onClick={() => nav.go({ name: 'accounts' })}
-          className="h-9 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
+          className="h-9 shrink-0 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
         >
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
-          <span className="font-mono text-[12px]">{account ? shortAddress(account.address) : '—'}</span>
+          <span className="font-mono text-[12px] whitespace-nowrap">{account ? shortAddress(account.address) : '—'}</span>
         </button>
         <div className="ml-auto">
           {settings.networkSwitchInHeader && sw && <NetworkSwitch compact value={sw} onChange={(v) => void switchNetwork(v)} />}
         </div>
+        <PanelButton />
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-10 h-11 flex items-center justify-center bg-transparent border-0 text-muted">
           <Icon name="settings" size={20} />
         </button>

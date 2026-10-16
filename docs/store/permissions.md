@@ -6,6 +6,7 @@ Paste each justification into its field in the Chrome Web Store dashboard. Keep 
 |---|---|
 | `storage` | Stores the encrypted wallet, accounts, settings, connected sites, address book, user IDLs, the request log and the phishing list on the device. `storage.session` keeps the unlock key in memory only until the wallet locks. |
 | `alarms` | Locks the wallet automatically after the user's chosen idle time and refreshes the public phishing list once a day. |
+| `sidePanel` | Lets the user keep Clef open in the browser's side panel beside the page they are using, instead of the popup. Turned on from Clef's own button or setting; the panel shows the same wallet screens and reads no page content. |
 | Content scripts on `https://*/*`, `http://localhost/*`, `http://127.0.0.1/*` | Lets websites discover Clef through the Solana Wallet Standard and send it connection and signing requests. The script holds no secrets and only relays requests to the extension; every request is shown to the user for approval. Localhost is included for developers testing their own sites. |
 | `content_security_policy` with `'wasm-unsafe-eval'` | Allows the bundled WebAssembly Argon2id implementation that derives the encryption key from the user's password. No remote code is loaded. |
 | `minimum_chrome_version: 137` | Clef signs with WebCrypto Ed25519, enabled by default from Chrome 137. |

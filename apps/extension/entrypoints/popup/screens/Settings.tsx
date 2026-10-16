@@ -2,6 +2,7 @@ import type { Contact, Settings, UserIdl } from '@clef/wallet-core';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, Button, Icon, ListGroup, PopupScreen, Segmented, SectionLabel, Spinner, TextField, Toggle } from '../../../components';
 import { call } from '../../../lib/api';
+import { sidePanelApi } from '../../../lib/side-panel';
 import { useCall, useClients, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 
@@ -203,6 +204,15 @@ export function SettingsScreen() {
           <div className="border-t border-line-soft">
             <Toggle label="Hide spam tokens" checked={s.hideSpam} onChange={(hideSpam) => void save({ hideSpam })} />
           </div>
+          {sidePanelApi() && (
+            <div className="border-t border-line-soft">
+              <Toggle
+                label="Open Clef in the side panel"
+                checked={s.openIn === 'panel'}
+                onChange={(on) => void save({ openIn: on ? 'panel' : 'popup' })}
+              />
+            </div>
+          )}
         </ListGroup>
 
         <div className="mt-4">

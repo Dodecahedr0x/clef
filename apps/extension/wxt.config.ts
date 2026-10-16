@@ -15,9 +15,10 @@ export default defineConfig({
     name: 'Clef',
     description: 'A Solana wallet that explains what you sign.',
     minimum_chrome_version: '137', // WebCrypto Ed25519 on by default
-    permissions: ['storage', 'alarms'],
+    permissions: ['storage', 'alarms', 'sidePanel'],
     icons: { 16: 'icon/16.png', 48: 'icon/48.png', 128: 'icon/128.png' },
     action: { default_icon: { 16: 'icon/16.png', 48: 'icon/48.png', 128: 'icon/128.png' } },
+    side_panel: { default_path: 'sidepanel.html' },
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
     },

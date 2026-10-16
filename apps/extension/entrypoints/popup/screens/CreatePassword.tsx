@@ -15,7 +15,7 @@ export function OnboardingHeader({ step }: { step: number }) {
 }
 
 export function OnboardingFrame({ children }: { children: ReactNode }) {
-  return <div className="flex h-[600px] w-[360px] flex-col overflow-hidden bg-bg px-5 pb-5 font-sans text-ink">{children}</div>;
+  return <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg px-5 pb-5 font-sans text-ink">{children}</div>;
 }
 
 // 0..4: length carries most of the weight; character variety adds one step.

@@ -64,7 +64,7 @@ export function ImportScreen() {
   };
 
   return (
-    <div className="flex h-[600px] w-[360px] flex-col overflow-hidden bg-bg font-sans text-ink">
+    <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
       <header className="flex h-14 flex-none items-center gap-1 pl-1.5 pr-3">
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
         <h1 className="m-0 text-[18px] font-semibold">Import a wallet</h1>

@@ -15,6 +15,8 @@ export type Settings = {
   devnetTint: boolean;
   jupiterApiKey: string | null;
   errorReports: boolean;
+  /** Where the toolbar icon opens Clef: the popup, or the browser's side panel (stays open beside the page). */
+  openIn: 'popup' | 'panel';
 };
 
 export const NETWORKS: readonly Network[] = ['mainnet', 'devnet', 'localnet', 'custom'];
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   devnetTint: true,
   jupiterApiKey: null,
   errorReports: false,
+  openIn: 'popup',
 };
 
 export const chainFor = (s: Pick<Settings, 'network' | 'customCluster'>): 'solana:mainnet' | 'solana:devnet' | 'solana:localnet' =>
@@ -106,6 +109,7 @@ export class SettingsStore {
       throw new Error('Auto-lock must be between 1 minute and 24 hours');
     }
     if (!LEVELS.includes(next.detailLevel)) throw new Error('Unknown detail level');
+    if (next.openIn !== 'popup' && next.openIn !== 'panel') throw new Error('Unknown openIn');
     for (const k of BOOLEANS) if (typeof next[k] !== 'boolean') throw new Error(`Invalid ${k}`);
     next.jupiterApiKey = cleanApiKey(next.jupiterApiKey);
     await this.store.set(KEY, next);

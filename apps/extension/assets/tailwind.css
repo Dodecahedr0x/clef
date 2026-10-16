@@ -92,3 +92,17 @@ button:not(:disabled) {
 .clef-tip:has(:focus-visible) > [role='tooltip'] {
   opacity: 1;
 }
+
+/* Popup screens are 360x600; in the side panel they fill the panel. */
+:root {
+  --popup-w: 360px;
+  --popup-h: 600px;
+}
+:root.panel {
+  --popup-w: 100vw;
+  --popup-h: 100vh;
+}
+:root.panel body {
+  margin: 0;
+  overflow: hidden;
+}

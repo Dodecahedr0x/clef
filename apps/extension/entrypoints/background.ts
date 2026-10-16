@@ -26,6 +26,7 @@ import { dappOrigin, isExtensionPage } from '../lib/guards';
 import { DAPP_PORT, type DappPortReply, type InternalMessage, type InternalReply } from '../lib/messages';
 import { schedulePhishingRefresh } from '../lib/phishing';
 import { parseDecision, serializeApproval } from '../lib/serialize';
+import { applyOpenIn } from '../lib/side-panel';
 import { approvalWindowSize, openApprovalWindow } from '../lib/windows';
 
 type Port = Browser.runtime.Port;
@@ -98,6 +99,13 @@ export default defineBackground(() => {
     phishing,
     log,
     squads,
+  });
+
+  // The toolbar icon opens the popup or the side panel, per settings.openIn.
+  const syncOpenIn = async () => applyOpenIn((await settings.get()).openIn).catch(() => {});
+  void syncOpenIn();
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && 'settings' in changes) void syncOpenIn();
   });
 
   const internal = new InternalApi({

@@ -23,7 +23,7 @@ export function PopupScreen({
 }) {
   const header = title !== undefined || onBack || onClose || right;
   return (
-    <div className="flex h-[600px] w-[360px] flex-col overflow-hidden bg-bg font-sans text-ink">
+    <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
       {header && (
         <header className={`flex h-14 flex-none items-center gap-1 pr-3 ${onBack || onClose ? 'pl-1.5' : 'pl-4'} ${title !== undefined ? 'border-b border-line-soft' : ''}`}>
           {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="text-ink" />}

@@ -6,7 +6,7 @@ export function WelcomeScreen() {
   const nav = useNav();
   const toImport = () => nav.go({ name: 'create-password', next: 'import' });
   return (
-    <div className="flex h-[600px] w-[360px] flex-col overflow-hidden bg-bg px-5 pb-5 font-sans text-ink">
+    <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg px-5 pb-5 font-sans text-ink">
       <div className="-mx-5 flex h-[190px] items-center justify-center">
         <div className="w-full"><Logo size={84} staff /></div>
       </div>
