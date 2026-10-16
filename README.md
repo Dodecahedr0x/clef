@@ -1,32 +1,57 @@
 # Clef
 
-Clef is a Solana wallet extension that explains a transaction before you sign it. It decodes the transaction (legacy, v0 with address lookup tables, and v1), names every instruction from IDLs it resolves through a prioritized chain (your own IDLs, curated bundled IDLs, Program Metadata, on-chain Anchor IDLs), independently verifies account relationships (PDA seeds, Anchor `has_one`, token ownership, ATAs), computes balance changes from the transaction meta or a simulation, and runs risk rules over all of it. Milestone 1 is the explain engine plus a `clef` CLI; the extension comes later.
+Clef is a Solana wallet for Chrome that explains a transaction before you sign it. It decodes the transaction (legacy, v0 with address lookup tables, and v1), names every instruction from IDLs it resolves through a prioritized chain (your own IDLs, curated bundled IDLs, Program Metadata, on-chain Anchor IDLs), independently verifies account relationships (PDA seeds, Anchor `has_one`, token ownership, ATAs), simulates it to compute balance and state changes, and runs risk rules over all of it. You choose how much you see: Basic, Intermediate or Expert (account-by-account state diffs, simulation logs, the relationship graph, raw data). Requests with several transactions are simulated in sequence when the RPC supports `simulateBundle`, and shown one by one or combined.
+
+It is a full wallet: recovery phrase, imported and watch-only accounts, Ledger and Keystone hardware wallets, Squads v4 multisig, send, receive, Jupiter swaps, history, address book, phishing-list protection, and mainnet/devnet/local/custom networks. There is no Clef backend.
+
+- Design: `docs/plans/2026-10-15-clef-wallet-design.md`; UI: `docs/design/canvas/` (one `.dc.html` per screen).
+- Store release: `docs/store/` (listing, privacy policy, permissions, data usage, submission checklist).
+- Manual hardware checklists: `docs/manual/`.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `packages/rpc` (`@clef/rpc`) | `ChainReader`: the only way the engine touches the chain. `KitChainReader` (live RPC), `MemoryChainReader` (tests), `RecordingChainReader` / `FixtureChainReader` (record and replay). |
-| `packages/idl` (`@clef/idl`) | IDL sources and the resolver chain; everything is normalized to Codama `RootNode`s, plus Anchor extras Codama drops (`has_one`, nested seeds). Curated IDLs live in `packages/idl/idls`. |
-| `packages/explain` (`@clef/explain`) | The engine: `explain()` builds one `ExplainedTransaction`; `viewFor(ex, level)` renders it at `basic`, `intermediate` or `expert`. |
+| `packages/rpc` (`@clef/rpc`) | `ChainReader`: the only way the engine touches the chain (`KitChainReader` live, `MemoryChainReader`, recording/replay readers), sequential simulation via `simulateBundle`, and `PortfolioReader` (balances, token accounts, DAS, signatures, confirmation). |
+| `packages/idl` (`@clef/idl`) | IDL sources and the resolver chain, normalized to Codama `RootNode`s plus Anchor extras. Curated IDLs live in `packages/idl/idls`. |
+| `packages/explain` (`@clef/explain`) | The engine: `explain()` / `explainBatch()` build an `ExplainedTransaction` / `ExplainedBatch`; `viewFor` / `viewForBatch` render them at `basic`, `intermediate` or `expert`. |
+| `packages/vault` (`@clef/vault`) | Argon2id + AES-GCM vault, BIP39 mnemonics, SLIP-0010 derivation, session unlock. |
+| `packages/signers` (`@clef/signers`) | Software signing, Ledger (Device Management Kit over WebHID), Keystone (UR QR codes), signature verification. |
+| `packages/squads` (`@clef/squads`) | Squads v4 multisig client on `@solana/kit`. |
+| `packages/market` (`@clef/market`) | Jupiter prices and swaps (API key optional). |
+| `packages/portfolio` (`@clef/portfolio`) | Balances, token metadata, spam filter, history, send transactions. |
+| `packages/wallet-core` (`@clef/wallet-core`) | Wallet service (dApp protocol, approvals, signing), internal API for extension pages, stores (accounts, settings, permissions, contacts, user IDLs, request log), phishing detector, opt-in error reporter. |
+| `apps/extension` | The WXT Chrome MV3 extension: background service worker, Wallet Standard page script and relay, popup, approval window, hardware page. |
 | `apps/cli` | The `clef` command. |
-| `docs/plans` | Design doc and the milestone 1 plan. |
+| `e2e` | Playwright tests against the built extension. |
+| `test` | Vitest setup for the local validator (surfpool). |
 
-Workspace packages export TypeScript source directly; there is no build step.
+Workspace packages export TypeScript source directly; there is no build step except for the extension.
 
 ## Develop
 
+Requires Node 20+, pnpm 10, and [surfpool](https://solana.com/docs/tools/surfpool) for local-validator tests.
+
 ```bash
 pnpm install
-pnpm test        # full suite, offline (live tests are skipped)
 pnpm typecheck
+pnpm test          # offline unit tests
+pnpm test:local    # starts a local surfpool validator, runs *.local.test.ts, stops it
+pnpm test:live     # public-endpoint tests, skipped unless the env flags below are set (throttled)
+pnpm e2e           # builds the extension and runs Playwright against it and a local validator
+pnpm build:ext     # apps/extension/.output/chrome-mv3 (load unpacked in Chrome 137+)
+pnpm zip:ext       # store-ready zip in apps/extension/.output/
+pnpm screenshots   # 1280x800 store screenshots in docs/store/screenshots/
 ```
 
-Live RPC tests are skipped unless `CLEF_LIVE_RPC` is set:
+Environment variables:
 
-```bash
-CLEF_LIVE_RPC=https://api.mainnet-beta.solana.com pnpm vitest run packages/rpc/test/kit.live.test.ts
-```
+| Variable | Used by | Meaning |
+|---|---|---|
+| `CLEF_RPC` | CLI | Default RPC endpoint (else public mainnet). |
+| `CLEF_LIVE_RPC` | `pnpm test:live` | RPC URL for live chain tests, e.g. `https://api.mainnet-beta.solana.com`. |
+| `CLEF_LIVE_JUPITER` | `pnpm test:live` | Set to `1` to run live Jupiter price/quote tests (keyless, rate-limited). |
+| `CLEF_ERROR_ENDPOINT` | `pnpm build:ext` | Opt-in error report endpoint (plain JSON POST). Unset: the error-report toggle is hidden. |
 
 ## The `clef` CLI
 
