@@ -5,6 +5,7 @@ import type { DasAsset, PortfolioReader, PriceQuote, PriceSource, TokenAccountIn
 import { metaplexMetadataPda } from '../src/metadata';
 import { loadPortfolio } from '../src/portfolio';
 import { isVerifiedMint } from '../src/verified-mints';
+import { isSpam } from '../src/spam';
 import { METAPLEX, TOKEN, TOKEN_2022, metaplexMetadata, token2022MintWithMetadata, tokenMint } from './fixtures';
 
 const OWNER = address('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
@@ -143,5 +144,21 @@ describe('loadPortfolio', () => {
       ['SOL', '2', undefined],
       ['USDC', '150', ACC(0)],
     ]);
+  });
+});
+
+describe('isSpam', () => {
+  it('flags unverified tokens without metadata, or quoted at exactly zero once prices loaded', () => {
+    expect(isSpam({ verified: false, hasMetadata: false, usdValue: null }, false)).toBe(true);
+    expect(isSpam({ verified: false, hasMetadata: true, usdValue: 0 }, true)).toBe(true);
+    expect(isSpam({ verified: false, hasMetadata: true, usdValue: 0 }, false)).toBe(false);
+  });
+
+  it('never flags a named token just because it has no price quote', () => {
+    expect(isSpam({ verified: false, hasMetadata: true, usdValue: null }, true)).toBe(false);
+  });
+
+  it('never flags verified tokens', () => {
+    expect(isSpam({ verified: true, hasMetadata: false, usdValue: 0 }, true)).toBe(false);
   });
 });
