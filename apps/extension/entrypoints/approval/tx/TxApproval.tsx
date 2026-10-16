@@ -5,6 +5,7 @@ import { browser } from 'wxt/browser';
 import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
+import { useApprovalHost } from '../../../lib/approval-host';
 import { useExplainBatch } from '../../../lib/hooks';
 import { BasicBody } from './BasicBody';
 import { ExpertBody } from './ExpertBody';
@@ -46,10 +47,11 @@ export function TxApproval({
   const wires = useMemo(() => [...request.transactions], [request.transactions, nonce]);
   const result = useExplainBatch(wires, level);
   const n = request.transactions.length;
+  const host = useApprovalHost();
 
   useEffect(() => {
-    void resizeWindow(level === 'expert' ? 760 : 400);
-  }, [level]);
+    if (host === 'window') void resizeWindow(level === 'expert' ? 760 : 400);
+  }, [level, host]);
 
   const changeLevel = (v: DetailLevel) => {
     setLevel(v);
@@ -161,7 +163,7 @@ export function TxApproval({
       subtitle={subtitle}
       headerRight={headerRight}
       banner={request.phishing ? <PhishingBanner hit={request.phishing} /> : undefined}
-      width={expert ? 760 : 400}
+      width={host === 'panel' ? 'fill' : expert ? 760 : 400}
       footer={
         <DecisionFooter
           onReject={() => onDecide({ approved: false, log })}

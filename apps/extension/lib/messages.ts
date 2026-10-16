@@ -1,5 +1,9 @@
 /** Port name used by the relay content script. */
 export const DAPP_PORT = 'clef-dapp';
+/** Port the side panel holds open: while it is connected, approvals show in the panel instead of a window. */
+export const PANEL_PORT = 'clef-panel';
+/** Background -> side panel. */
+export type PanelMessage = { type: 'show'; id: string } | { type: 'done'; id: string };
 
 /** Relay -> background over the port. */
 export type DappPortMessage = { type: 'request'; request: unknown };

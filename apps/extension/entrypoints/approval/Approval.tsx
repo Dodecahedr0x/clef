@@ -10,7 +10,6 @@ import { ConnectApproval, HardwareSignStep, MessageApproval, SignInApproval, Squ
 import { siteName } from './requests/shared';
 import { TxApproval } from './tx/TxApproval';
 
-const requestId = new URLSearchParams(location.search).get('id') ?? '';
 
 type HardwareSigner = Exclude<SignerInfo, { kind: 'software' }>;
 type Signing = {
@@ -34,13 +33,16 @@ function UnlockGate({ onUnlocked }: { onUnlocked: () => void }) {
   return <UnlockScreen />;
 }
 
-function Dispatch({ request, state }: { request: ApprovalRequest; state: FullState }) {
+function Dispatch({ request, state, requestId }: { request: ApprovalRequest; state: FullState; requestId: string }) {
   const [signing, setSigning] = useState<Signing | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const onDecide = useCallback((d: ApprovalDecision) => {
-    decide(requestId, d).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'));
-  }, []);
+  const onDecide = useCallback(
+    (d: ApprovalDecision) => {
+      decide(requestId, d).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'));
+    },
+    [requestId],
+  );
 
   // Hardware signers sign here, in the page (WebHID and the camera need a page); the background verifies every signature.
   const signWith = useCallback(
@@ -129,16 +131,19 @@ function signingSummary(request: ApprovalRequest, count: number): string {
   }
 }
 
-export function Approval() {
+/** One approval request: in its own window (id from the URL) or in the side panel (id given, onClose returns to the wallet). */
+export function Approval({ id, onClose }: { id?: string; onClose?: () => void } = {}) {
+  const requestId = id ?? new URLSearchParams(location.search).get('id') ?? '';
   const { state, error, refresh } = useWallet();
   const [request, setRequest] = useState<ApprovalRequest | null | undefined>(undefined);
 
   useEffect(() => {
+    setRequest(undefined);
     getApproval(requestId).then(
       (s) => setRequest(s ? deserializeApproval(s) : null),
       () => setRequest(null),
     );
-  }, []);
+  }, [requestId]);
 
   if (error) {
     return (
@@ -161,7 +166,7 @@ export function Approval() {
       <Centered>
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="text-[14px] text-muted">This request is no longer available. It may have been answered or the site closed it.</p>
-          <Button variant="secondary" onClick={() => window.close()}>
+          <Button variant="secondary" onClick={() => (onClose ? onClose() : window.close())}>
             Close
           </Button>
         </div>
@@ -175,5 +180,5 @@ export function Approval() {
       </NavProvider>
     );
   }
-  return <Dispatch request={request} state={state} />;
+  return <Dispatch request={request} state={state} requestId={requestId} />;
 }

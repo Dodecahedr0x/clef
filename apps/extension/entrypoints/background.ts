@@ -23,7 +23,8 @@ import { ApprovalQueue } from '../lib/approvals';
 import { ChromeStore } from '../lib/chrome-store';
 import { browserLabel, errorEndpoint, installErrorHandlers } from '../lib/errors';
 import { dappOrigin, isExtensionPage } from '../lib/guards';
-import { DAPP_PORT, type DappPortReply, type InternalMessage, type InternalReply } from '../lib/messages';
+import { DAPP_PORT, PANEL_PORT, type DappPortReply, type InternalMessage, type InternalReply } from '../lib/messages';
+import { PanelRegistry } from '../lib/panel-host';
 import { schedulePhishingRefresh } from '../lib/phishing';
 import { parseDecision, serializeApproval } from '../lib/serialize';
 import { applyOpenIn } from '../lib/side-panel';
@@ -65,13 +66,18 @@ export default defineBackground(() => {
     confirm: async (sig, lastValidBlockHeight) => new KitPortfolioReader(await rpcUrl()).confirm(sig, lastValidBlockHeight),
   };
 
+  // Assigned right below: the registry rejects what a closed panel was showing.
+  let queueRef: ApprovalQueue | null = null;
+  const panels = new PanelRegistry((ids) => queueRef?.panelClosed(ids));
   const queue = new ApprovalQueue(
     async (id, request) => {
       const size = approvalWindowSize(request, (await settings.get()).detailLevel);
       return openApprovalWindow({ windows: browser.windows, runtime: { getURL: (p) => browser.runtime.getURL(p as never) } }, id, size);
     },
     (windowId) => void browser.windows.remove(windowId).catch(() => {}),
+    panels,
   );
+  queueRef = queue;
   browser.windows.onRemoved.addListener((windowId) => queue.windowClosed(windowId));
 
   const scheduler = new AlarmScheduler(browser.alarms);
@@ -125,6 +131,13 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onConnect.addListener((port: Port) => {
+    if (port.name === PANEL_PORT) {
+      // Only Clef's own side panel page may host approvals.
+      if (!port.sender || !isExtensionPage(port.sender, browser.runtime.id, extensionBase) || !port.sender.url?.startsWith(`${extensionBase}sidepanel.html`)) {
+        return port.disconnect();
+      }
+      return panels.add(port as never);
+    }
     if (port.name !== DAPP_PORT) return port.disconnect();
     const origin = port.sender ? dappOrigin(port.sender, extensionBase) : null;
     if (!origin) return port.disconnect();

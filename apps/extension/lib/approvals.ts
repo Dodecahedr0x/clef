@@ -1,6 +1,13 @@
 import type { ApprovalDecision, ApprovalRequest, Approver } from '@clef/wallet-core';
 
-type Pending = { request: ApprovalRequest; resolve: (d: ApprovalDecision) => void; windowId?: number };
+type Pending = { request: ApprovalRequest; resolve: (d: ApprovalDecision) => void; windowId?: number; inPanel?: boolean };
+
+/** An open side panel that can show approvals in place of a window. */
+export interface PanelHost {
+  /** True when a panel took the request (it is shown there and no window opens). */
+  show(id: string): boolean;
+  done(id: string): void;
+}
 
 /**
  * Pending approvals, owned by the background. Each request opens an extension window identified by an
@@ -14,6 +21,7 @@ export class ApprovalQueue implements Approver {
   constructor(
     private readonly open: (id: string, request: ApprovalRequest) => Promise<number | undefined>,
     private readonly close: (windowId: number) => void,
+    private readonly panel?: PanelHost,
   ) {}
 
   request(request: ApprovalRequest): Promise<ApprovalDecision> {
@@ -21,6 +29,10 @@ export class ApprovalQueue implements Approver {
     return new Promise((resolve) => {
       const entry: Pending = { request, resolve };
       this.pending.set(id, entry);
+      if (this.panel?.show(id)) {
+        entry.inPanel = true;
+        return;
+      }
       this.open(id, request).then(
         (windowId) => {
           if (windowId === undefined) return;
@@ -42,6 +54,12 @@ export class ApprovalQueue implements Approver {
     this.pending.delete(id);
     entry.resolve(decision);
     if (entry.windowId !== undefined) this.close(entry.windowId);
+    if (entry.inPanel) this.panel?.done(id);
+  }
+
+  /** Closing the side panel without deciding rejects what it was showing, like closing an approval window. */
+  panelClosed(ids: Iterable<string>): void {
+    for (const id of ids) if (this.pending.get(id)?.inPanel) this.decide(id, { approved: false });
   }
 
   /** Closing an approval window without deciding is a rejection. */

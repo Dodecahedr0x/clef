@@ -1,6 +1,7 @@
 import type { ApprovalRequest } from '@clef/wallet-core';
 import { describe, expect, it, vi } from 'vitest';
 import { ApprovalQueue } from '../lib/approvals';
+import { PanelRegistry } from '../lib/panel-host';
 import { APPROVAL_SIZE, EXPERT_APPROVAL_SIZE, approvalWindowSize, hardwareTabUrl, openApprovalWindow } from '../lib/windows';
 
 const CONNECT: ApprovalRequest = { kind: 'connect', origin: 'https://dapp.example', phishing: null };
@@ -114,5 +115,49 @@ describe('approval window size', () => {
   it('hardware connect opens in a tab', () => {
     expect(hardwareTabUrl('ledger')).toBe('/hardware.html?kind=ledger');
     expect(hardwareTabUrl('keystone')).toBe('/hardware.html?kind=keystone');
+  });
+});
+
+describe('approvals in the side panel', () => {
+  const port = () => {
+    const sent: unknown[] = [];
+    let onClose = () => {};
+    return {
+      sent,
+      close: () => onClose(),
+      postMessage: (m: unknown) => void sent.push(m),
+      onDisconnect: { addListener: (f: () => void) => void (onClose = f) },
+    };
+  };
+
+  it('shows the request in an open panel instead of opening a window, and clears it once decided', async () => {
+    const open = vi.fn(async () => 9);
+    let queue!: ApprovalQueue;
+    const panels = new PanelRegistry((ids) => queue.panelClosed(ids));
+    queue = new ApprovalQueue(open, vi.fn(), panels);
+    const p = port();
+    panels.add(p);
+    const decision = queue.request(CONNECT);
+    expect(open).not.toHaveBeenCalled();
+    const shown = p.sent[0] as { type: string; id: string };
+    expect(shown.type).toBe('show');
+    expect(queue.get(shown.id)).toEqual(CONNECT);
+    queue.decide(shown.id, { approved: true });
+    expect(await decision).toEqual({ approved: true });
+    expect(p.sent[1]).toEqual({ type: 'done', id: shown.id });
+  });
+
+  it('closing the panel rejects what it showed; with no panel, a window opens', async () => {
+    const open = vi.fn(async () => 9);
+    let queue!: ApprovalQueue;
+    const panels = new PanelRegistry((ids) => queue.panelClosed(ids));
+    queue = new ApprovalQueue(open, vi.fn(), panels);
+    const p = port();
+    panels.add(p);
+    const decision = queue.request(CONNECT);
+    p.close();
+    expect(await decision).toEqual({ approved: false });
+    void queue.request(CONNECT);
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });
