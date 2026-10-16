@@ -72,6 +72,22 @@ describe('keystoneSignRequest', () => {
     expect(Buffer.from(req.getRequestId()!).equals(uuidBytes(requestId))).toBe(true);
   });
 
+  it.each(['', "44'/501'/0'/", "44'//501'", "44'/501'/0x1'", "44'/501'/1e2'", "44'/501'/ 1'", "44'/501'/-1'", "44'/501'/2147483648'", "44'/501'/0''"])(
+    'rejects the malformed derivation path %j',
+    (path) => {
+      const p = { data: new Uint8Array([1]), kind: 'message' as const, path, xfp: 'f23f9fd2', address: address(ADDR), origin: 'Clef' };
+      expect(() => keystoneSignRequest(p)).toThrow(/Invalid derivation path/);
+    },
+  );
+
+  it('accepts an m/ prefix and both Solana path styles', () => {
+    for (const path of ["m/44'/501'/0'", "44'/501'/7'/0'"]) {
+      const p = { data: new Uint8Array([1]), kind: 'message' as const, path, xfp: 'f23f9fd2', address: address(ADDR), origin: 'Clef' };
+      const req = SolSignRequest.fromCBOR(Buffer.from(decodeAll(keystoneSignRequest(p).frames).cbor));
+      expect(req.getDerivationPath()).toBe(path.replace(/^m\//, ''));
+    }
+  });
+
   it('fresh request ids', () => {
     const p = { data: new Uint8Array([1]), kind: 'message' as const, path: "44'/501'/0'", xfp: 'f23f9fd2', address: address(ADDR), origin: 'Clef' };
     expect(keystoneSignRequest(p).requestId).not.toBe(keystoneSignRequest(p).requestId);

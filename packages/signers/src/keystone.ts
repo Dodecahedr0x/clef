@@ -86,6 +86,19 @@ export function parseKeystoneSync(ur: UrPayload): { xfp: string; device?: string
   return { xfp, device: multi.getDevice() || undefined, accounts };
 }
 
+/** Strict BIP32 path: `[m/]` then `/`-separated decimal indexes below 2^31, each optionally hardened with `'`. */
+function parsePath(path: string): { index: number; hardened: boolean }[] {
+  const invalid = () => new HardwareError('unknown', `Invalid derivation path ${path}`);
+  const parts = path.replace(/^m\//i, '').split('/');
+  return parts.map((c) => {
+    const m = /^(0|[1-9][0-9]{0,9})('?)$/.exec(c);
+    if (!m) throw invalid();
+    const index = Number(m[1]);
+    if (index >= 0x80000000) throw invalid();
+    return { index, hardened: m[2] === "'" };
+  });
+}
+
 /**
  * Builds the animated QR frames for a sol-sign-request. `address` is accepted for the caller's
  * bookkeeping but not sent: Keystone's own Solana keyring omits it and identifies the key by path + xfp.
@@ -99,15 +112,7 @@ export function keystoneSignRequest(p: {
   origin: string;
 }): { requestId: string; frames: string[] } {
   if (!/^[0-9a-f]{8}$/i.test(p.xfp)) throw new HardwareError('unknown', 'Invalid Keystone fingerprint');
-  const components = p.path
-    .replace(/^m\//i, '')
-    .split('/')
-    .map((c) => {
-      const hardened = c.endsWith("'");
-      const index = Number(hardened ? c.slice(0, -1) : c);
-      if (!Number.isInteger(index) || index < 0) throw new HardwareError('unknown', `Invalid derivation path ${p.path}`);
-      return new PathComponent({ index, hardened });
-    });
+  const components = parsePath(p.path).map((c) => new PathComponent(c));
   const requestId = crypto.randomUUID();
   const request = new SolSignRequest({
     requestId: toBuffer(uuidToBytes(requestId)),
