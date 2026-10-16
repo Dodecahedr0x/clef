@@ -9,3 +9,4 @@ apps/extension/.output/
 test-results/
 playwright-report/
 .agent/
+.surfpool/
