@@ -1,7 +1,10 @@
-import type { WalletState } from '@clef/wallet-core';
+import type { ApprovalDecision, WalletState } from '@clef/wallet-core';
+import type { Address } from '@solana/kit';
 import { browser } from 'wxt/browser';
 import type { InternalMessage, InternalReply } from './messages';
-import type { SerializedApproval } from './serialize';
+import { serializeDecision, type SerializedApproval } from './serialize';
+
+export type FullState = WalletState & { activeAccount: Address | null; errorReportsAvailable: boolean };
 
 async function send<T>(msg: InternalMessage): Promise<T> {
   const reply = (await browser.runtime.sendMessage(msg)) as InternalReply<T> | undefined;
@@ -11,8 +14,10 @@ async function send<T>(msg: InternalMessage): Promise<T> {
 }
 
 export const call = <T = unknown>(c: { type: string } & Record<string, unknown>) => send<T>({ channel: 'internal', call: c });
-export const getState = () => call<WalletState>({ type: 'state' });
+export const getState = () => call<FullState>({ type: 'state' });
 export const getApproval = (id: string) => send<SerializedApproval | null>({ channel: 'approval', op: 'get', id });
-export const decide = (id: string, decision: unknown) => send<object>({ channel: 'approval', op: 'decide', id, decision });
+/** Signatures travel as base64 strings over runtime messaging. */
+export const decide = (id: string, decision: ApprovalDecision) =>
+  send<object>({ channel: 'approval', op: 'decide', id, decision: serializeDecision(decision) });
 
 export const shortAddress = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
