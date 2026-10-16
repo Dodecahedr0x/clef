@@ -344,6 +344,13 @@ export class InternalApi {
           ...(name !== undefined && { name }),
         });
       }
+      case 'idls:update': {
+        const name = optField(raw, 'name', 48);
+        return need(this.deps.userIdls).replace(
+          { programId: addressField(raw, 'oldProgramId'), network: networkField({ network: raw.oldNetwork }) },
+          { programId: addressField(raw, 'programId'), network: networkField(raw), json: field(raw, 'json', 1_000_000), ...(name !== undefined && { name }) },
+        );
+      }
       case 'idls:remove':
         await need(this.deps.userIdls).remove(addressField(raw, 'programId'), networkField(raw));
         return {};

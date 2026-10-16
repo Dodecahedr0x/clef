@@ -40,3 +40,24 @@ describe('UserIdlStore', () => {
     expect(await s.list()).toEqual([]);
   });
 });
+
+describe('UserIdlStore.replace (edit)', () => {
+  it('edits in place, can move an IDL to another network, and leaves the others alone', async () => {
+    const s = new UserIdlStore(new MemoryStore(), () => 5);
+    await s.add({ programId: MEMO_ID, network: 'mainnet', json: MEMO, name: 'Memo main' });
+    await s.add({ programId: MEMO_ID, network: 'devnet', json: MEMO, name: 'Memo dev' });
+
+    await s.replace({ programId: MEMO_ID, network: 'mainnet' }, { programId: MEMO_ID, network: 'mainnet', json: MEMO, name: 'Memo renamed' });
+    expect((await s.list()).map((x) => `${x.network}:${x.name}`).sort()).toEqual(['devnet:Memo dev', 'mainnet:Memo renamed']);
+
+    await s.replace({ programId: MEMO_ID, network: 'mainnet' }, { programId: MEMO_ID, network: 'localnet', json: MEMO, name: 'Memo local' });
+    expect((await s.list()).map((x) => `${x.network}:${x.name}`).sort()).toEqual(['devnet:Memo dev', 'localnet:Memo local']);
+  });
+
+  it('an invalid edit changes nothing', async () => {
+    const s = new UserIdlStore(new MemoryStore());
+    await s.add({ programId: MEMO_ID, network: 'mainnet', json: MEMO });
+    await expect(s.replace({ programId: MEMO_ID, network: 'mainnet' }, { programId: MEMO_ID, network: 'mainnet', json: '{nope' })).rejects.toThrow('Invalid IDL JSON');
+    expect(await s.list()).toHaveLength(1);
+  });
+});

@@ -36,6 +36,7 @@ import { NavContext, type Nav } from '../lib/nav';
 import { AddressBookScreen } from '../entrypoints/popup/screens/AddressBook';
 import { ConnectedSitesScreen } from '../entrypoints/popup/screens/ConnectedSites';
 import { IdlManagerScreen } from '../entrypoints/popup/screens/IdlManager';
+import { IdlViewScreen } from '../entrypoints/popup/screens/IdlView';
 import { NetworkRpcScreen } from '../entrypoints/popup/screens/NetworkRpc';
 import { SecurityScreen } from '../entrypoints/popup/screens/Security';
 import { SettingsScreen } from '../entrypoints/popup/screens/Settings';
@@ -295,6 +296,33 @@ describe('IdlManagerScreen', () => {
     await waitFor(() => expect(screen.queryByText('my_escrow')).toBeNull());
     expect(api.calls.find((c) => c.type === 'idls:remove')).toEqual({ type: 'idls:remove', programId: PROG, network: 'devnet' });
     expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull();
+  });
+
+  it('edits one of your IDLs: the form starts from it and saving replaces it', async () => {
+    const user = userEvent.setup();
+    api.handlers['idls:update'] = (c) => {
+      idls = [{ programId: c.programId as string, network: c.network as string, name: c.name as string, json: c.json as string, hash: 'y', addedAt: 4 }];
+      return idls[0];
+    };
+    renderScreen(<IdlManagerScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Edit my_escrow' }));
+    const form = within(screen.getByRole('region', { name: 'Edit my_escrow' }));
+    expect(form.getByLabelText('Program ID')).toHaveValue(PROG);
+    expect(form.getByLabelText('IDL JSON')).toHaveValue(idls[0]!.json);
+    const nameField = form.getByLabelText('Name (optional)');
+    await user.clear(nameField);
+    await user.type(nameField, 'escrow v2');
+    await user.click(form.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: /^Edit / })).toBeNull());
+    expect(api.calls.filter((c) => c.type === 'idls:update').at(-1)).toMatchObject({ oldProgramId: PROG, oldNetwork: 'devnet', programId: PROG, network: 'devnet', name: 'escrow v2' });
+    expect(await screen.findByText('escrow v2')).toBeInTheDocument();
+  });
+
+  it('opens any program to view what its IDL declares', async () => {
+    const user = userEvent.setup();
+    renderScreen(<IdlManagerScreen />);
+    await user.click(await screen.findByRole('button', { name: 'View System Program' }));
+    expect(nav.go).toHaveBeenCalledWith({ name: 'settings/idls/view', programId: '11111111111111111111111111111111', network: 'mainnet', tier: 'curated' });
   });
 
   it('opened from an undecodable instruction: the form is ready for that program and saving goes back', async () => {
@@ -561,5 +589,23 @@ describe('SecurityScreen', () => {
       await user.click(screen.getByRole('button', { name: 'Change password' }));
     });
     expect(await screen.findByText('Wrong password')).toBeInTheDocument();
+  });
+});
+
+describe('IdlViewScreen', () => {
+  it('shows every instruction (args, accounts), account type and error of a curated IDL', async () => {
+    const user = userEvent.setup();
+    nav.route = { name: 'settings/idls/view', programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', network: 'mainnet', tier: 'curated' } as never;
+    renderScreen(<IdlViewScreen />);
+    const instructions = within(await screen.findByRole('region', { name: 'Instructions' }));
+    expect(screen.getByRole('heading', { name: /Instructions · \d+/ })).toBeInTheDocument();
+    await user.click(instructions.getByText('transferChecked'));
+    const ix = within(instructions.getByText('transferChecked').closest('details')!);
+    expect(ix.getByText('decimals')).toBeInTheDocument();
+    expect(ix.getByText('u8')).toBeInTheDocument();
+    expect(ix.getByText('authority')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Accounts' })).getAllByText('mint')[0]).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Errors · \d+/ })).toBeInTheDocument();
+    expect(screen.getByText('Curated (bundled with Clef)')).toBeInTheDocument();
   });
 });

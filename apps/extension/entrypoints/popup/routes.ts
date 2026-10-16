@@ -9,6 +9,7 @@ export type Route =
   | { name: 'settings' }
   | { name: 'settings/sites' }
   | { name: 'settings/idls'; addFor?: string }
+  | { name: 'settings/idls/view'; programId: string; network: string; tier: 'yours' | 'curated' | 'published' | 'chain' }
   | { name: 'settings/contacts' }
   | { name: 'settings/network' }
   | { name: 'settings/security' }

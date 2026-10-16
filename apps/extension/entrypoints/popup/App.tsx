@@ -12,6 +12,7 @@ import { ConnectedSitesScreen } from './screens/ConnectedSites';
 import { CreatePasswordScreen } from './screens/CreatePassword';
 import { HistoryScreen } from './screens/History';
 import { IdlManagerScreen } from './screens/IdlManager';
+import { IdlViewScreen } from './screens/IdlView';
 import { ImportScreen } from './screens/Import';
 import { NetworkRpcScreen } from './screens/NetworkRpc';
 import { PortfolioScreen } from './screens/Portfolio';
@@ -39,6 +40,7 @@ const SCREENS: Record<RouteName, () => JSX.Element> = {
   settings: SettingsScreen,
   'settings/sites': ConnectedSitesScreen,
   'settings/idls': IdlManagerScreen,
+  'settings/idls/view': IdlViewScreen,
   'settings/contacts': AddressBookScreen,
   'settings/network': NetworkRpcScreen,
   'settings/security': SecurityScreen,

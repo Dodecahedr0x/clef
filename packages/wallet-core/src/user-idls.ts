@@ -23,6 +23,11 @@ export class UserIdlStore {
   }
 
   async add(p: { programId: string; network: Network; name?: string; json: string }): Promise<UserIdl> {
+    return this.replace(null, p);
+  }
+
+  /** Saves `p` and drops `old` in one write (an edit may change the program or network); validated like `add`. */
+  async replace(old: { programId: string; network: Network } | null, p: { programId: string; network: Network; name?: string; json: string }): Promise<UserIdl> {
     if (!isAddress(p.programId)) throw new Error('Invalid program address');
     if (!NETWORKS.includes(p.network)) throw new Error('Unknown network');
     if (p.json.length > MAX_JSON) throw new Error('IDL is too large');
@@ -41,8 +46,8 @@ export class UserIdlStore {
     }
     const name = sanitizeText(p.name ?? '', MAX_NAME).trim() || sanitizeText(resolved.root.program.name ?? '', MAX_NAME).trim() || 'Unknown program';
     const entry: UserIdl = { programId: p.programId, network: p.network, name, json: p.json, hash: resolved.hash, addedAt: this.now() };
-    const rest = (await this.list()).filter((x) => !(x.programId === p.programId && x.network === p.network));
-    await this.store.set(KEY, [...rest, entry]);
+    const gone = (x: UserIdl) => (x.programId === p.programId && x.network === p.network) || (old !== null && x.programId === old.programId && x.network === old.network);
+    await this.store.set(KEY, [...(await this.list()).filter((x) => !gone(x)), entry]);
     return entry;
   }
 

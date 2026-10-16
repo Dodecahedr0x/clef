@@ -42,11 +42,24 @@ function embeddedProgramId(json: unknown): string | null {
   return typeof id === 'string' && isAddress(id) ? id : null;
 }
 
-function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }: { defaultNetwork: IdlNetwork; defaultProgramId?: string; onDone: () => void; onCancel: () => void }) {
-  const [programId, setProgramId] = useState(defaultProgramId);
-  const [network, setNetwork] = useState<IdlNetwork>(defaultNetwork);
-  const [name, setName] = useState('');
-  const [json, setJson] = useState('');
+function AddIdlForm({
+  defaultNetwork,
+  defaultProgramId = '',
+  editing,
+  onDone,
+  onCancel,
+}: {
+  defaultNetwork: IdlNetwork;
+  defaultProgramId?: string;
+  /** One of your IDLs: the form starts from it and saving replaces it (program or network may change). */
+  editing?: UserIdl;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [programId, setProgramId] = useState<string>(editing?.programId ?? defaultProgramId);
+  const [network, setNetwork] = useState<IdlNetwork>((editing?.network as IdlNetwork | undefined) ?? defaultNetwork);
+  const [name, setName] = useState(editing?.name ?? '');
+  const [json, setJson] = useState(editing?.json ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -76,7 +89,8 @@ function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }:
     if (!isAddress(id)) return setError('Enter a valid program ID');
     setBusy(true);
     try {
-      await call({ type: 'idls:add', programId: id, network, ...(name.trim() ? { name: name.trim() } : {}), json });
+      const fields = { programId: id, network, ...(name.trim() ? { name: name.trim() } : {}), json };
+      await call(editing ? { type: 'idls:update', oldProgramId: editing.programId, oldNetwork: editing.network, ...fields } : { type: 'idls:add', ...fields });
       onDone();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not add the IDL');
@@ -86,7 +100,7 @@ function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }:
   };
 
   return (
-    <section aria-label="Add IDL" className="mx-3 mt-2.5 flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3">
+    <section aria-label={editing ? `Edit ${editing.name}` : 'Add IDL'} className="mx-3 mt-2.5 flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3">
       <TextField label="Program ID" mono spellCheck={false} autoComplete="off" value={programId} onChange={(e) => setProgramId(e.target.value)} />
       <Segmented<IdlNetwork>
         ariaLabel="IDL network"
@@ -104,7 +118,7 @@ function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }:
       <label className="flex flex-col gap-1 text-xs font-medium text-muted">
         IDL JSON
         <textarea
-          className="h-24 resize-none rounded-[10px] border border-line-strong bg-surface p-2 font-mono text-xs text-ink"
+          className={`${editing ? 'h-56' : 'h-24'} resize-y rounded-[10px] border border-line-strong bg-surface p-2 font-mono text-xs text-ink`}
           spellCheck={false}
           value={json}
           onChange={(e) => setJson(e.target.value)}
@@ -120,7 +134,7 @@ function AddIdlForm({ defaultNetwork, defaultProgramId = '', onDone, onCancel }:
           Cancel
         </Button>
         <Button size="sm" disabled={busy || !json.trim()} onClick={() => void submit()}>
-          Add IDL
+          {editing ? 'Save changes' : 'Add IDL'}
         </Button>
       </div>
     </section>
@@ -136,10 +150,13 @@ export function IdlManagerScreen() {
   // Opened from an undecodable instruction: the form is ready for that program, and saving goes back to it.
   const addFor = (nav.route as { addFor?: string }).addFor;
   const [adding, setAdding] = useState(Boolean(addFor));
+  const [editing, setEditing] = useState<UserIdl | null>(null);
   const [error, setError] = useState<string | null>(null);
   const known = useMemo(knownRows, []);
 
   const s = state?.settings;
+  // Bundled, published and on-chain IDLs are read from the current RPC.
+  const viewNetwork = s?.network ?? 'mainnet';
   const defaultNetwork: IdlNetwork = !s ? 'mainnet' : s.network === 'custom' ? s.customCluster : s.network;
 
   const rows: Row[] = [
@@ -172,6 +189,18 @@ export function IdlManagerScreen() {
         )
       }
     >
+      {editing && (
+        <AddIdlForm
+          key={`${editing.programId}:${editing.network}`}
+          defaultNetwork={defaultNetwork}
+          editing={editing}
+          onCancel={() => setEditing(null)}
+          onDone={() => {
+            setEditing(null);
+            idls.reload();
+          }}
+        />
+      )}
       {adding && (
         <AddIdlForm
           defaultNetwork={defaultNetwork}
@@ -218,13 +247,23 @@ export function IdlManagerScreen() {
         <ul aria-label="Programs" className="mx-3 mb-3 mt-2.5 overflow-hidden rounded-xl border border-line bg-surface">
           {visible.map((r, i) => (
             <li key={`${r.tier}:${r.programId}:${r.network}`} className={`flex min-h-14 items-center gap-2.5 px-3 py-2 ${i ? 'border-t border-line-soft' : ''}`}>
-              <span className="flex min-w-0 flex-1 flex-col">
+              <button
+                type="button"
+                aria-label={`View ${r.name}`}
+                onClick={() => nav.go({ name: 'settings/idls/view', programId: r.programId, network: r.tier === 'yours' ? r.network : viewNetwork, tier: r.tier })}
+                className="flex min-w-0 flex-1 flex-col border-0 bg-transparent p-0 text-left text-ink"
+              >
                 <span className="truncate text-sm font-medium">{r.name}</span>
                 <span className="font-mono text-xs text-muted">
                   {shortAddress(r.programId)} · {r.network}
                 </span>
-              </span>
+              </button>
               <span className={`rounded-full px-2 py-px text-xs font-semibold ${TIER[r.tier].className}`}>{TIER[r.tier].label}</span>
+              {r.user && (
+                <Button variant="ghost" size="xs" aria-label={`Edit ${r.name}`} onClick={() => setEditing(r.user!)}>
+                  Edit
+                </Button>
+              )}
               {r.user && (
                 <Button variant="ghost" size="xs" aria-label={`Remove ${r.name}`} onClick={() => void remove(r.user!)}>
                   Remove
