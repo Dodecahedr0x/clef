@@ -167,7 +167,8 @@ describe('Portfolio', () => {
     expect(m.refresh).toHaveBeenCalled();
   });
 
-  it('says when Jupiter rejected the API key and links to Settings', () => {
+  it.each(['intermediate', 'expert'] as const)('at %s, says when Jupiter rejected the API key and links to Settings', (detailLevel) => {
+    m.state.settings = settings({ detailLevel });
     m.portfolio = portfolio({ totalUsd: null, change24hUsd: null, priceError: 'invalid-key' });
     render(<PortfolioScreen />);
     expect(screen.getByText(/No prices: Jupiter rejected your API key/)).toBeTruthy();
