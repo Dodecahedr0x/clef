@@ -28,7 +28,7 @@ Clef only contacts these services, and only for the purposes listed:
 | Jupiter (`api.jup.ag`) | Token mint addresses; for swaps, the amounts and your public address; your Jupiter API key if you set one | Token prices and swap routes |
 | The Solana programs' on-chain accounts (through your RPC) | Program addresses | Load program IDLs to explain transactions |
 | GitHub (`raw.githubusercontent.com`) | Nothing about you; a plain download | Refresh the public phishing domain list once a day |
-| Error-report endpoint (only if you turn on error reports, and only in builds that configure one) | Error type, message and stack trace with addresses, signatures, long numbers and URLs removed; Clef and browser versions; the detail level; the hostname of the site that made the request | Fix bugs |
+| Error-report endpoint (only if you turn on error reports, and only in builds that configure one) | Error type, message and stack trace with addresses, signatures, long numbers and URLs removed; Clef and browser versions; which part of Clef it came from; the hostname of the site that made the request | Fix bugs |
 
 Error reports are off by default. They never include recovery phrases, private keys, passwords, balances, account addresses or transactions.
 
