@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@clef/explain": "workspace:*",
+    "@clef/idl": "workspace:*",
     "@clef/rpc": "workspace:*",
     "@clef/signers": "workspace:*",
     "@clef/vault": "workspace:*",

@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "tolerance": 1,
+  "fuzzylist": ["phantom.app", "solflare.com"],
+  "whitelist": ["phantom.app", "safe.evil-site.io", "solflare.co"],
+  "blacklist": ["evil-site.io", "drainer.xyz", "", 42]
+}
