@@ -27,5 +27,17 @@ export async function openApprovalWindow(api: WindowsApi, id: string, size: Wind
   return win?.id;
 }
 
+/** A History transaction, explained like an approval (read only); sized like an approval at the same level. */
+export async function openTransactionWindow(api: WindowsApi, signature: string, origin: string | null, level: DetailLevel): Promise<number | undefined> {
+  const q = new URLSearchParams({ sig: signature, ...(origin && { origin }) });
+  const win = await api.windows.create({
+    url: api.runtime.getURL(`/transaction.html?${q}`),
+    type: 'popup',
+    focused: true,
+    ...(level === 'expert' ? EXPERT_APPROVAL_SIZE : APPROVAL_SIZE),
+  });
+  return win?.id;
+}
+
 /** Ledger (WebHID) and Keystone (camera) connect in a full tab: popups lose focus and permission prompts. */
 export const hardwareTabUrl = (kind: 'ledger' | 'keystone'): string => `/hardware.html?kind=${kind}`;

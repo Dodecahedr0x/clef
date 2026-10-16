@@ -9,6 +9,7 @@ import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
 import { SimulationLogs } from './SimulationLogs';
 import { StateChanges } from './StateChanges';
+import { useOnChain } from './source';
 
 type Section = 'changes' | 'rel' | 'instr' | 'logs' | 'details';
 const RAIL: { id: Section; icon: IconName; tip: string }[] = [
@@ -113,6 +114,7 @@ export function ExpertBody(p: {
   warnings: Warning[];
   onResimulate: () => void;
 }) {
+  const onChain = useOnChain();
   const { view, tab, state } = p;
   const [active, setActive] = useState<Section>('changes');
   const n = view.steps.length;
@@ -172,7 +174,7 @@ export function ExpertBody(p: {
       <div className="flex min-h-0 flex-1">
         <nav aria-label="Transaction sections" className="relative z-[2] box-border flex w-14 flex-none flex-col items-center gap-1.5 border-r border-line-soft bg-surface px-2 py-3">
           {RAIL.map((r) => {
-            const tip = r.id === 'changes' ? `State changes · ${changeCount}` : r.tip;
+            const tip = r.id === 'changes' ? (diffs === null ? 'State changes' : `State changes · ${changeCount}`) : r.id === 'logs' && onChain ? 'Transaction logs' : r.tip;
             const on = active === r.id;
             return (
               <Tooltip key={r.id} tip={tip}>
@@ -184,7 +186,7 @@ export function ExpertBody(p: {
                   className={`relative flex size-10 items-center justify-center rounded-[10px] no-underline ${on ? 'bg-primary-bg text-primary' : 'bg-transparent text-muted'}`}
                 >
                   <Icon name={r.icon} size={20} />
-                  {r.id === 'changes' && (
+                  {r.id === 'changes' && diffs !== null && (
                     <span aria-hidden="true" className="absolute -top-1 -right-1.5 box-border h-4 min-w-4 rounded-lg bg-warn px-1 text-center text-xs leading-4 text-white">
                       {changeCount}
                     </span>

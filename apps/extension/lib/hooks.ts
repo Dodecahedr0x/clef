@@ -1,4 +1,4 @@
-import { explainBatch, viewForBatch, type BatchView, type DetailLevel, type ExplainedBatch } from '@clef/explain';
+import { explainBatch, explainLanded, viewForBatch, type BatchView, type DetailLevel, type ExplainedBatch } from '@clef/explain';
 import { loadHistory, loadPortfolio, type HistoryItem, type Portfolio } from '@clef/portfolio';
 import type { Contact, PublicAccount, UserIdl } from '@clef/wallet-core';
 import type { Address } from '@solana/kit';
@@ -248,4 +248,44 @@ export function useExplainBatch(wires: Uint8Array[] | null, level: DetailLevel):
       return { status: 'failed', error: message(e) || 'Explanation failed' };
     }
   }, [batch, wires, level]);
+}
+
+export type LandedResult = ExplainBatchResult & { blockTime?: number | null };
+
+/** Explains a transaction already on chain (from its recorded meta) for the history detail; fails closed like useExplainBatch. */
+export function useExplainLanded(signature: string, level: DetailLevel): LandedResult {
+  const { state } = useWallet();
+  const clients = useClients();
+  const extras = useExplainExtras();
+  const [run, setRun] = useState<{ ok: true; batch: ExplainedBatch; blockTime: number | null } | { ok: false; error: string } | null>(null);
+  const ready = state && clients && extras;
+
+  useEffect(() => {
+    if (!state || !clients || !extras) return;
+    let live = true;
+    (async () => {
+      try {
+        const fetched = await clients.chain.getTransaction(signature);
+        if (!fetched) throw new Error('Transaction not found on this network');
+        if (!fetched.meta) throw new Error('This RPC returned the transaction without its result');
+        const batch = await explainLanded({ wire: fetched.wire, meta: fetched.meta }, createExplainContext(state, extras, clients.chain));
+        if (live) setRun({ ok: true, batch, blockTime: fetched.blockTime === null ? null : Number(fetched.blockTime) });
+      } catch (e) {
+        if (live) setRun({ ok: false, error: message(e) || 'Could not load the transaction' });
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [signature, clients, Boolean(ready)]);
+
+  return useMemo<LandedResult>(() => {
+    if (!run) return { status: 'loading' };
+    if (!run.ok) return { status: 'failed', error: run.error };
+    try {
+      return { status: 'ok', batch: run.batch, view: viewForBatch(run.batch, level), blockTime: run.blockTime };
+    } catch (e) {
+      return { status: 'failed', error: message(e) || 'Explanation failed' };
+    }
+  }, [run, level]);
 }

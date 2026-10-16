@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { call } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { displaySign } from './model';
+import { useOnChain } from './source';
 
 const LINE_TONE: Record<string, string> = { '-': 'bg-danger-bg text-danger-ink-2', '+': 'bg-ok-bg text-ok-ink', ' ': 'text-muted' };
 const TAG_TONE: Record<AccountDiffView['tag'], string> = { new: 'bg-ok-bg text-ok-ink', closed: 'bg-danger-bg text-danger-ink-2', temp: 'bg-info-bg text-info-ink', modified: 'bg-surface-2 text-muted' };
@@ -111,15 +112,21 @@ export function StateChanges(p: {
   network: string;
   onResimulate: () => void;
 }) {
+  const onChain = useOnChain();
   const { adds, dels } = diffCounts(p.diffs ?? []);
   return (
     <section id="exp-changes" aria-label="State changes" className="flex scroll-mt-4 flex-col gap-3">
       <div className="flex items-center gap-2">
         <h2 className="m-0 flex-1 text-lg font-semibold">State changes</h2>
-        <span className="font-mono text-xs">
-          <span className="text-ok">+{adds}</span> <span className="text-danger-text">{'−'}{dels}</span>
-        </span>
-        <span className="text-xs text-muted">· {p.diffs?.length ?? 0} accounts</span>
+        {/* Unknown changes get no counts: "0 accounts" would read as "nothing changed". */}
+        {p.diffs !== null && (
+          <>
+            <span className="font-mono text-xs">
+              <span className="text-ok">+{adds}</span> <span className="text-danger-text">{'−'}{dels}</span>
+            </span>
+            <span className="text-xs text-muted">· {p.diffs.length} accounts</span>
+          </>
+        )}
       </div>
       {p.isAll && p.batchSize > 1 && (
         <p className="m-0 rounded-[10px] bg-info-bg px-3 py-2.5 text-xs leading-normal text-info-ink">
@@ -127,7 +134,11 @@ export function StateChanges(p: {
         </p>
       )}
       {p.diffs === null ? (
-        <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">No simulation result, so Clef cannot show what changes.</p>
+        onChain ? (
+          <p className="m-0 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-muted">Solana keeps balances for past transactions but not account data, so only balance changes are shown.</p>
+        ) : (
+          <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">No simulation result, so Clef cannot show what changes.</p>
+        )
       ) : p.diffs.length === 0 ? (
         <p className="m-0 text-xs text-muted">No account changes.</p>
       ) : (

@@ -171,4 +171,18 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await expect
     .poll(async () => (await rpcCall<{ value: number }>(validator, 'getBalance', [to, { commitment: 'confirmed' }])).value, { timeout: 30_000 })
     .toBe(before + SOL / 2);
+
+  // History: the sent transaction opens its detail, explained like the approval but from the chain.
+  await popup.reload();
+  await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'History' }).click();
+  const row = popup.getByRole('button', { name: /^Details of Sent to / }).first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  const detailP = context.waitForEvent('page', { predicate: (p) => p.url().includes('/transaction.html') });
+  await row.click();
+  const detail = await detailP;
+  await expect(detail.getByText(/^Confirmed · /)).toBeVisible({ timeout: 30_000 });
+  await expect(detail.getByText(/0\.5 SOL/).first()).toBeVisible();
+  await expect(detail.getByRole('button', { name: /^Sign/ })).toHaveCount(0);
+  await detail.getByRole('radio', { name: /Expert/ }).click();
+  await expect(detail.getByRole('heading', { name: 'Transaction logs' })).toBeVisible();
 });

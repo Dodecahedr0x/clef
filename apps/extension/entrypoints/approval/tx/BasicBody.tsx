@@ -2,12 +2,14 @@ import type { BatchView, Warning } from '@clef/explain';
 import { Amount, Avatar } from '../../../components';
 import { direction, displayAmount } from './model';
 import { AllClear, DangerCards, UNKNOWN_CHANGES, WarnCards } from './parts';
+import { useOnChain } from './source';
 
 const AVATAR_TONE = ['violet', 'info', 'ok', 'warn', 'primary'] as const;
 
 /** Basic shows the combined view only, single transaction or batch. */
 export function BasicBody({ view, warnings, danger }: { view: BatchView; warnings: Warning[]; danger: boolean }) {
   const c = view.combined;
+  const onChain = useOnChain();
   const dangers = warnings.filter((w) => w.severity === 'danger');
   const others = warnings.filter((w) => w.severity !== 'danger');
 
@@ -15,13 +17,13 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
     return (
       <div className="flex flex-col gap-3.5 px-4 pt-5">
         <section className="flex flex-col gap-1.5 px-1">
-          <span className="text-xs text-muted">You are about to</span>
+          <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
           <h1 className="m-0 text-2xl leading-[1.2] font-semibold tracking-[-0.02em]">{c.summary}</h1>
         </section>
         <DangerCards warnings={dangers} />
         <WarnCards warnings={others} />
         <section className="flex items-center rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-muted tabular-nums">
-          <span>Simulated balance changes</span>
+          <span>{onChain ? 'Balance changes' : 'Simulated balance changes'}</span>
           <span className="ml-auto text-ink">
             {c.balanceChanges === null
               ? 'unknown'
@@ -38,7 +40,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
   return (
     <div className="flex flex-col gap-5 px-5 pt-6">
       <section className="flex flex-col gap-2">
-        <span className="text-xs text-muted">You are about to</span>
+        <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
         <h1 className="m-0 text-[26px] leading-[1.2] font-semibold tracking-[-0.02em]">{c.summary}</h1>
         {view.steps.length > 1 && <span className="text-sm text-muted">{view.steps.length} transactions, signed together</span>}
       </section>
@@ -48,7 +50,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
           <h2 id="basic-bc" className="m-0 text-xs font-semibold tracking-[0.06em] text-muted uppercase">
             Balance changes
           </h2>
-          <span className="ml-auto text-xs text-muted">{c.balanceChanges === null ? 'Not simulated' : 'Simulated just now'}</span>
+          <span className="ml-auto text-xs text-muted">{c.balanceChanges === null ? (onChain ? 'Not recorded' : 'Not simulated') : onChain ? 'Recorded on chain' : 'Simulated just now'}</span>
         </div>
         {c.balanceChanges === null ? (
           <p className="m-0 px-3.5 py-3 text-sm text-warn-ink">{UNKNOWN_CHANGES}</p>

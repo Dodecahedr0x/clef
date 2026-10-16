@@ -1,11 +1,12 @@
 import { IdlResolver } from '@clef/idl';
-import { MemoryChainReader, UnsupportedMethodError, type RawAccount, type SequenceResult } from '@clef/rpc';
+import { MemoryChainReader, UnsupportedMethodError, type RawAccount, type SequenceResult, type TxMeta } from '@clef/rpc';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { address, createNoopSigner, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { SYSTEM_PROGRAM, TOKEN_PROGRAM, explainBatch, type ExplainContext } from '../src';
+import { SYSTEM_PROGRAM, TOKEN_PROGRAM, explainBatch, explainLanded, viewForBatch, type ExplainContext } from '../src';
 import { ME, OTHER, USDC, buildWire, simulateWith, tokenAccountData } from './helpers';
 
+const SOL = 1_000_000_000n;
 const TEMP = address('4fYNw3dojWmQ4dXtSGE9epjRGy9pFSx62YypT7avPYvA');
 const USDC_ACCT = address('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
 const POOL = address('Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE');
@@ -156,5 +157,40 @@ describe('explainBatch independent fallback', () => {
     expect(batch.combined.incomplete).toBe(true);
     expect(batch.issues.some((i) => i.stage === 'decode')).toBe(true);
     expect(batch.combined.warnings).toContainEqual(expect.objectContaining({ rule: 'unexplained-step', severity: 'danger', message: expect.stringMatching(/transaction 1/) }));
+  });
+});
+
+describe('explainLanded', () => {
+  const meta = (err: unknown): TxMeta => ({
+    err,
+    fee: 5000n,
+    preBalances: [3n * SOL, 0n, 1n],
+    postBalances: err ? [3n * SOL - 5000n, 0n, 1n] : [2n * SOL - 5000n, SOL, 1n],
+    preTokenBalances: [],
+    postTokenBalances: [],
+    loadedAddresses: { writable: [], readonly: [] },
+    logMessages: ['Program 11111111111111111111111111111111 invoke [1]', 'Program 11111111111111111111111111111111 success'],
+  });
+
+  it('shows a landed transaction as one step from its meta, without simulating and without state diffs', async () => {
+    const reader = new MemoryChainReader();
+    reader.simulateImpl = async () => {
+      throw new Error('must not simulate');
+    };
+    const b = await explainLanded({ wire: buildWire([transfer(OTHER, SOL)]), meta: meta(null) }, ctxFor(reader));
+    expect(b.steps).toHaveLength(1);
+    expect(b.steps[0]!.status).toBe('simulated');
+    expect(b.combined.balanceChanges).toContainEqual(expect.objectContaining({ owner: OTHER, delta: SOL }));
+    expect(b.combined.fee).toBe(5000n);
+    expect(b.combined.accountDiffs).toBeNull();
+    expect(b.combined.incomplete).toBe(false);
+    const view = viewForBatch(b, 'expert');
+    expect(view.combined.summary).toBe(b.combined.summary);
+  });
+
+  it('marks a failed transaction failed in the summary', async () => {
+    const b = await explainLanded({ wire: buildWire([transfer(OTHER, SOL)]), meta: meta({ InstructionError: [0, { Custom: 1 }] }) }, ctxFor(new MemoryChainReader()));
+    expect(b.steps[0]!.status).toBe('failed');
+    expect(b.combined.summary).toMatch(/^Transaction 1 failed/);
   });
 });

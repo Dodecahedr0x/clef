@@ -1,10 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import type { RequestLogEntry } from '@clef/wallet-core';
+import type { RequestLogEntry, Settings } from '@clef/wallet-core';
 import type { HistoryItem } from '@clef/portfolio';
+import { browser } from 'wxt/browser';
 import { Button, Chips, EmptyState, Icon, PopupScreen, Spinner, type IconName } from '../../../components';
 import { shortAddress } from '../../../lib/format';
-import { useActiveAccount, useCall, useHistory } from '../../../lib/hooks';
+import { useActiveAccount, useCall, useHistory, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { openTransactionWindow } from '../../../lib/windows';
 import { RpcNotice } from './RpcNotice';
 import { dayLabel } from './TokenDetail';
 
@@ -67,7 +69,7 @@ function Shell({ tone, icon, children }: { tone: 'neutral' | 'danger' | 'ok' | '
 
 const KIND_ICON: Record<HistoryItem['kind'], IconName> = { send: 'send', receive: 'receive', swap: 'swap', other: 'details' };
 
-function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; mine: (o: string) => boolean }) {
+function TxRow({ item, log, mine, level }: { item: HistoryItem; log?: RequestLogEntry; mine: (o: string) => boolean; level: Settings['detailLevel'] }) {
   const failed = item.status === 'failed';
   const when = item.blockTime ? ` · ${clock(item.blockTime * 1000)}` : '';
   const source = log ? originLabel(log.origin) : item.subtitle;
@@ -98,7 +100,35 @@ function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; 
     </>
   );
   const icon = <Icon name={failed ? 'warn' : KIND_ICON[item.kind]} size={16} />;
-  if (!cmp) return <Shell tone={tone} icon={icon}>{body}</Shell>;
+  return (
+    <Openable label={`Details of ${item.title}`} onOpen={() => void openTransactionWindow(browser, item.signature, log?.origin ?? null, level)}>
+      {!cmp ? <Shell tone={tone} icon={icon}>{body}</Shell> : <Compared icon={icon} body={body} cmp={cmp} />}
+    </Openable>
+  );
+}
+
+/** A History row opens its transaction detail (click, Enter or Space). */
+function Openable({ label, onOpen, children }: { label: string; onOpen: () => void; children: ReactNode }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="cursor-pointer rounded-[12px] hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      {children}
+    </div>
+  );
+}
+
+function Compared({ icon, body, cmp }: { icon: ReactNode; body: ReactNode; cmp: NonNullable<ReturnType<typeof compareSnapshot>> }) {
   return (
     <article className="bg-surface border border-line-strong rounded-[12px] overflow-hidden" data-testid="saw-vs-happened">
       <div className="px-3 py-2.5 flex items-center gap-2.5">
@@ -158,6 +188,7 @@ export function HistoryScreen() {
   const history = useHistory(owner);
   const log = useCall<RequestLogEntry[]>('log:list', { limit: 500 });
   const [filter, setFilter] = useState<Filter>('all');
+  const level = useWallet().state?.settings.detailLevel ?? 'intermediate';
 
   const mine = (o: string) => !!account && (o === account.address || o === account.label || /^you\b/i.test(o));
 
@@ -202,7 +233,7 @@ export function HistoryScreen() {
           <section key={g.label + gi} className="flex flex-col gap-1.5">
             <h2 className={`mx-1 mb-0.5 ${gi ? 'mt-2' : 'mt-0'} text-[12px] font-semibold text-muted uppercase tracking-[0.06em]`}>{g.label}</h2>
             {g.rows.map((r) =>
-              r.type === 'tx' ? <TxRow key={r.item.signature} item={r.item} log={r.log} mine={mine} /> : <LogRow key={r.entry.id} entry={r.entry} />,
+              r.type === 'tx' ? <TxRow key={r.item.signature} item={r.item} log={r.log} mine={mine} level={level} /> : <LogRow key={r.entry.id} entry={r.entry} />,
             )}
           </section>
         ))}

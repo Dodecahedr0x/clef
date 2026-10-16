@@ -1,5 +1,6 @@
 import type { LogLineView } from '@clef/explain';
 import { useState, type ReactNode } from 'react';
+import { useOnChain } from './source';
 
 type Filter = 'all' | 'program' | 'compute';
 type Group = { index: number; title: string; computeUnits: string | null; failed: boolean; logs: LogLineView[] | null };
@@ -13,9 +14,10 @@ const KEEP: Record<Filter, (l: LogLineView) => boolean> = {
 
 export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; separators: boolean; meta: string }) {
   const [filter, setFilter] = useState<Filter>('all');
+  const onChain = useOnChain();
   const failed = groups.some((g) => g.failed || g.logs?.some((l) => l.kind === 'failed'));
   const simulated = groups.some((g) => g.logs !== null);
-  const status = failed ? { text: 'Failed', cls: 'bg-danger-bg text-danger-ink-2' } : simulated ? { text: 'Succeeded', cls: 'bg-ok-bg text-ok-ink' } : { text: 'Not simulated', cls: 'bg-warn-bg text-warn-ink' };
+  const status = failed ? { text: 'Failed', cls: 'bg-danger-bg text-danger-ink-2' } : simulated ? { text: 'Succeeded', cls: 'bg-ok-bg text-ok-ink' } : { text: onChain ? 'No logs' : 'Not simulated', cls: 'bg-warn-bg text-warn-ink' };
 
   const copy = () => {
     const text = groups.flatMap((g) => [...(separators ? [`# Transaction ${g.index + 1} · ${g.title}`] : []), ...(g.logs ?? []).map((l) => l.text)]).join('\n');
@@ -40,7 +42,7 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
       rows.push(
         <li key={`none-${g.index}`} className="grid grid-cols-[40px_minmax(0,1fr)_96px] pr-3.5">
           <span />
-          <span className="font-sans text-muted">No logs: not simulated</span>
+          <span className="font-sans text-muted">{onChain ? 'No logs recorded' : 'No logs: not simulated'}</span>
           <span />
         </li>,
       );
@@ -74,9 +76,9 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
   );
 
   return (
-    <section id="exp-logs" aria-label="Simulation logs" className="flex scroll-mt-4 flex-col gap-3">
+    <section id="exp-logs" aria-label={onChain ? 'Transaction logs' : 'Simulation logs'} className="flex scroll-mt-4 flex-col gap-3">
       <div className="flex items-center gap-2.5">
-        <h2 className="m-0 text-lg font-semibold">Simulation logs</h2>
+        <h2 className="m-0 text-lg font-semibold">{onChain ? 'Transaction logs' : 'Simulation logs'}</h2>
         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${status.cls}`}>{status.text}</span>
         <div role="group" aria-label="Log filter" className="ml-auto flex gap-1">
           {chip('all', 'All')}

@@ -1,4 +1,4 @@
-import { UnsupportedMethodError, type RawAccount } from '@clef/rpc';
+import { UnsupportedMethodError, type RawAccount, type TxMeta } from '@clef/rpc';
 import type { Address } from '@solana/kit';
 import { decodeTransaction } from './decode';
 import { computeAccountDiffs, groupDigits } from './diffs';
@@ -237,3 +237,15 @@ export async function explainBatch(inputs: { wire: Uint8Array }[], ctx: ExplainC
 }
 
 const strip = ({ run: _run, ...step }: Step): BatchStep => step;
+
+/**
+ * A transaction already on chain, as a one-step batch so the approval views can show it. Its effects come from
+ * the recorded meta (balances, logs, fee), not a simulation; account data is not recorded, so there are no diffs.
+ */
+export async function explainLanded(input: { wire: Uint8Array; meta: TxMeta }, ctx: ExplainContext): Promise<ExplainedBatch> {
+  const issues: Issue[] = [];
+  const run = await explainWith(input, ctx);
+  const step: Step = { index: 0, explained: run.explained, status: input.meta.err ? 'failed' : 'simulated', run };
+  const combined = await combine([step], [step], 'sequential', false, ctx, issues);
+  return { mode: 'sequential', steps: [strip(step)], combined, dependentSteps: [], issues };
+}
