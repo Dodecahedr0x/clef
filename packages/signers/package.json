@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@clef/vault": "workspace:*",
-    "@keystonehq/bc-ur-registry": "0.8.1",
     "@keystonehq/bc-ur-registry-sol": "0.9.5",
     "@ledgerhq/device-management-kit": "1.11.0",
     "@ledgerhq/device-signer-kit-solana": "1.13.3",

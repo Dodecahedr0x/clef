@@ -262,9 +262,6 @@ importers:
       '@clef/vault':
         specifier: workspace:*
         version: link:../vault
-      '@keystonehq/bc-ur-registry':
-        specifier: 0.8.1
-        version: 0.8.1
       '@keystonehq/bc-ur-registry-sol':
         specifier: 0.9.5
         version: 0.9.5
@@ -692,9 +689,6 @@ packages:
 
   '@keystonehq/bc-ur-registry@0.7.1':
     resolution: {integrity: sha512-6eVIjNt/P+BmuwcYccbPYVS85473SFNplkqWF/Vb3ePCzLX00tn0WZBO1FGpS4X4nfXtceTfvUeNvQKoTGtXrw==}
-
-  '@keystonehq/bc-ur-registry@0.8.1':
-    resolution: {integrity: sha512-HihSu8hJ3y1aCWZvV0uCTFN61X1/QLOXhAlXZgl2J1dxXVzFk0k7BCl1zYOaf26xFbTv9v9iCkBCMKI4ulGKYg==}
 
   '@ledgerhq/context-module@2.6.0':
     resolution: {integrity: sha512-jbzShfYygVEGxYiTdbOEjpSFeyOzLxJGxkey7GneUwbGi2QXvgCQGmkHc/hugNFX13jTqgP1HSvjQIfSN7QYDw==}
@@ -3292,12 +3286,6 @@ snapshots:
       uuid: 8.3.2
 
   '@keystonehq/bc-ur-registry@0.7.1':
-    dependencies:
-      '@ngraveio/bc-ur': 1.1.13
-      bs58check: 2.1.2
-      tslib: 2.8.1
-
-  '@keystonehq/bc-ur-registry@0.8.1':
     dependencies:
       '@ngraveio/bc-ur': 1.1.13
       bs58check: 2.1.2
