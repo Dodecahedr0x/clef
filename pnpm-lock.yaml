@@ -95,6 +95,9 @@ importers:
       '@clef/signers':
         specifier: workspace:*
         version: link:../../packages/signers
+      '@clef/squads':
+        specifier: workspace:*
+        version: link:../../packages/squads
       '@clef/vault':
         specifier: workspace:*
         version: link:../../packages/vault

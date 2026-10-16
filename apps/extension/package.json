@@ -29,6 +29,7 @@
     "@clef/portfolio": "workspace:*",
     "@clef/rpc": "workspace:*",
     "@clef/signers": "workspace:*",
+    "@clef/squads": "workspace:*",
     "@clef/vault": "workspace:*",
     "@clef/wallet-core": "workspace:*",
     "@fontsource/ibm-plex-mono": "^5.3.0",
