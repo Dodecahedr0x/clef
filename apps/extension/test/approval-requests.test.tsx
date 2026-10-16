@@ -346,6 +346,12 @@ describe('SquadsApproval', () => {
     expect(onSign).toHaveBeenCalledWith(outer);
   });
 
+  it('a multi-step hardware proposal says which step this is', async () => {
+    render(<SquadsApproval request={{ ...request, proposals: [proposal, proposal], step: { index: 2, of: 3 } }} state={state} onDecide={vi.fn()} onSign={vi.fn()} />);
+    expect(screen.getByText(/^Step 2 of 3: a hardware signer signs this proposal in parts/)).toBeTruthy();
+    expect(await screen.findByText('✓ member · can vote')).toBeTruthy();
+  });
+
   it('a member without vote permission cannot propose', async () => {
     squads.fetchMultisig.mockResolvedValue({ address: MULTISIG, threshold: 2, members: [{ key: LEDGER, initiate: true, vote: false, execute: false }], transactionIndex: 1n, staleTransactionIndex: 0n, timeLock: 0 });
     render(<SquadsApproval request={request} state={state} onDecide={vi.fn()} />);

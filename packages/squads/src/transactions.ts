@@ -16,7 +16,7 @@ import {
   type Blockhash,
   type Instruction,
 } from '@solana/kit';
-import { decodeVaultTransaction, type VaultMessage } from './accounts';
+import { decodeTransactionBuffer, decodeVaultTransaction, isAccount, type VaultMessage } from './accounts';
 import { encodeTransactionMessage, vaultMessageFromWire } from './message';
 import { ephemeralSignerPda, proposalPda, SQUADS_PROGRAM_ID, transactionBufferPda, transactionPda, vaultPda } from './pda';
 
@@ -34,6 +34,7 @@ const DISC = {
   transactionBufferCreate: [0xf5, 0xc9, 0x71, 0x6c, 0x25, 0x3f, 0x1d, 0x59],
   transactionBufferExtend: [0xe6, 0x9d, 0x43, 0x38, 0x05, 0xee, 0xf5, 0x92],
   vaultTransactionCreateFromBuffer: [0xde, 0x36, 0x95, 0x44, 0x57, 0xf6, 0x30, 0xe7],
+  transactionBufferClose: [0x11, 0xb6, 0xd0, 0xe4, 0x88, 0x18, 0xb2, 0x66],
 } as const;
 
 /** The program's `MAX_BUFFER_SIZE` for a transaction buffer. */
@@ -145,17 +146,20 @@ async function proposeParts(p: ProposeParams) {
  * transaction. Throws when that does not fit (use `buildProposeTransactions`). Unsigned; the member pays.
  */
 export async function buildProposeTransaction(p: ProposeParams): Promise<Uint8Array> {
-  const wires = await buildProposeTransactions(p);
-  if (wires.length !== 1) throw new Error('The inner transaction is too large for one proposal transaction; it needs a transaction buffer');
-  return wires[0]!;
+  const parts = await proposeParts(p);
+  const create = squadsIx(parts.createAccounts, [...DISC.vaultTransactionCreate, ...parts.createArgs(parts.messageBytes)]);
+  const single = compileWire(p.member, p.blockhash, [create, parts.propose, voteIx(p.multisig, p.member, parts.proposal, 'approve')]);
+  if (single.length > PACKET_DATA_SIZE) throw new Error('The inner transaction is too large for one proposal transaction; it needs a transaction buffer');
+  return single;
 }
 
 /**
  * Unsigned outer transactions that propose `innerWire`, to be submitted in order (each confirmed before the next).
- * One transaction when it fits; otherwise the message goes through a transaction buffer:
+ * One transaction when it fits; otherwise the message goes through the member's transaction buffer:
  * `transactionBufferCreate`, `transactionBufferExtend`*, then `vaultTransactionCreateFromBuffer` + propose + approve.
+ * A buffer left by an interrupted attempt is resumed when it holds a prefix of this message, else closed first.
  */
-export async function buildProposeTransactions(p: ProposeParams): Promise<Uint8Array[]> {
+export async function buildProposeTransactions(chain: ChainReader, p: ProposeParams): Promise<Uint8Array[]> {
   const parts = await proposeParts(p);
   const approve = voteIx(p.multisig, p.member, parts.proposal, 'approve');
   const create = squadsIx(parts.createAccounts, [...DISC.vaultTransactionCreate, ...parts.createArgs(parts.messageBytes)]);
@@ -174,11 +178,36 @@ export async function buildProposeTransactions(p: ProposeParams): Promise<Uint8A
       [...DISC.transactionBufferCreate, bufferIndex, p.vaultIndex, ...hash, bytes.length & 0xff, bytes.length >> 8, ...u32(chunk.length), ...chunk],
     );
   const extend = (chunk: Uint8Array) => squadsIx(bufferAccounts, [...DISC.transactionBufferExtend, ...u32(chunk.length), ...chunk]);
+  const close = squadsIx(
+    [meta(p.multisig, AccountRole.READONLY), meta(buffer, AccountRole.WRITABLE), meta(p.member, AccountRole.WRITABLE_SIGNER)],
+    [...DISC.transactionBufferClose],
+  );
 
-  const first = bytes.subarray(0, chunkRoom(p.member, p.blockhash, createBuffer));
-  const wires = [toWire(p.member, p.blockhash, [createBuffer(first)])];
+  const wires: Uint8Array[] = [];
+  let offset = -1;
+  const [existing] = await chain.getAccounts([buffer]);
+  if (existing && existing.owner === SQUADS_PROGRAM_ID && isAccount(existing.data, 'transactionBuffer')) {
+    const b = decodeTransactionBuffer(existing.data);
+    const resumable =
+      b.multisig === p.multisig &&
+      b.creator === p.member &&
+      b.vaultIndex === p.vaultIndex &&
+      b.finalBufferSize === bytes.length &&
+      equal(b.finalBufferHash, hash) &&
+      b.buffer.length <= bytes.length &&
+      equal(b.buffer, bytes.subarray(0, b.buffer.length));
+    if (resumable) offset = b.buffer.length;
+    else wires.push(toWire(p.member, p.blockhash, [close]));
+  } else if (existing) {
+    throw new Error(`Transaction buffer ${buffer} is not a Squads buffer`);
+  }
+  if (offset < 0) {
+    const first = bytes.subarray(0, chunkRoom(p.member, p.blockhash, createBuffer));
+    wires.push(toWire(p.member, p.blockhash, [createBuffer(first)]));
+    offset = first.length;
+  }
   const room = chunkRoom(p.member, p.blockhash, extend);
-  for (let offset = first.length; offset < bytes.length; offset += room) wires.push(toWire(p.member, p.blockhash, [extend(bytes.subarray(offset, offset + room))]));
+  for (; offset < bytes.length; offset += room) wires.push(toWire(p.member, p.blockhash, [extend(bytes.subarray(offset, offset + room))]));
 
   const fromBuffer = squadsIx(
     [...parts.createAccounts, meta(buffer, AccountRole.WRITABLE), meta(p.member, AccountRole.WRITABLE_SIGNER)],
@@ -187,6 +216,8 @@ export async function buildProposeTransactions(p: ProposeParams): Promise<Uint8A
   wires.push(toWire(p.member, p.blockhash, [fromBuffer, parts.propose, approve]));
   return wires;
 }
+
+const equal = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 /** Largest chunk that keeps a one-instruction buffer transaction within the packet limit. */
 function chunkRoom(member: Address, blockhash: string, ix: (chunk: Uint8Array) => Instruction): number {

@@ -59,12 +59,9 @@ export default defineBackground(() => {
   const rpcUrl = async () => (await settings.get()).rpcUrl;
   const squads: SquadsClient = {
     fetchMultisig: async (multisig) => fetchMultisig(new KitChainReader(await rpcUrl()), multisig),
-    buildProposeTransactions,
-    latestBlockhash: async () => (await new KitPortfolioReader(await rpcUrl()).getLatestBlockhash()).blockhash,
-    confirm: async (sig) => {
-      const reader = new KitPortfolioReader(await rpcUrl());
-      return reader.confirm(sig, (await reader.getLatestBlockhash()).lastValidBlockHeight);
-    },
+    buildProposeTransactions: async (p) => buildProposeTransactions(new KitChainReader(await rpcUrl()), p),
+    latestBlockhash: async () => new KitPortfolioReader(await rpcUrl()).getLatestBlockhash(),
+    confirm: async (sig, lastValidBlockHeight) => new KitPortfolioReader(await rpcUrl()).confirm(sig, lastValidBlockHeight),
   };
 
   const queue = new ApprovalQueue(

@@ -35,7 +35,7 @@ describe('explain names Squads instructions from the curated IDL', () => {
       (m) => appendTransactionMessageInstructions(Array.from({ length: 60 }, () => transfer), m),
     );
     const innerWire = new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
-    const wires = await buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire, transactionIndex: 390n, blockhash: BLOCKHASH });
+    const wires = await buildProposeTransactions(mainnetReader(), { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire, transactionIndex: 390n, blockhash: BLOCKHASH });
     const names = [];
     for (const wire of wires) names.push(...(await explain({ wire }, defaultExplainContext(mainnetReader(), [MEMBER]))).instructions.map((ix) => ix.name));
     expect(names[0]).toBe('transactionBufferCreate');

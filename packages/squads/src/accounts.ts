@@ -19,6 +19,7 @@ const DISCRIMINATORS = {
   proposal: '1a5ebdbb74883521',
   vaultTransaction: 'a8faa264510ea2cf',
   programConfig: 'c4d25ae790958c3f',
+  transactionBuffer: '5a2423db5de16e60',
 } as const;
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
@@ -92,4 +93,11 @@ export function decodeVaultTransaction(data: Uint8Array): { multisig: Address; i
 export function decodeProgramConfig(data: Uint8Array): { authority: Address; multisigCreationFee: bigint; treasury: Address } {
   const c = open(data, 'programConfig');
   return { authority: c.address(), multisigCreationFee: c.u64(), treasury: c.address() };
+}
+
+export type TransactionBufferInfo = { multisig: Address; creator: Address; bufferIndex: number; vaultIndex: number; finalBufferHash: Uint8Array; finalBufferSize: number; buffer: Uint8Array };
+
+export function decodeTransactionBuffer(data: Uint8Array): TransactionBufferInfo {
+  const c = open(data, 'transactionBuffer');
+  return { multisig: c.address(), creator: c.address(), bufferIndex: c.u8(), vaultIndex: c.u8(), finalBufferHash: c.bytes(32), finalBufferSize: c.u16(), buffer: c.vecU8() };
 }

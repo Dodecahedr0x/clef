@@ -122,6 +122,9 @@ export function SquadsApproval({
             ))}
           </ol>
           <div className="flex flex-col gap-1 border-t border-line-soft px-3 py-2 text-[12px]">
+            {request.step && (
+              <p className="m-0 font-semibold">{`Step ${request.step.index} of ${request.step.of}: a hardware signer signs this proposal in parts so each part stays valid; Clef asks again for the rest.`}</p>
+            )}
             {outer > 1 && (
               <p className="m-0 text-muted">{`You sign ${outer} transactions, sent one after another: the proposal is too large for one transaction, so Clef uploads it to a Squads transaction buffer first.`}</p>
             )}

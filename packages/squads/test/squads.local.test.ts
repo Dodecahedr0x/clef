@@ -170,7 +170,7 @@ async function twoOfTwo(): Promise<{ chain: KitChainReader; m1: KeyPairSigner; m
 async function proposeApproveExecute(ctx: Awaited<ReturnType<typeof twoOfTwo>>, inner: Uint8Array): Promise<number> {
   const { chain, m1, m2, multisig } = ctx;
   const index = (await fetchMultisig(chain, multisig))!.transactionIndex + 1n;
-  const wires = await buildProposeTransactions({ multisig, vaultIndex: 0, member: m1.address, innerWire: inner, transactionIndex: index, blockhash: await blockhash() });
+  const wires = await buildProposeTransactions(chain, { multisig, vaultIndex: 0, member: m1.address, innerWire: inner, transactionIndex: index, blockhash: await blockhash() });
   for (const wire of wires) await send(wire, [m1]);
   let [proposal] = await listProposals(chain, multisig, { limit: 5 });
   expect(proposal).toMatchObject({ index, status: 'active', approved: [m1.address] });
@@ -182,17 +182,54 @@ async function proposeApproveExecute(ctx: Awaited<ReturnType<typeof twoOfTwo>>, 
 }
 
 describe('Squads v4 buffers and ephemeral signers against surfpool', () => {
-  it('proposes a message too large for one transaction through a transaction buffer, then executes it', async () => {
-    const ctx = await twoOfTwo();
+  async function manyTransfers(vault: Address, count = 60, lamports = SOL / 100n) {
     const recipients = await Promise.all(Array.from({ length: 4 }, () => generateKeyPairSigner()));
-    const transfers: Instruction[] = Array.from({ length: 60 }, (_, i) => ({
+    const transfers: Instruction[] = Array.from({ length: count }, (_, i) => ({
       programAddress: SYSTEM,
       accounts: [
-        { address: ctx.vault, role: AccountRole.WRITABLE_SIGNER },
+        { address: vault, role: AccountRole.WRITABLE_SIGNER },
         { address: recipients[i % 4]!.address, role: AccountRole.WRITABLE },
       ],
-      data: new Uint8Array([2, 0, 0, 0, ...getU64Encoder().encode(SOL / 100n)]),
+      data: new Uint8Array([2, 0, 0, 0, ...getU64Encoder().encode(lamports)]),
     }));
+    return { recipients, transfers };
+  }
+
+  /** Lands only the first `n` outer transactions of a buffered proposal, as an interrupted attempt would. */
+  async function interrupted(ctx: Awaited<ReturnType<typeof twoOfTwo>>, inner: Uint8Array, n: number): Promise<number> {
+    const index = (await fetchMultisig(ctx.chain, ctx.multisig))!.transactionIndex + 1n;
+    const wires = await buildProposeTransactions(ctx.chain, { multisig: ctx.multisig, vaultIndex: 0, member: ctx.m1.address, innerWire: inner, transactionIndex: index, blockhash: await blockhash() });
+    for (const wire of wires.slice(0, n)) await send(wire, [ctx.m1]);
+    return wires.length;
+  }
+
+  it('retry after a mid-sequence failure resumes the same buffer', async () => {
+    const ctx = await twoOfTwo();
+    const { recipients, transfers } = await manyTransfers(ctx.vault);
+    const inner = unsignedWire(ctx.vault, await blockhash(), transfers);
+    const total = await interrupted(ctx, inner, 2);
+    expect(total).toBeGreaterThanOrEqual(3);
+    const before = await balance(ctx.vault);
+    expect(await proposeApproveExecute(ctx, inner)).toBe(total - 2);
+    expect(await balance(ctx.vault)).toBe(before - (60n * SOL) / 100n);
+    for (const r of recipients) expect(await balance(r.address)).toBe((15n * SOL) / 100n);
+  });
+
+  it('retry with a different message closes the stale buffer and starts over', async () => {
+    const ctx = await twoOfTwo();
+    const stale = await manyTransfers(ctx.vault);
+    const total = await interrupted(ctx, unsignedWire(ctx.vault, await blockhash(), stale.transfers), 1);
+    const { recipients, transfers } = await manyTransfers(ctx.vault, 60, SOL / 200n);
+    const before = await balance(ctx.vault);
+    expect(await proposeApproveExecute(ctx, unsignedWire(ctx.vault, await blockhash(), transfers))).toBe(total + 1);
+    expect(await balance(ctx.vault)).toBe(before - (60n * SOL) / 200n);
+    for (const r of recipients) expect(await balance(r.address)).toBe((15n * SOL) / 200n);
+    for (const r of stale.recipients) expect(await balance(r.address)).toBe(0n);
+  });
+
+  it('proposes a message too large for one transaction through a transaction buffer, then executes it', async () => {
+    const ctx = await twoOfTwo();
+    const { recipients, transfers } = await manyTransfers(ctx.vault);
     const before = await balance(ctx.vault);
     const outer = await proposeApproveExecute(ctx, unsignedWire(ctx.vault, await blockhash(), transfers));
     expect(outer).toBeGreaterThanOrEqual(2);

@@ -5,8 +5,8 @@ import { vaultMessageToV0 } from './message';
 import { proposalPda, SQUADS_PROGRAM_ID, transactionPda } from './pda';
 
 export * from './pda';
-export { decodeMultisig, decodeProgramConfig, decodeProposal, decodeVaultTransaction } from './accounts';
-export type { Member, MultisigInfo, ProposalStatus, VaultMessage } from './accounts';
+export { decodeMultisig, decodeProgramConfig, decodeProposal, decodeTransactionBuffer, decodeVaultTransaction } from './accounts';
+export type { Member, MultisigInfo, ProposalStatus, TransactionBufferInfo, VaultMessage } from './accounts';
 export { encodeTransactionMessage, vaultMessageFromWire, vaultMessageToV0 } from './message';
 export { buildExecuteTransaction, buildProposeTransaction, buildProposeTransactions, buildVoteTransaction } from './transactions';
 

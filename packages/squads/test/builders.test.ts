@@ -5,6 +5,7 @@ import {
   appendTransactionMessageInstructions,
   compileTransaction,
   createTransactionMessage,
+  getAddressEncoder,
   getCompiledTransactionMessageDecoder,
   getTransactionDecoder,
   getTransactionEncoder,
@@ -23,6 +24,7 @@ import {
   buildProposeTransactions,
   buildVoteTransaction,
   encodeTransactionMessage,
+  SQUADS_PROGRAM_ID,
   ephemeralSignerPda,
   transactionBufferPda,
   transactionPda,
@@ -175,7 +177,7 @@ function createArgs(data: string) {
 describe('buildProposeTransactions', () => {
   it('returns the single proposal transaction when it fits', async () => {
     const p = { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: b64(sdk.innerWire), transactionIndex: 390n, blockhash: BLOCKHASH };
-    expect(await buildProposeTransactions(p)).toEqual([await buildProposeTransaction(p)]);
+    expect(await buildProposeTransactions(mainnetReader(), p)).toEqual([await buildProposeTransaction(p)]);
   });
 
   it('buffers a message too large for one transaction: create, extend*, create-from-buffer + propose + approve', async () => {
@@ -185,7 +187,7 @@ describe('buildProposeTransactions', () => {
     const p = { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH };
     await expect(buildProposeTransaction(p)).rejects.toThrow(/buffer/i);
 
-    const wires = await buildProposeTransactions(p);
+    const wires = await buildProposeTransactions(mainnetReader(), p);
     expect(wires.length).toBeGreaterThanOrEqual(2);
     const txs = wires.map(decode);
     for (const [i, w] of wires.entries()) {
@@ -220,7 +222,7 @@ describe('buildProposeTransactions', () => {
   it('replaces extra unsigned signers with ephemeral signers', async () => {
     const vault = await vaultPda(MULTISIG, 0);
     const inner = innerWire(vault, [createAccount(vault, NEW_ACCOUNT)]);
-    const [wire, ...rest] = await buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH });
+    const [wire, ...rest] = await buildProposeTransactions(mainnetReader(), { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH });
     expect(rest).toEqual([]);
     const create = decode(wire!).instructions[0]!;
     const args = createArgs(create.data);
@@ -238,12 +240,65 @@ describe('buildProposeTransactions', () => {
     const signed = new Uint8Array(inner);
     signed.fill(9, 1 + 64, 1 + 128); // second signature slot
     await expect(
-      buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: signed, transactionIndex: 390n, blockhash: BLOCKHASH }),
+      buildProposeTransactions(mainnetReader(), { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: signed, transactionIndex: 390n, blockhash: BLOCKHASH }),
     ).rejects.toThrow(NEW_ACCOUNT);
   });
 
   it('still requires the vault to sign', async () => {
     const vault3 = await vaultPda(MULTISIG, 3);
-    await expect(buildProposeTransactions({ multisig: MULTISIG, vaultIndex: 3, member: MEMBER, innerWire: b64(sdk.innerWire), transactionIndex: 390n, blockhash: BLOCKHASH })).rejects.toThrow(vault3);
+    await expect(buildProposeTransactions(mainnetReader(), { multisig: MULTISIG, vaultIndex: 3, member: MEMBER, innerWire: b64(sdk.innerWire), transactionIndex: 390n, blockhash: BLOCKHASH })).rejects.toThrow(vault3);
+  });
+
+  describe('a buffer left by an interrupted attempt', async () => {
+    const vault = await vaultPda(MULTISIG, 0);
+    const recipients = await Promise.all(Array.from({ length: 4 }, (_, i) => vaultPda(MULTISIG, i + 10)));
+    const inner = innerWire(vault, Array.from({ length: 60 }, (_, i) => transfer(vault, recipients[i % 4]!, BigInt(i + 1))));
+    const p = { multisig: MULTISIG, vaultIndex: 0, member: MEMBER, innerWire: inner, transactionIndex: 390n, blockhash: BLOCKHASH };
+    const bytes = encodeTransactionMessage(vaultMessageFromWire(inner));
+    const hash = new Uint8Array(createHash('sha256').update(bytes).digest());
+    const pda = await transactionBufferPda(MULTISIG, MEMBER, 390 % 256);
+    const fresh = await buildProposeTransactions(mainnetReader(), p);
+
+    function withBuffer(content: Uint8Array, h = hash, size = bytes.length) {
+      const data = new Uint8Array([
+        ...Buffer.from('5a2423db5de16e60', 'hex'),
+        ...getAddressEncoder().encode(MULTISIG),
+        ...getAddressEncoder().encode(MEMBER),
+        390 % 256,
+        0,
+        ...h,
+        size & 0xff,
+        size >> 8,
+        ...new Uint8Array(new Uint32Array([content.length]).buffer),
+        ...content,
+      ]);
+      const reader = mainnetReader();
+      reader.setAccount({ address: pda, owner: SQUADS_PROGRAM_ID, lamports: 1n, data });
+      return reader;
+    }
+    const discs = (wires: Uint8Array[]) => wires.map((w) => decode(w).instructions.map((ix) => ix.data.slice(0, 16)).join(','));
+
+    it('resumes: extends only the missing bytes, then creates from the buffer', async () => {
+      const uploaded = Buffer.from(decode(fresh[0]!).instructions[0]!.data, 'hex').subarray(48);
+      const wires = await buildProposeTransactions(withBuffer(new Uint8Array(uploaded)), p);
+      expect(discs(wires)).toEqual(discs(fresh.slice(1)));
+      const chunks = wires.slice(0, -1).map((w) => Buffer.from(decode(w).instructions[0]!.data, 'hex').subarray(12));
+      expect(new Uint8Array(Buffer.concat([uploaded, ...chunks]))).toEqual(bytes);
+    });
+
+    it('a complete buffer goes straight to create-from-buffer', async () => {
+      const wires = await buildProposeTransactions(withBuffer(bytes), p);
+      expect(discs(wires)).toEqual(['de36954457f630e7,dc3c49e01e6c4f9f,9025a488bcd82af8']);
+    });
+
+    it('closes a buffer holding another message, then starts over', async () => {
+      const other = new Uint8Array(bytes.length).fill(1);
+      const wires = await buildProposeTransactions(withBuffer(other.subarray(0, 500), new Uint8Array(32).fill(1)), p);
+      expect(discs(wires)).toEqual(['11b6d0e48818b266', ...discs(fresh)]);
+      expect(decode(wires[0]!).instructions[0]!.keys.map((k) => k[0])).toEqual([MULTISIG, pda, MEMBER]);
+      const tampered = new Uint8Array(bytes.subarray(0, 500));
+      tampered[0]! ^= 1;
+      expect(discs(await buildProposeTransactions(withBuffer(tampered), p))[0]).toBe('11b6d0e48818b266');
+    });
   });
 });
