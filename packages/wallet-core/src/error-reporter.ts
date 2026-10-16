@@ -2,7 +2,12 @@ const B58 = /^[1-9A-HJ-NP-Za-km-z]+$/;
 const URLS = /\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>()[\]{}]+/gi;
 const TOKENS = /[A-Za-z0-9+/=]{24,}/g;
 const DIGITS = /\d{7,}/g;
-const PHRASE = /\b(?:[a-z]{3,8}[\s,;]+){11,}[a-z]{3,8}\b/gi;
+/**
+ * A recovery phrase in any common layout: 12+ word-like tokens (3-8 letters) separated only by short runs of
+ * non-letters (spaces, commas, dashes, pipes, quotes, brackets, newlines, list numbers). Over-redacts some plain
+ * sentences; that is the safe side.
+ */
+const PHRASE = /\b[a-z]{3,8}\b(?:[^a-z]{1,8}[a-z]{3,8}\b){11,}/gi;
 /** A keypair or seed as a byte list, e.g. a Solana keypair JSON file: 16+ small integers, bracketed or not. */
 const BYTE_LIST = /\[\s*\d{1,3}(?:\s*,\s*\d{1,3}){15,}\s*\]|\d{1,3}(?:\s*,\s*\d{1,3}){15,}/g;
 const HEX = /\b(?:0x)?[0-9a-f]{16,}\b/gi;

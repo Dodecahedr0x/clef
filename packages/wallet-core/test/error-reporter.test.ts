@@ -5,6 +5,20 @@ const ADDR = 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk';
 const SIG = '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW';
 
 describe('scrub', () => {
+  it.each([
+    ['dashes', (w: string[]) => w.join(' - ')],
+    ['numbered', (w: string[]) => w.map((x, i) => `${i + 1}. ${x}`).join(' ')],
+    ['json array', (w: string[]) => JSON.stringify(w)],
+    ['pretty json', (w: string[]) => JSON.stringify(w, null, 2)],
+    ['newlines', (w: string[]) => w.join('\n')],
+    ['upper', (w: string[]) => w.join(' ').toUpperCase()],
+    ['pipes', (w: string[]) => w.join(' | ')],
+  ])('redacts a 12-word phrase written as %s', (_name, fmt) => {
+    const words = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ');
+    const out = scrub(`seed: ${fmt(words)} end`);
+    for (const w of words) expect(out.toLowerCase()).not.toContain(w);
+  });
+
   it('redacts secret keys as JSON byte arrays and hex, and phrases with commas or capitals', () => {
     const bytes = `[${Array.from({ length: 64 }, (_, i) => (i * 37) % 256).join(',')}]`;
     expect(scrub(`bad key ${bytes} here`)).toBe('bad key <bytes> here');
@@ -25,7 +39,7 @@ describe('scrub', () => {
     expect(scrub('from https://dapp.example/a/b', 'dapp.example')).toBe('from dapp.example');
     expect(scrub('blob AAECAwQFBgcICQoLDA0ODxAREhMUFRYX+/==')).toBe('blob <b64>');
     const phrase = 'abandon ability able about above absent absorb abstract absurd abuse access accident';
-    expect(scrub(`mnemonic: ${phrase}.`)).toBe('mnemonic: <words>.');
+    expect(scrub(`mnemonic: ${phrase}.`)).toBe('<words>.') // the label word is swallowed too: over-redaction is the safe side;
     expect(scrub('Error: Simulation failed at instruction 2')).toBe('Error: Simulation failed at instruction 2');
   });
 });
