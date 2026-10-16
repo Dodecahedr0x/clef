@@ -256,6 +256,14 @@ function BasicPortfolio() {
         </div>
         {change && <div className={`text-[14px] tabular-nums ${change.tone === 'ok' ? 'text-ok' : change.tone === 'danger' ? 'text-danger-text' : 'text-muted'}`}>{change.text}</div>}
         {error && <div className="text-[12px] text-danger-text">{error}</div>}
+        {data?.priceError === 'invalid-key' && (
+          <div className="text-[12px] text-danger-text">
+            No prices: Jupiter rejected your API key.{' '}
+            <button type="button" onClick={() => nav.go({ name: 'settings' })} className="text-[12px] text-info bg-transparent border-0 underline p-0">
+              Fix it in Settings
+            </button>
+          </div>
+        )}
       </section>
 
       <nav aria-label="Wallet actions" className="px-4 pb-[18px] grid grid-cols-4 gap-2 shrink-0">

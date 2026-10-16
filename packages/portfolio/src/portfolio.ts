@@ -25,7 +25,10 @@ export type Holding = {
   freezeAuthority?: string | null;
   delegate?: string | null;
 };
-export type Portfolio = { owner: Address; totalUsd: number | null; change24hUsd: number | null; holdings: Holding[]; hiddenSpam: number; source: 'das' | 'rpc' };
+export type Portfolio = { owner: Address; totalUsd: number | null; change24hUsd: number | null; holdings: Holding[]; hiddenSpam: number; source: 'das' | 'rpc';
+  /** Set when the price source rejected the configured API key: prices are missing until the user fixes it. */
+  priceError?: 'invalid-key';
+};
 
 type MintMeta = { name?: string; symbol?: string; mintAuthority: string | null; freezeAuthority: string | null };
 
@@ -51,12 +54,12 @@ async function fromChain(chain: ChainReader, mints: Address[]): Promise<Map<stri
   return out;
 }
 
-async function loadPrices(prices: PriceSource | null, mints: string[]): Promise<Record<string, PriceQuote> | null> {
+async function loadPrices(prices: PriceSource | null, mints: string[]): Promise<Record<string, PriceQuote> | 'invalid-key' | null> {
   if (!prices) return null;
   try {
     return await prices.prices(['SOL', ...mints]);
-  } catch {
-    return null;
+  } catch (e) {
+    return (e as { code?: unknown } | null)?.code === 'invalid-key' ? 'invalid-key' : null;
   }
 }
 
@@ -95,7 +98,8 @@ export async function loadPortfolio(
   } catch {
     meta = null;
   }
-  const [metadata, quotes] = await Promise.all([meta ?? fromChain(deps.chain, mints), loadPrices(deps.prices, mints)]);
+  const [metadata, loaded] = await Promise.all([meta ?? fromChain(deps.chain, mints), loadPrices(deps.prices, mints)]);
+  const quotes = loaded === 'invalid-key' ? null : loaded;
 
   const holdings: Holding[] = [
     {
@@ -149,5 +153,5 @@ export async function loadPortfolio(
     ? counted.reduce((s, h) => (h.usdValue === null || h.change24h === null || h.change24h <= -100 ? s : s + h.usdValue - h.usdValue / (1 + h.change24h / 100)), 0)
     : null;
   const shown = opts.hideSpam ? counted : holdings;
-  return { owner, totalUsd, change24hUsd, holdings: shown, hiddenSpam: holdings.length - shown.length, source };
+  return { owner, totalUsd, change24hUsd, holdings: shown, hiddenSpam: holdings.length - shown.length, source, ...(loaded === 'invalid-key' && { priceError: 'invalid-key' as const }) };
 }

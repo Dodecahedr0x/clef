@@ -129,7 +129,15 @@ describe('loadPortfolio', () => {
       // without metadata it is still spam; priced-zero rule needs prices
       expect(p.hiddenSpam).toBe(1);
       expect(p.holdings.map((h) => h.symbol)).toEqual(['SOL', 'MPX', 'TT', 'USDC']);
+      expect(p.priceError).toBeUndefined();
     }
+  });
+
+  it('reports a rejected price API key instead of silently dropping prices', async () => {
+    const rejected: PriceSource = { prices: () => Promise.reject(Object.assign(new Error('Jupiter rejected the API key'), { code: 'invalid-key' })) };
+    const p = await loadPortfolio({ reader: reader({ das: false }), chain: await chain(), prices: rejected }, OWNER, { hideSpam: true });
+    expect(p.priceError).toBe('invalid-key');
+    expect(p.totalUsd).toBeNull();
   });
 
   it('skips empty token accounts and merges accounts of one mint', async () => {

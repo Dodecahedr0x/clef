@@ -167,6 +167,14 @@ describe('Portfolio', () => {
     expect(m.refresh).toHaveBeenCalled();
   });
 
+  it('says when Jupiter rejected the API key and links to Settings', () => {
+    m.portfolio = portfolio({ totalUsd: null, change24hUsd: null, priceError: 'invalid-key' });
+    render(<PortfolioScreen />);
+    expect(screen.getByText(/No prices: Jupiter rejected your API key/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Fix it in Settings' }));
+    expect(m.go).toHaveBeenCalledWith({ name: 'settings' });
+  });
+
   it('reveals spam holdings that the loader returned flagged', () => {
     m.portfolio = portfolio({ holdings: [SOL, SPAM], hiddenSpam: 0 });
     render(<PortfolioScreen />);

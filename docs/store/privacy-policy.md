@@ -10,7 +10,7 @@ Clef is a browser extension wallet for the Solana blockchain. Clef has no server
 Clef stores the following in your browser's extension storage, on your device only:
 
 - Your recovery phrases and imported private keys, encrypted with a key derived from your password (Argon2id, AES-256-GCM). Clef never stores your password.
-- Your accounts' public addresses and names, hardware wallet derivation paths, and Squads multisig addresses.
+- Your accounts' public addresses and names, and Squads multisig addresses.
 - Your settings (network, RPC address, detail level, optional Jupiter API key, auto-lock time).
 - The sites you connected and which accounts they may see.
 - Your address book, program IDLs you added, and a local log of the requests you approved, rejected or Clef blocked.
