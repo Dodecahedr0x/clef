@@ -18,6 +18,8 @@ export const getState = () => call<FullState>({ type: 'state' });
 export const getApproval = (id: string) => send<SerializedApproval | null>({ channel: 'approval', op: 'get', id });
 /** Signatures travel as base64 strings over runtime messaging. */
 export const decide = (id: string, decision: ApprovalDecision) =>
-  send<object>({ channel: 'approval', op: 'decide', id, decision: serializeDecision(decision) });
+  send<{ gone?: true }>({ channel: 'approval', op: 'decide', id, decision: serializeDecision(decision) });
+/** `pending: false` once the request is gone (decided elsewhere, or lost when the service worker restarted). */
+export const pingApproval = (id: string) => send<{ pending: boolean }>({ channel: 'approval', op: 'ping', id });
 
 export const shortAddress = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;

@@ -44,6 +44,10 @@ export class ApprovalQueue implements Approver {
     });
   }
 
+  has(id: string): boolean {
+    return this.pending.has(id);
+  }
+
   get(id: string): ApprovalRequest | undefined {
     return this.pending.get(id)?.request;
   }

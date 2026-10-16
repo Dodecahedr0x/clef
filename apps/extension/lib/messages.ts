@@ -14,7 +14,9 @@ export type DappPortReply = { type: 'response'; response: unknown } | { type: 'e
 export type InternalMessage =
   | { channel: 'internal'; call: unknown }
   | { channel: 'approval'; op: 'get'; id: string }
-  | { channel: 'approval'; op: 'decide'; id: string; decision: unknown };
+  | { channel: 'approval'; op: 'decide'; id: string; decision: unknown }
+  /** Sent by an open approval every few seconds: keeps the service worker (and the request in it) alive. */
+  | { channel: 'approval'; op: 'ping'; id: string };
 
 export type InternalReply<T = unknown> = { ok: true; value: T } | { ok: false; error: string };
 

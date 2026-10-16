@@ -1,7 +1,7 @@
 import type { ApprovalDecision, ApprovalRequest, SignerInfo } from '@clef/wallet-core';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Alert, Button, Spinner } from '../../components';
-import { decide, getApproval, type FullState } from '../../lib/api';
+import { decide, getApproval, pingApproval, type FullState } from '../../lib/api';
 import { useWallet } from '../../lib/hooks';
 import { NavProvider, useNav } from '../../lib/nav';
 import { deserializeApproval } from '../../lib/serialize';
@@ -33,13 +33,40 @@ function UnlockGate({ onUnlocked }: { onUnlocked: () => void }) {
   return <UnlockScreen />;
 }
 
-function Dispatch({ request, state, requestId }: { request: ApprovalRequest; state: FullState; requestId: string }) {
+/** How often an open approval tells the background it is still there (Chrome stops an idle worker after ~30 s). */
+export const APPROVAL_PING_MS = 20_000;
+
+function Dispatch({ request, state, requestId, onClose }: { request: ApprovalRequest; state: FullState; requestId: string; onClose?: () => void }) {
   const [signing, setSigning] = useState<Signing | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [gone, setGone] = useState(false);
+
+  // Keeps the service worker, which holds the pending request, alive while the user is in another window; and
+  // checks right away when they come back, so a request lost meanwhile never leaves a window that ignores clicks.
+  useEffect(() => {
+    const check = () => {
+      pingApproval(requestId).then(
+        (r) => !r.pending && setGone(true),
+        () => {},
+      );
+    };
+    const timer = setInterval(check, APPROVAL_PING_MS);
+    const onBack = () => document.visibilityState === 'visible' && check();
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', onBack);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', onBack);
+    };
+  }, [requestId]);
 
   const onDecide = useCallback(
     (d: ApprovalDecision) => {
-      decide(requestId, d).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'));
+      decide(requestId, d).then(
+        (r) => r?.gone && setGone(true),
+        (e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'),
+      );
     },
     [requestId],
   );
@@ -53,6 +80,21 @@ function Dispatch({ request, state, requestId }: { request: ApprovalRequest; sta
         : undefined,
     [],
   );
+
+  if (gone) {
+    return (
+      <Centered>
+        <div className="flex max-w-[320px] flex-col items-center gap-4 text-center">
+          <Alert severity="warn" title="This request expired">
+            Clef was restarted while it waited, so the site no longer listens for an answer. Nothing was signed. Go back to the site and try again.
+          </Alert>
+          <Button variant="secondary" onClick={() => (onClose ? onClose() : window.close())}>
+            Close
+          </Button>
+        </div>
+      </Centered>
+    );
+  }
 
   if (error) {
     return (
@@ -180,5 +222,5 @@ export function Approval({ id, onClose }: { id?: string; onClose?: () => void } 
       </NavProvider>
     );
   }
-  return <Dispatch request={request} state={state} requestId={requestId} />;
+  return <Dispatch request={request} state={state} requestId={requestId} {...(onClose && { onClose })} />;
 }

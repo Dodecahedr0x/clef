@@ -13,13 +13,27 @@ export function PanelRoot() {
   const [ids, setIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const port = browser.runtime.connect({ name: PANEL_PORT });
-    port.onMessage.addListener((msg: unknown) => {
-      const m = msg as PanelMessage;
-      if (m?.type === 'show' && typeof m.id === 'string') setIds((q) => (q.includes(m.id) ? q : [...q, m.id]));
-      if (m?.type === 'done' && typeof m.id === 'string') setIds((q) => q.filter((x) => x !== m.id));
-    });
-    return () => port.disconnect();
+    let port: ReturnType<typeof browser.runtime.connect> | null = null;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    // The port drops whenever Chrome stops the idle service worker; reconnect so approvals keep coming here.
+    const connect = () => {
+      port = browser.runtime.connect({ name: PANEL_PORT });
+      port.onMessage.addListener((msg: unknown) => {
+        const m = msg as PanelMessage;
+        if (m?.type === 'show' && typeof m.id === 'string') setIds((q) => (q.includes(m.id) ? q : [...q, m.id]));
+        if (m?.type === 'done' && typeof m.id === 'string') setIds((q) => q.filter((x) => x !== m.id));
+      });
+      port.onDisconnect.addListener(() => {
+        if (!closed) retry = setTimeout(connect, 1000);
+      });
+    };
+    connect();
+    return () => {
+      closed = true;
+      clearTimeout(retry);
+      port?.disconnect();
+    };
   }, []);
 
   const current = ids[0];

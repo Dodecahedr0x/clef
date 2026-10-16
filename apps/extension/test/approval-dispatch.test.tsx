@@ -7,7 +7,9 @@ const ACCOUNT = 'HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk';
 const decide = vi.fn(async () => ({}));
 let request: Record<string, unknown> | null = null;
 
+const ping = vi.fn(async () => ({ pending: true }));
 vi.mock('../lib/api', () => ({
+  pingApproval: (...a: unknown[]) => ping(...(a as [])),
   decide: (...a: unknown[]) => decide(...(a as [])),
   getApproval: async () => request,
 }));
@@ -60,7 +62,7 @@ vi.mock('../entrypoints/approval/requests', () => ({
   ),
 }));
 
-const { Approval } = await import('../entrypoints/approval/Approval');
+const { Approval, APPROVAL_PING_MS } = await import('../entrypoints/approval/Approval');
 
 afterEach(() => {
   cleanup();
@@ -112,5 +114,35 @@ describe('approval dispatcher, hardware signer', () => {
     request = null;
     render(<Approval />);
     expect(await screen.findByText(/no longer available/)).toBeTruthy();
+  });
+});
+
+describe('approval kept alive while the user is elsewhere', () => {
+  it('pings the background every 20 s and on return; a lost request turns into an expired notice', async () => {
+    request = txRequest();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<Approval />);
+      await screen.findByRole('button', { name: 'Sign' });
+      ping.mockClear();
+      await vi.advanceTimersByTimeAsync(APPROVAL_PING_MS * 2 + 10);
+      expect(ping).toHaveBeenCalledTimes(2);
+      expect(APPROVAL_PING_MS).toBeLessThan(30_000); // under Chrome's idle limit for service workers
+      ping.mockResolvedValueOnce({ pending: false });
+      window.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(0);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(await screen.findByText('This request expired')).toBeTruthy();
+  });
+
+  it('a decision for a request that is gone shows the expired notice instead of doing nothing', async () => {
+    request = txRequest();
+    decide.mockResolvedValueOnce({ gone: true } as never);
+    render(<Approval />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Device signed' }));
+    expect(await screen.findByText('This request expired')).toBeTruthy();
   });
 });

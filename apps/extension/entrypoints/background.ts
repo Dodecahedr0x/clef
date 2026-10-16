@@ -172,9 +172,11 @@ export default defineBackground(() => {
         return req ? serializeApproval(req) : null;
       }
       if (msg.op === 'decide') {
+        if (!queue.has(msg.id)) return { gone: true };
         queue.decide(msg.id, parseDecision(msg.decision));
         return {};
       }
+      if (msg.op === 'ping') return { pending: queue.has(msg.id) };
     }
     throw new Error('Unknown message');
   };

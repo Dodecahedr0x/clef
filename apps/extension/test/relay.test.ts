@@ -50,6 +50,19 @@ describe('relay', () => {
     expect(ports).toEqual([]);
   });
 
+  it('fails the requests left unanswered when the service worker drops the port, and only those', () => {
+    const { ports, toPage, fromPage } = setup();
+    fromPage({ source: 'clef-inpage', id: 'answered', method: 'connect', params: {} });
+    fromPage({ source: 'clef-inpage', id: 'waiting', method: 'signTransaction', params: {} });
+    ports[0]!.reply({ type: 'response', response: { id: 'answered', ok: true, result: {} } });
+    ports[0]!.drop();
+    expect(toPage.at(-1)).toEqual({
+      source: 'clef-relay',
+      response: { id: 'waiting', ok: false, error: { code: -32603, message: 'Clef restarted before this request was answered. Please try again.' } },
+    });
+    expect(toPage.filter((m) => (m as { response?: { id: string } }).response?.id === 'answered')).toHaveLength(1);
+  });
+
   it('reconnects after the service worker drops the port', () => {
     const { ports, fromPage } = setup();
     fromPage({ source: 'clef-inpage', id: 'r1', method: 'connect', params: {} });
