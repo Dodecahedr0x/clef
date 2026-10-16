@@ -1,6 +1,6 @@
-import { address, getAddressDecoder, type Address, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import { address, getAddressDecoder, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, SolanaError, type Address, type Rpc, type SolanaRpcApi } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
-import { KitChainReader } from '../src';
+import { KitChainReader, retryRateLimited } from '../src';
 
 const OWNER = address('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 const MINT = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -63,6 +63,7 @@ describe('KitChainReader (offline)', () => {
           postTokenBalances: [{ accountIndex: 1, mint: MINT, uiTokenAmount: { amount: '0', decimals: 6 } }],
           loadedAddresses: { writable: [MINT], readonly: [] },
           logMessages: ['log'],
+          computeUnitsConsumed: 4242n,
         },
       },
       { slot: 6n, blockTime: 1700000000n, transaction: [btoa('x'), 'base64'], meta: null },
@@ -84,6 +85,7 @@ describe('KitChainReader (offline)', () => {
         postTokenBalances: [{ accountIndex: 1, mint: MINT, owner: null, amount: 0n, decimals: 6 }],
         loadedAddresses: { writable: [MINT], readonly: [] },
         logMessages: ['log'],
+        computeUnitsConsumed: 4242n,
       },
     });
 
@@ -92,6 +94,34 @@ describe('KitChainReader (offline)', () => {
     expect(noMeta?.blockTime).toBe(1700000000n);
 
     expect(await reader.getTransaction('sig3')).toBeNull();
+  });
+
+  it('caches confirmed transactions per endpoint and retries an HTTP 429', async () => {
+    const tx = { slot: 7n, blockTime: null, transaction: [btoa('y'), 'base64'], meta: null };
+    let calls = 0;
+    const limited = () => {
+      calls++;
+      if (calls === 1) throw new SolanaError(SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, { headers: new Headers(), message: 'Too Many Requests', statusCode: 429 });
+      return tx;
+    };
+    const url = `https://cache-test-${Math.random()}.example`;
+    const a = new KitChainReader(fakeRpc({ getTransaction: () => ({ send: async () => limited() }) }), { url });
+    expect((await retryRateLimited(() => a.getTransaction('cached'), [0, 0]))?.slot).toBe(7n);
+    expect(calls).toBe(2);
+    // Another reader on the same endpoint (another screen) gets it without asking the RPC again.
+    const b = new KitChainReader(fakeRpc({ getTransaction: () => ({ send: async () => limited() }) }), { url });
+    expect((await b.getTransaction('cached'))?.slot).toBe(7n);
+    expect(calls).toBe(2);
+  });
+
+  it('gives up on a rate limit after the retries, and never retries other HTTP errors', async () => {
+    const err = (statusCode: number) => new SolanaError(SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, { headers: new Headers(), message: 'x', statusCode });
+    let n = 0;
+    await expect(retryRateLimited(async () => { n++; throw err(429); }, [0, 0])).rejects.toThrow();
+    expect(n).toBe(3);
+    n = 0;
+    await expect(retryRateLimited(async () => { n++; throw err(500); }, [0, 0])).rejects.toThrow();
+    expect(n).toBe(1);
   });
 
   it('requests transactions up to version 1', async () => {

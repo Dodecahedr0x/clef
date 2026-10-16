@@ -30,8 +30,7 @@ vi.mock('../lib/hooks', () => ({
   useHealth: () => m.health,
 }));
 vi.mock('../lib/api', () => ({ call: (c: unknown) => m.call(c) }));
-const win = vi.hoisted(() => ({ create: vi.fn(async () => ({ id: 1 })) }));
-vi.mock('wxt/browser', () => ({ browser: { windows: { create: win.create }, runtime: { getURL: (p: string) => `chrome-extension://id${p}` } } }));
+
 vi.mock('../lib/nav', () => ({
   useNav: () => ({ route: m.route, go: m.go, back: m.back, replace: vi.fn(), reset: m.reset }),
 }));
@@ -578,15 +577,12 @@ describe('History', () => {
     expect(m.history.loadMore).toHaveBeenCalled();
   });
 
-  it('opens a transaction in its detail window, with the dApp that asked for it when Clef knows', () => {
-    m.state.settings = settings({ detailLevel: 'expert' });
+  it('opens a transaction in the same view, with the dApp that asked for it when Clef knows', () => {
     render(<HistoryScreen />);
     fireEvent.click(screen.getByRole('button', { name: 'Details of Swap SOL → USDC' }));
-    expect(win.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({ url: 'chrome-extension://id/transaction.html?sig=swapSig&origin=https%3A%2F%2Fjup.ag', type: 'popup', width: 760 }),
-    );
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'history/tx', signature: 'swapSig', origin: 'https://jup.ag' });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Details of Received from 9vRt…k2Lm' }), { key: 'Enter' });
-    expect(win.create).toHaveBeenLastCalledWith(expect.objectContaining({ url: 'chrome-extension://id/transaction.html?sig=recvSig' }));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'history/tx', signature: 'recvSig' });
   });
 
   it('flags a result that differs from what was shown', () => {

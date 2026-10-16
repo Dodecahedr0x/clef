@@ -1,5 +1,7 @@
 import {
   createSolanaRpc,
+  isSolanaError,
+  SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR,
   getBase64Decoder,
   getBase64Encoder,
   type Address,
@@ -80,6 +82,23 @@ export type KitChainReaderOptions = {
   fetch?: FetchFn;
 };
 
+/** Confirmed transactions never change: shared across readers (per endpoint) so History and its detail fetch once. */
+const TX_CACHE = new Map<string, FetchedTransaction>();
+const TX_CACHE_MAX = 300;
+
+/** HTTP 429 from the RPC: wait and try again a couple of times before giving up. */
+export async function retryRateLimited<T>(run: () => Promise<T>, delaysMs: readonly number[] = [800, 2000]): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run();
+    } catch (e) {
+      const limited = isSolanaError(e, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR) && e.context.statusCode === 429;
+      if (!limited || attempt >= delaysMs.length) throw e;
+      await new Promise((r) => setTimeout(r, delaysMs[attempt]));
+    }
+  }
+}
+
 export class KitChainReader implements ChainReader, TransactionSender {
   private readonly rpc: Rpc<SolanaRpcApi>;
   private readonly url: string | null;
@@ -157,13 +176,15 @@ export class KitChainReader implements ChainReader, TransactionSender {
     let slot = 0n;
     for (let i = 0; i < addresses.length; i += MAX_ACCOUNTS_PER_CALL) {
       const chunk = addresses.slice(i, i + MAX_ACCOUNTS_PER_CALL);
-      const { context, value } = await this.rpc
-        .getMultipleAccounts(chunk, {
-          encoding: 'base64',
-          commitment: 'confirmed',
-          ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
-        })
-        .send();
+      const { context, value } = await retryRateLimited(() =>
+        this.rpc
+          .getMultipleAccounts(chunk, {
+            encoding: 'base64',
+            commitment: 'confirmed',
+            ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
+          })
+          .send(),
+      );
       const at = context?.slot === undefined ? 0n : BigInt(context.slot);
       if (at > slot) slot = at;
       value.forEach((acc, j) => accounts.push(acc ? toRaw(chunk[j]!, acc as EncodedAccount) : null));
@@ -172,12 +193,15 @@ export class KitChainReader implements ChainReader, TransactionSender {
   }
 
   async getTransaction(signature: string): Promise<FetchedTransaction | null> {
-    const res = await this.rpc
-      .getTransaction(signature as Signature, { encoding: 'base64', maxSupportedTransactionVersion: 1 })
-      .send();
+    const key = `${this.url ?? ''}|${signature}`;
+    const hit = TX_CACHE.get(key);
+    if (hit) return hit;
+    const res = await retryRateLimited(() =>
+      this.rpc.getTransaction(signature as Signature, { encoding: 'base64', maxSupportedTransactionVersion: 1 }).send(),
+    );
     if (!res) return null;
     const m = res.meta;
-    return {
+    const fetched: FetchedTransaction = {
       wire: new Uint8Array(getBase64Encoder().encode(res.transaction[0])),
       slot: BigInt(res.slot),
       blockTime: res.blockTime === null ? null : BigInt(res.blockTime),
@@ -193,8 +217,14 @@ export class KitChainReader implements ChainReader, TransactionSender {
           readonly: [...(m.loadedAddresses?.readonly ?? [])],
         },
         logMessages: [...(m.logMessages ?? [])],
+        computeUnitsConsumed: m.computeUnitsConsumed === undefined || m.computeUnitsConsumed === null ? null : BigInt(m.computeUnitsConsumed),
       },
     };
+    if (this.url !== null) {
+      if (TX_CACHE.size >= TX_CACHE_MAX) TX_CACHE.delete(TX_CACHE.keys().next().value!);
+      TX_CACHE.set(key, fetched);
+    }
+    return fetched;
   }
 
   async simulate(wire: Uint8Array, addresses: readonly Address[], options: SimulateOptions = {}): Promise<SimulationResult> {

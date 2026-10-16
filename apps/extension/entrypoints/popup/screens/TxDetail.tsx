@@ -1,32 +1,19 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ApprovalFrame, Button, DetailLevelSwitch, Spinner } from '../../components';
-import { call, type FullState } from '../../lib/api';
-import { shortAddress } from '../../lib/format';
-import { useExplainLanded, useWallet } from '../../lib/hooks';
-import { BasicBody } from '../approval/tx/BasicBody';
-import { ExpertBody } from '../approval/tx/ExpertBody';
-import { IntermediateBody } from '../approval/tx/IntermediateBody';
-import { batchWarnings, hasDanger, type Tab } from '../approval/tx/model';
-import { DangerCards } from '../approval/tx/parts';
-import { ExplainSource } from '../approval/tx/source';
+import { ApprovalFrame, Button, DetailLevelSwitch, Spinner } from '../../../components';
+import { call, type FullState } from '../../../lib/api';
+import { shortAddress } from '../../../lib/format';
+import { useExplainLanded, useWallet } from '../../../lib/hooks';
+import { useNav } from '../../../lib/nav';
+import { BasicBody } from '../../approval/tx/BasicBody';
+import { ExpertBody } from '../../approval/tx/ExpertBody';
+import { IntermediateBody } from '../../approval/tx/IntermediateBody';
+import { batchWarnings, hasDanger, type Tab } from '../../approval/tx/model';
+import { DangerCards } from '../../approval/tx/parts';
+import { ExplainSource } from '../../approval/tx/source';
 
-const params = new URLSearchParams(location.search);
-const signature = params.get('sig') ?? '';
-/** The dApp that asked for it, when Clef's request log knows; otherwise the frame names the transaction. */
-const origin = params.get('origin');
-
-async function resizeWindow(width: number) {
-  try {
-    const w = await browser.windows.getCurrent();
-    if (w.id !== undefined && w.type === 'popup') await browser.windows.update(w.id, { width });
-  } catch {
-    // Not in an extension window (tests, a tab): nothing to resize.
-  }
-}
-
-function explorerUrl(state: FullState): string | null {
+function explorerUrl(state: FullState, signature: string): string | null {
   const s = state.settings;
   const cluster = s.network === 'custom' ? s.customCluster : s.network;
   if (cluster === 'localnet') return null;
@@ -36,29 +23,30 @@ function explorerUrl(state: FullState): string | null {
 const when = (t: number | null | undefined) =>
   t ? new Date(t * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'time unknown';
 
-/** A past transaction from History, shown with the approval view's bodies (from its recorded meta, read only). */
-export function TxDetail() {
+/** A past transaction from History, shown in the same view with the approval bodies (from its recorded meta, read only). */
+export function TxDetailScreen() {
+  const nav = useNav();
   const { state } = useWallet();
-  if (!state) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <Spinner />
-      </div>
-    );
-  }
-  return <Detail state={state} />;
+  const route = nav.route as { name: 'history/tx'; signature: string; origin?: string };
+  return (
+    <div className="h-(--popup-h) w-(--popup-w) overflow-hidden">
+      {state ? (
+        <Detail state={state} signature={route.signature} origin={route.origin ?? null} onBack={nav.back} />
+      ) : (
+        <div className="flex h-full items-center justify-center bg-bg">
+          <Spinner />
+        </div>
+      )}
+    </div>
+  );
 }
 
-function Detail({ state }: { state: FullState }) {
+function Detail({ state, signature, origin, onBack }: { state: FullState; signature: string; origin: string | null; onBack: () => void }) {
   const [level, setLevel] = useState<DetailLevel>(state.settings.detailLevel);
   const [tab, setTab] = useState<Tab>('all');
   const [copied, setCopied] = useState(false);
   const result = useExplainLanded(signature, level);
   const expert = level === 'expert';
-
-  useEffect(() => {
-    void resizeWindow(expert ? 760 : 400);
-  }, [expert]);
 
   const changeLevel = (v: DetailLevel) => {
     setLevel(v);
@@ -71,7 +59,7 @@ function Detail({ state }: { state: FullState }) {
   const failed = result.status === 'ok' && result.batch.steps[0]?.status === 'failed';
   const status = result.status === 'ok' ? `${failed ? 'Failed' : 'Confirmed'} · ${when(result.blockTime)}` : 'Loading…';
   const subtitle = expert ? `${status} · ${shortAddress(signature)}` : status;
-  const explorer = explorerUrl(state);
+  const explorer = explorerUrl(state, signature);
 
   let body;
   if (result.status === 'failed') {
@@ -115,8 +103,9 @@ function Detail({ state }: { state: FullState }) {
       <ApprovalFrame
         site={{ origin: origin ?? 'Transaction' }}
         subtitle={subtitle}
-        headerRight={<DetailLevelSwitch value={level} onChange={changeLevel} compact={!expert} />}
-        width={expert ? 760 : 400}
+        headerRight={<DetailLevelSwitch value={level} onChange={changeLevel} compact />}
+        width="fill"
+        onBack={onBack}
         footer={
           <div className="flex gap-2.5 px-4 py-3">
             <Button variant="secondary" size="md" onClick={copy}>
@@ -127,9 +116,6 @@ function Detail({ state }: { state: FullState }) {
                 Explorer
               </Button>
             )}
-            <Button size="md" className="ml-auto" onClick={() => window.close()}>
-              Close
-            </Button>
           </div>
         }
       >

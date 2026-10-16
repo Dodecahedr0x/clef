@@ -164,7 +164,12 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
         warn('sensitive-program', 'danger', `Instruction #${i + 1} changes stake, vote or program accounts; Clef can't decode it.`, i);
       } else if (!PLUMBING_PROGRAMS.has(ix.programId) && !unknownPrograms.has(ix.programId)) {
         unknownPrograms.add(ix.programId);
-        warn('unknown-program', 'warn', `Clef can't decode instruction #${i + 1} (program ${ix.programId}).`, i);
+        // An IDL was found but none of its instructions match: it was published before the program changed.
+        const stale = input.issues.some((x) => x.stage === 'parse' && x.instructionIndex === i && x.message.startsWith('no instruction in'));
+        const why = stale
+          ? " The IDL this program published doesn't list this instruction, so it is probably out of date; you can add a newer one in Expert."
+          : '';
+        warn('unknown-program', 'warn', `Clef can't decode instruction #${i + 1} (program ${ix.programId}).${why}`, i);
       }
       continue;
     }

@@ -13,6 +13,7 @@ const h = vi.hoisted(() => ({
   result: null as unknown,
   levels: [] as string[],
   call: vi.fn(async () => ({})),
+  back: vi.fn(),
 }));
 
 vi.mock('../lib/hooks', () => ({
@@ -23,10 +24,10 @@ vi.mock('../lib/hooks', () => ({
   },
 }));
 vi.mock('../lib/api', () => ({ call: h.call }));
-vi.mock('wxt/browser', () => ({ browser: { windows: { getCurrent: async () => ({ id: 1, type: 'popup' }), update: async () => {} }, tabs: { create: vi.fn() } } }));
+vi.mock('../lib/nav', () => ({ useNav: () => ({ route: { name: 'history/tx', signature: '5igSig', origin: 'https://jup.ag' }, back: h.back, go: vi.fn() }) }));
+vi.mock('wxt/browser', () => ({ browser: { tabs: { create: vi.fn() } } }));
 
-window.history.replaceState(null, '', '/transaction.html?sig=5igSig&origin=https%3A%2F%2Fjup.ag');
-const { TxDetail } = await import('../entrypoints/transaction/TxDetail');
+const { TxDetailScreen: TxDetail } = await import('../entrypoints/popup/screens/TxDetail');
 
 const settings = { network: 'mainnet', rpcUrl: 'https://solana-rpc.publicnode.com', customCluster: 'mainnet', autoLockMinutes: 15, detailLevel: 'basic', hideSpam: true, networkSwitchInHeader: true, devnetTint: true, jupiterApiKey: null, errorReports: false, openIn: 'popup' };
 const state = (detailLevel: DetailLevel) =>
@@ -43,6 +44,7 @@ beforeAll(async () => {
     postTokenBalances: [],
     loadedAddresses: { writable: [], readonly: [] },
     logMessages: ['Program 11111111111111111111111111111111 invoke [1]', 'Program 11111111111111111111111111111111 success'],
+    computeUnitsConsumed: 150n,
   };
   const wire = buildWire([getTransferSolInstruction({ source: createNoopSigner(ME), destination: OTHER, amount: SOL })]);
   landed = await explainLanded({ wire, meta }, { reader: new MemoryChainReader(), idls: new IdlResolver([createBundledSource()]), me: [ME], addressBook: { [ME]: 'Main' } });
@@ -68,7 +70,8 @@ describe('History transaction detail', () => {
     expect(screen.queryByRole('button', { name: /^Sign/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Reject/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Copy signature' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(h.back).toHaveBeenCalled();
   });
 
   it('switches to Expert: transaction logs and a note that past account data is not recorded', () => {
@@ -80,6 +83,21 @@ describe('History transaction detail', () => {
     expect(h.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { detailLevel: 'expert' } });
     expect(screen.getByRole('heading', { name: 'Transaction logs' })).toBeTruthy();
     expect(screen.getByText(/not account data/)).toBeTruthy();
+  });
+
+  it('Expert: recorded compute units, every account in the graph, and a copyable blockhash', async () => {
+    h.state = state('expert');
+    h.result = ok;
+    const writeText = vi.fn(async () => {});
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<TxDetail />);
+    expect(screen.getAllByText('150 CU').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/CU CU/)).toBeNull();
+    // The recipient has no verified link to anything, and is still drawn.
+    expect(screen.getAllByRole('button').some((b) => b.hasAttribute('aria-pressed') && b.textContent?.includes(OTHER.slice(0, 4)))).toBe(true);
+    // helpers' BLOCKHASH: the full value is copied, not the shortened one shown.
+    fireEvent.click(screen.getByRole('button', { name: 'Copy blockhash EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k' }));
+    expect(writeText).toHaveBeenCalledWith('EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k');
   });
 
   it('fails closed when the transaction cannot be loaded', () => {

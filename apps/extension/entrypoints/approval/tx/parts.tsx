@@ -25,7 +25,7 @@ export function DangerCards({ warnings }: { warnings: Warning[] }) {
             <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold tracking-[0.04em] text-white">DANGER</span>
             <span className="text-sm font-semibold text-danger-ink-2">{ruleTitle(w.rule)}</span>
           </div>
-          <p className="m-0 text-sm leading-normal text-danger-ink">{w.message}</p>
+          <p className="m-0 text-sm leading-normal text-danger-ink [overflow-wrap:anywhere]">{w.message}</p>
         </div>
       ))}
     </section>
@@ -37,9 +37,9 @@ export function WarnCards({ warnings }: { warnings: Warning[] }) {
   return (
     <section aria-label="Warnings" className="flex flex-col gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-xs text-warn-ink">
       {warnings.map((w, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <span className={`rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
-          <span>{w.message}</span>
+        <div key={i} className="flex items-start gap-2">
+          <span className={`flex-none rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{w.message}</span>
         </div>
       ))}
     </section>

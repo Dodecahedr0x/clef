@@ -42,7 +42,7 @@ function InstructionCard({ ix }: { ix: InstructionView }) {
         <span className="text-sm font-semibold">
           <span className="font-normal text-muted">{ix.program} ·</span> {ix.name}
         </span>
-        <span className="ml-auto">{ix.trust ? <Pill tone="primary">{TRUST_LABEL[ix.trust] ?? ix.trust}</Pill> : <Pill tone="warn">No IDL</Pill>}</span>
+        <span className="ml-auto">{ix.trust ? <Pill tone="primary">{TRUST_LABEL[ix.trust] ?? ix.trust}</Pill> : <Pill tone="warn">{ix.idlOutdated ? 'IDL out of date' : 'No IDL'}</Pill>}</span>
       </div>
       {args.length > 0 && (
         <dl className={`m-0 grid grid-cols-[136px_minmax(0,1fr)] gap-x-2 gap-y-2 px-3 py-2.5 text-xs ${ix.accounts.length ? 'border-b border-line-soft' : ''}`}>

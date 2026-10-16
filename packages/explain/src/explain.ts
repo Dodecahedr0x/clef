@@ -375,6 +375,7 @@ export async function explainWith(
   } else {
     const meta = input.meta;
     logs = parseLogs(meta.logMessages);
+    computeUnits = meta.computeUnitsConsumed ?? null;
     if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
     const ownerOf = (a: Address) => decodeTokenAccount(cache.get(a))?.owner ?? null;
     simulated = { balanceChanges: balanceChangesFromMeta(addresses, meta, (mint) => labeler.mintInfo(mint), ownerOf) };

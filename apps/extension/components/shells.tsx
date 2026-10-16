@@ -57,6 +57,7 @@ export function ApprovalFrame({
   children,
   footer,
   width = 400,
+  onBack,
 }: {
   site: { origin: string; icon?: string };
   subtitle: ReactNode;
@@ -64,14 +65,17 @@ export function ApprovalFrame({
   banner?: ReactNode;
   children: ReactNode;
   footer: ReactNode;
-  width?: 400 | 760;
+  /** 'fill' sizes to the container (a popup or side-panel screen) instead of the approval window. */
+  width?: 400 | 760 | 'fill';
+  onBack?: () => void;
 }) {
   const name = siteName(site.origin);
   const internal = site.origin.startsWith(INTERNAL_SITE_PREFIX);
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg font-sans text-ink" style={{ width }}>
+    <div className={`flex ${width === 'fill' ? 'h-full w-full' : 'h-screen'} flex-col overflow-hidden bg-bg font-sans text-ink`} style={width === 'fill' ? undefined : { width }}>
       {banner}
-      <header className="flex flex-none items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
+      <header className={`flex flex-none items-center gap-2.5 border-b border-line-soft py-3.5 ${onBack ? 'pl-1.5 pr-4' : 'px-4'}`}>
+        {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
         <span className="flex size-8 flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-surface-2 text-[14px] font-semibold text-primary">
           {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
         </span>

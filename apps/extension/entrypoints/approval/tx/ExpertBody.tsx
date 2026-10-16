@@ -3,7 +3,7 @@ import { useMemo, useState, type MouseEvent } from 'react';
 import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
-import { edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, type Tab } from './model';
+import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
 import { DangerCards, Deltas, TxTabs, WarnCards } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
@@ -58,11 +58,30 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
   return { edges: [...edges.values()], external: [...external.values()], inRequest, mine, programs, labels };
 }
 
+/** A detail value that copies its full form (an address or hash shown shortened) on click. */
+function CopyValue({ text, value, label }: { text: string; value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard?.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }, () => {});
+  };
+  return (
+    <button type="button" onClick={copy} title={`Copy ${value}`} aria-label={`Copy ${label.toLowerCase()} ${value}`} className="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-left font-mono text-xs text-ink hover:text-primary">
+      {text}
+      <Icon name={copied ? 'check' : 'copy'} size={12} className={copied ? 'text-ok' : 'text-muted'} />
+    </button>
+  );
+}
+
 function uniqueAccounts(v: ExpertView): number {
   return new Set(v.instructions.flatMap((ix) => [ix.programId, ...ix.accounts.map((a) => a.address)])).size;
 }
 
-function detailRows(view: BatchView<'expert'>, tab: Tab, state: FullState): { k: string; v: string }[] {
+type DetailRow = { k: string; v: string; copy?: string };
+
+function detailRows(view: BatchView<'expert'>, tab: Tab, state: FullState): DetailRow[] {
   const mine = (a: string) => state.accounts.some((x) => x.address === a);
   const payer = (a: string) => `${shortAddress(a)}${mine(a) ? ' (you)' : ''}`;
   const n = view.steps.length;
@@ -73,15 +92,15 @@ function detailRows(view: BatchView<'expert'>, tab: Tab, state: FullState): { k:
     const c = view.combined;
     return [
       { k: 'Transactions', v: `${n} · signed together, sent in order` },
-      ...(first ? [{ k: 'Fee payer', v: payer(first.feePayer) }] : []),
+      ...(first ? [{ k: 'Fee payer', v: payer(first.feePayer), copy: first.feePayer }] : []),
       { k: 'Total fees', v: c.fee ?? 'unknown' },
-      { k: 'Total compute', v: c.computeUnits ? `${c.computeUnits} CU` : 'unknown' },
+      { k: 'Total compute', v: c.computeUnits ? withCu(c.computeUnits) : 'unknown' },
       {
         k: 'Simulation',
         v: view.mode === 'sequential' ? 'sequential, one fork, from the current state' : `each alone${view.dependentSteps.length ? ` · ${view.dependentSteps.length} depend on earlier ones` : ''}`,
       },
       { k: 'Assumes', v: 'nothing else touches these accounts in between' },
-      ...(first ? [{ k: 'Blockhash', v: `${shortAddress(first.recentBlockhash)}${hashes.size === 1 ? ' · shared' : ` · ${hashes.size} different`}` }] : []),
+      ...(first ? [{ k: 'Blockhash', v: `${shortAddress(first.recentBlockhash)}${hashes.size === 1 ? ' · shared' : ` · ${hashes.size} different`}`, copy: first.recentBlockhash }] : []),
     ];
   }
   const v = steps[tab === 'all' ? 0 : tab];
@@ -93,14 +112,14 @@ function detailRows(view: BatchView<'expert'>, tab: Tab, state: FullState): { k:
   const idls = [...new Map(v.instructions.filter((ix) => ix.idl).map((ix) => [ix.programId, `${ix.program} ${ix.idl!.trust}`])).values()];
   return [
     { k: 'Version', v: lookups.size ? `${version} · ${lookups.size} lookup table${lookups.size === 1 ? '' : 's'}` : version },
-    { k: 'Fee payer', v: payer(v.feePayer) },
-    { k: 'Compute', v: v.computeUnitLimit !== undefined ? `${compute} / ${v.computeUnitLimit.toLocaleString('en-US')} CU` : `${compute} CU` },
+    { k: 'Fee payer', v: payer(v.feePayer), copy: v.feePayer },
+    { k: 'Compute', v: v.computeUnitLimit !== undefined ? `${cuNumber(compute)} / ${v.computeUnitLimit.toLocaleString('en-US')} CU` : withCu(compute) },
     { k: 'Fees', v: v.fee ?? 'unknown' },
     ...(v.computeUnitPrice ? [{ k: 'Priority', v: `${Number(v.computeUnitPrice).toLocaleString('en-US')} µ◎/CU` }] : []),
     ...(v.priorityFeeLamports ? [{ k: 'Priority fee', v: `${v.priorityFeeLamports} lamports` }] : []),
     { k: 'Accounts', v: fromAlt ? `${uniqueAccounts(v)} · ${fromAlt} from lookup tables` : String(uniqueAccounts(v)) },
     ...(idls.length ? [{ k: 'IDLs', v: idls.join(' · ') }] : []),
-    { k: 'Blockhash', v: shortAddress(v.recentBlockhash) },
+    { k: 'Blockhash', v: shortAddress(v.recentBlockhash), copy: v.recentBlockhash },
   ];
 }
 
@@ -142,8 +161,8 @@ export function ExpertBody(p: {
   const net = networkName(p.chain);
   const logMeta =
     isAll && n > 1
-      ? `${net} · ${n} transactions ${view.mode === 'sequential' ? 'in sequence' : 'simulated one by one'}${view.combined.computeUnits ? ` · ${view.combined.computeUnits} CU` : ''}`
-      : `${net}${sv?.computeUnits ? ` · ${sv.computeUnits} CU` : ''}`;
+      ? `${net} · ${n} transactions ${view.mode === 'sequential' ? 'in sequence' : 'simulated one by one'}${view.combined.computeUnits ? ` · ${withCu(view.combined.computeUnits)}` : ''}`
+      : `${net}${sv?.computeUnits ? ` · ${withCu(sv.computeUnits)}` : ''}`;
 
   const go = (id: Section) => (e: MouseEvent) => {
     e.preventDefault();
@@ -153,7 +172,7 @@ export function ExpertBody(p: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-3 border-b border-line-soft bg-surface px-5 pt-1 pb-3.5">
+      <div className="flex flex-col gap-3 border-b border-line-soft bg-surface px-4 pt-1 pb-3.5 min-[600px]:px-5">
         {n > 1 && (
           <div className="flex items-center gap-1.5">
             <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={p.onTab} />
@@ -162,7 +181,7 @@ export function ExpertBody(p: {
         )}
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3.5 tabular-nums">
-            <h1 className="m-0 text-2xl font-semibold tracking-[-0.02em]">{title}</h1>
+            <h1 className="m-0 min-w-0 text-lg font-semibold tracking-[-0.02em] [overflow-wrap:anywhere] min-[600px]:text-2xl">{title}</h1>
             <span className={`ml-auto text-xs ${dangers.length ? 'text-danger-text' : others.length ? 'text-warn' : 'text-ok'}`}>
               {shownWarnings.length ? `${shownWarnings.length} warning${shownWarnings.length === 1 ? '' : 's'}` : 'No warnings'}
             </span>
@@ -218,7 +237,7 @@ export function ExpertBody(p: {
               {detailRows(view, isAll ? 'all' : tab, state).map((r, i) => (
                 <div key={r.k} className="contents">
                   <dt className={`py-[9px] font-sans text-muted ${i ? 'border-t border-line-soft' : ''}`}>{r.k}</dt>
-                  <dd className={`m-0 py-[9px] break-all ${i ? 'border-t border-line-soft' : ''}`}>{r.v}</dd>
+                  <dd className={`m-0 py-[9px] break-all ${i ? 'border-t border-line-soft' : ''}`}>{r.copy ? <CopyValue text={r.v} value={r.copy} label={r.k} /> : r.v}</dd>
                 </div>
               ))}
             </dl>

@@ -378,6 +378,28 @@ describe('explain', () => {
     expect(ex.balanceChanges).toContainEqual(expect.objectContaining({ owner: ME, mint: MINT, decimals: 3, delta: 7_000n }));
   });
 
+  it('says when a program\'s published IDL is out of date, and marks the instruction view', async () => {
+    const user = new UserIdlSource();
+    user.set(VAULT, JSON.stringify(vaultJson));
+    const stale: Instruction = { programAddress: VAULT, accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }], data: new Uint8Array([9, 9, 9, 9, 9, 9, 9, 9]) };
+    const ex = await explain({ wire: buildWire([stale]) }, ctx(new MemoryChainReader(), { idls: new IdlResolver([user]) }));
+    const w = ex.warnings.find((x) => x.rule === 'unknown-program');
+    expect(w?.message).toMatch(/published doesn't list this instruction, so it is probably out of date/);
+    expect(viewFor(ex, 'intermediate').instructions[0]).toMatchObject({ name: 'Unknown instruction', idlOutdated: true });
+  });
+
+  it('keeps the compute units a landed transaction recorded', async () => {
+    const wire = buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: SOL })]);
+    const meta: TxMeta = {
+      err: null, fee: 5000n,
+      preBalances: [3n * SOL, 0n, 1n], postBalances: [2n * SOL - 5000n, SOL, 1n],
+      preTokenBalances: [], postTokenBalances: [],
+      loadedAddresses: { writable: [], readonly: [] }, logMessages: [], computeUnitsConsumed: 150n,
+    };
+    const ex = await explain({ wire, meta }, ctx(new MemoryChainReader()));
+    expect(ex.computeUnits).toBe(150n);
+  });
+
   it('uses tx meta instead of simulating when given', async () => {
     const reader = new MemoryChainReader();
     reader.simulateImpl = async () => {

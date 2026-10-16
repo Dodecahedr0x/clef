@@ -1,13 +1,22 @@
 import { explainBatch, explainLanded, viewForBatch, type BatchView, type DetailLevel, type ExplainedBatch } from '@clef/explain';
 import { loadHistory, loadPortfolio, type HistoryItem, type Portfolio } from '@clef/portfolio';
 import type { Contact, PublicAccount, UserIdl } from '@clef/wallet-core';
-import type { Address } from '@solana/kit';
+import { isSolanaError, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, type Address } from '@solana/kit';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { browser } from 'wxt/browser';
 import { call, getState, type FullState } from './api';
 import { ClientsContext, createExplainContext, type Clients, type ExplainExtras } from './clients';
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** Error text for the UI; RPC transport failures get a readable reason instead of a raw Solana error code. */
+const message = (e: unknown): string => {
+  if (isSolanaError(e, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR)) {
+    const status = e.context.statusCode;
+    if (status === 429) return 'Your RPC is rate-limiting requests. Try again in a moment, or add your own provider URL in Settings → Network & RPC.';
+    if (status === 401 || status === 403) return `Your RPC refused the request (HTTP ${status}). Check the RPC URL in Settings → Network & RPC.`;
+    return `Your RPC request failed (HTTP ${status}).`;
+  }
+  return e instanceof Error ? e.message : String(e);
+};
 
 // One wallet snapshot shared by every mounted useWallet; dropped when the last one unmounts.
 type WalletSnapshot = { state: FullState | null; error: string | null };

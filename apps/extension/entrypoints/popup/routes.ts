@@ -5,6 +5,7 @@ export type Route =
   | { name: 'receive' }
   | { name: 'swap'; inputMint?: string; outputMint?: string }
   | { name: 'history' }
+  | { name: 'history/tx'; signature: string; origin?: string }
   | { name: 'settings' }
   | { name: 'settings/sites' }
   | { name: 'settings/idls' }

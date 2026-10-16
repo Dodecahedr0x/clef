@@ -10,7 +10,16 @@ import type { AccountDiff, BalanceChange, DetailLevel, ExplainedInstruction, Exp
 
 export type ChangeView = { owner: string; asset: string; amount: string };
 export type AccountView = { name: string; address: string; label?: string; badges: string[] };
-export type InstructionView = { index: number; program: string; name: string; trust?: string; args: Record<string, string>; accounts: AccountView[] };
+export type InstructionView = {
+  index: number;
+  program: string;
+  name: string;
+  trust?: string;
+  /** An IDL exists for the program but lists no such instruction: it was published before the program changed. */
+  idlOutdated?: true;
+  args: Record<string, string>;
+  accounts: AccountView[];
+};
 export type ExpertAccountView = AccountView & { signer: boolean; writable: boolean; lookupTable?: string };
 export type ExpertInstructionView = Omit<InstructionView, 'accounts'> & {
   programId: string;
@@ -141,6 +150,7 @@ function instructionView(ex: ExplainedTransaction, ix: ExplainedInstruction): In
     program: programDisplay(ix),
     name: ix.name ?? 'Unknown instruction',
     ...(ix.idl && { trust: ix.idl.trust }),
+    ...(!ix.idl && ex.issues.some((i) => i.stage === 'parse' && i.instructionIndex === ix.index && i.message.startsWith('no instruction in')) && { idlOutdated: true as const }),
     args: formatArgs(ix),
     accounts: accountViews(ex, ix),
   };

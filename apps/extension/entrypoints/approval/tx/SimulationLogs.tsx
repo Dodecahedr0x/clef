@@ -1,6 +1,7 @@
 import type { LogLineView } from '@clef/explain';
 import { useState, type ReactNode } from 'react';
 import { useOnChain } from './source';
+import { withCu } from './model';
 
 type Filter = 'all' | 'program' | 'compute';
 type Group = { index: number; title: string; computeUnits: string | null; failed: boolean; logs: LogLineView[] | null };
@@ -34,7 +35,7 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
           <span className="text-ink">
             Transaction {g.index + 1} · {g.title}
           </span>
-          <span className="text-right text-muted">{g.computeUnits ? `${g.computeUnits} CU` : ''}</span>
+          <span className="text-right text-muted">{g.computeUnits ? withCu(g.computeUnits) : ''}</span>
         </li>,
       );
     }
@@ -58,7 +59,7 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
             {l.text}
             {l.kind === 'invoke' && l.program && <span className="font-sans text-muted"> · {l.program}</span>}
           </span>
-          <span className="text-right text-muted">{l.computeUnits ? `${l.computeUnits} CU` : ''}</span>
+          <span className="text-right text-muted">{l.computeUnits ? withCu(l.computeUnits) : ''}</span>
         </li>,
       );
     }

@@ -24,6 +24,7 @@ import { SettingsScreen } from './screens/Settings';
 import { SquadsAddScreen } from './screens/SquadsAdd';
 import { SwapScreen } from './screens/Swap';
 import { TokenDetailScreen } from './screens/TokenDetail';
+import { TxDetailScreen } from './screens/TxDetail';
 import { UnlockScreen } from './screens/Unlock';
 import { WelcomeScreen } from './screens/Welcome';
 
@@ -34,6 +35,7 @@ const SCREENS: Record<RouteName, () => JSX.Element> = {
   receive: ReceiveScreen,
   swap: SwapScreen,
   history: HistoryScreen,
+  'history/tx': TxDetailScreen,
   settings: SettingsScreen,
   'settings/sites': ConnectedSitesScreen,
   'settings/idls': IdlManagerScreen,

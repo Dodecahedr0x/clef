@@ -86,3 +86,8 @@ export function expertSteps(view: BatchView<'expert'>, tab: Tab): { index: numbe
 }
 
 export const edgeKey = (e: RelationEdge) => `${e.kind}|${e.from}|${e.to}|${e.label}`;
+
+/** Compute units for display: engine views already end in " CU"; bare numbers get it added. */
+export const withCu = (v: string): string => (v.endsWith(' CU') ? v : `${v} CU`);
+/** The bare number, for "used / limit CU". */
+export const cuNumber = (v: string): string => v.replace(/ CU$/, '');

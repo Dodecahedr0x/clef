@@ -31,6 +31,8 @@ export function layoutGraph(g: GraphInput, showExternal: boolean): { nodes: Grap
     add(e.to);
   }
   for (const a of g.mine) if (g.inRequest.has(a)) add(a);
+  // Every account of the request is drawn, linked or not: a missing node would hide what the transaction touches.
+  for (const a of g.inRequest.keys()) add(a);
   if (showExternal) {
     for (const e of g.external) {
       add(e.from);
@@ -110,7 +112,9 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
       {nodes.length === 0 ? (
         <p className="m-0 rounded-xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
       ) : (
-        <div className="relative overflow-x-auto overflow-y-hidden rounded-xl border border-line bg-surface" style={{ height }}>
+        <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-line bg-surface" style={{ height }}>
+          {/* Sized to the layout so a narrow view (popup, side panel) scrolls sideways instead of clipping. */}
+          <div className="relative" style={{ width: GRAPH.width, height }}>
           <svg aria-hidden="true" width={GRAPH.width} height={height} viewBox={`0 0 ${GRAPH.width} ${height}`} className="absolute inset-0">
             {drawn.map((e) => {
               const p = edgePath(byAddress.get(e.from)!, byAddress.get(e.to)!);
@@ -158,6 +162,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             <span>— in the request</span>
             <span className="text-ok">- - PDA seeds</span>
             <span>··· outside the request</span>
+          </div>
           </div>
         </div>
       )}

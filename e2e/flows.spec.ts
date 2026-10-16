@@ -177,12 +177,13 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'History' }).click();
   const row = popup.getByRole('button', { name: /^Details of Sent to / }).first();
   await expect(row).toBeVisible({ timeout: 30_000 });
-  const detailP = context.waitForEvent('page', { predicate: (p) => p.url().includes('/transaction.html') });
   await row.click();
-  const detail = await detailP;
+  const detail = popup;
   await expect(detail.getByText(/^Confirmed · /)).toBeVisible({ timeout: 30_000 });
   await expect(detail.getByText(/0\.5 SOL/).first()).toBeVisible();
   await expect(detail.getByRole('button', { name: /^Sign/ })).toHaveCount(0);
   await detail.getByRole('radio', { name: /Expert/ }).click();
   await expect(detail.getByRole('heading', { name: 'Transaction logs' })).toBeVisible();
+  await detail.getByRole('button', { name: 'Back' }).click();
+  await expect(row).toBeVisible();
 });

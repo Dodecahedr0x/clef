@@ -25,6 +25,8 @@ export type TxMeta = {
   postTokenBalances: TokenBalance[];
   loadedAddresses: { writable: Address[]; readonly: Address[] };
   logMessages: string[];
+  /** Compute units the transaction used (absent from old RPC responses and fixtures). */
+  computeUnitsConsumed?: bigint | null;
 };
 
 export type FetchedTransaction = {
