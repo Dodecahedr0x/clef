@@ -64,6 +64,8 @@ describe('KitChainReader (offline)', () => {
           loadedAddresses: { writable: [MINT], readonly: [] },
           logMessages: ['log'],
           computeUnitsConsumed: 4242n,
+          // base58 'EG' is the bytes [3, 1]; the second entry has no data and is dropped.
+          innerInstructions: [{ index: 0, instructions: [{ programIdIndex: 2n, accounts: [0n, 1n], data: 'EG', stackHeight: 2 }, { programIdIndex: 2, accounts: [] }] }],
         },
       },
       { slot: 6n, blockTime: 1700000000n, transaction: [btoa('x'), 'base64'], meta: null },
@@ -86,6 +88,7 @@ describe('KitChainReader (offline)', () => {
         loadedAddresses: { writable: [MINT], readonly: [] },
         logMessages: ['log'],
         computeUnitsConsumed: 4242n,
+        innerInstructions: [{ index: 0, instructions: [{ programIdIndex: 2, accounts: [0, 1], data: new Uint8Array([3, 1]) }] }],
       },
     });
 

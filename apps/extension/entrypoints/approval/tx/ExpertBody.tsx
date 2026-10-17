@@ -1,4 +1,4 @@
-import type { BatchView, ExplainedBatch, ExpertView, RelationEdge, Warning } from '@clef/explain';
+import type { AccountFactView, BatchView, ExplainedBatch, ExpertView, RelationEdge, TransferView, Warning } from '@clef/explain';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
@@ -26,6 +26,9 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
   const inRequest = new Map<string, Set<number>>();
   const programs = new Set<string>();
   const labels = new Map<string, string>();
+  const facts = new Map<string, (AccountFactView & { step: number })[]>();
+  let transfers: (TransferView & { step: number })[] | null = null;
+  let transfersPartial = false;
   const mine = new Set(state.accounts.map((a) => a.address as string));
   for (const a of state.accounts) labels.set(a.address, `You · ${a.label}`);
   const use = (a: string, step: number) => {
@@ -54,8 +57,11 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
     for (const d of v.accountDiffs ?? []) if (!labels.has(d.address)) labels.set(d.address, d.title);
     for (const e of v.relations) if (!e.external) tag(edges, e, s.index);
     for (const e of v.externalRelations) tag(external, e, s.index);
+    for (const f of v.accountFacts ?? []) facts.set(f.address, [...(facts.get(f.address) ?? []), { ...f, step: s.index }]);
+    if (v.transfers) transfers = [...(transfers ?? []), ...v.transfers.map((t) => ({ ...t, step: s.index }))];
+    if (v.transfers && v.transfersPartial) transfersPartial = true;
   }
-  return { edges: [...edges.values()], external: [...external.values()], inRequest, mine, programs, labels };
+  return { edges: [...edges.values()], external: [...external.values()], inRequest, mine, programs, labels, facts, transfers, transfersPartial };
 }
 
 /** A detail value that copies its full form (an address or hash shown shortened) on click. */

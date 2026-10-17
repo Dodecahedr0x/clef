@@ -1,10 +1,10 @@
-import type { RelationEdge } from '@clef/explain';
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import type { AccountFactView, RelationEdge, TransferView } from '@clef/explain';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { shortAddress } from '../../../lib/format';
 import { edgeKey } from './model';
 import { Pubkey } from '../../../components';
 
-export const GRAPH = { width: 672, nodeW: 136, nodeH: 52, colX: [8, 184, 360, 536], top: 40, rowH: 110 } as const;
+export const GRAPH = { width: 672, nodeW: 136, nodeH: 64, colX: [8, 184, 360, 536], top: 40, rowH: 110 } as const;
 
 export type GraphInput = {
   /** Edges between accounts of the request, tagged with the 0-based steps that contain them. */
@@ -15,7 +15,33 @@ export type GraphInput = {
   mine: Set<string>;
   programs: Set<string>;
   labels: Map<string, string>;
+  /** Per account, what each step that uses it says of it. */
+  facts?: Map<string, (AccountFactView & { step: number })[]>;
+  /** Null when no step's transfers are known. */
+  transfers?: (TransferView & { step: number })[] | null;
+  /** Some step's transfers miss what the programs it called moved. */
+  transfersPartial?: boolean;
 };
+
+/** The account as the selected tab sees it: one step's fact, or (all steps) before from the first and after from the last. */
+export function factFor(g: GraphInput, address: string, tab: 'all' | number): (AccountFactView & { step: number }) | null {
+  const list = g.facts?.get(address) ?? [];
+  if (tab !== 'all') return list.find((f) => f.step === tab) ?? null;
+  if (list.length <= 1) return list[0] ?? null;
+  const first = list[0]!;
+  const last = list[list.length - 1]!;
+  const lifecycle = first.lifecycle === 'missing' && last.lifecycle !== 'missing' ? 'created' : last.lifecycle === 'closed' ? 'closed' : first.lifecycle;
+  // Deltas don't add up as strings: across steps only before and after are shown.
+  return {
+    ...last,
+    lifecycle,
+    lamports: { before: first.lamports.before, after: last.lamports.after, delta: null },
+    ...(last.token && { token: { ...last.token, before: first.token?.mint === last.token.mint ? first.token.before : null, delta: null } }),
+  };
+}
+
+/** Owner line of a node: Clef's name for the program, else its short address. */
+export const ownerText = (f: AccountFactView | null) => (f?.owner ? (f.ownerName ?? shortAddress(f.owner)) : null);
 
 export type GraphNode = { address: string; col: 0 | 1 | 2 | 3; x: number; y: number; title: string; sub: string; external: boolean };
 
@@ -100,10 +126,15 @@ export function placeLabels(labels: { x: number; y: number; text: string }[]): {
 const ZOOM = { min: 0.3, max: 2, step: 0.2 } as const;
 const clampZoom = (z: number) => Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(z * 100) / 100));
 
+const TRANSFER_STROKE = '#2F6FDB';
+const transferLabel = (t: TransferView) => (t.kind === 'create' ? `funds ${t.amount}` : t.kind === 'mint' ? `mints ${t.amount}` : t.kind === 'burn' ? `burns ${t.amount}` : t.amount);
+
 const STATUS_OK: Record<RelationEdge['status'], string> = { verified: '✓', mismatch: '✗ mismatch', unverified: '? unverified' };
 
 export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; tab: 'all' | number; batchSize: number }) {
   const [showExternal, setShowExternal] = useState(false);
+  const [showTransfers, setShowTransfers] = useState(true);
+  const [hover, setHover] = useState<string | null>(null);
   const { nodes, height } = useMemo(() => layoutGraph(input, showExternal), [input, showExternal]);
   const [picked, setPicked] = useState<string | null>(null);
   const [moved, setMoved] = useState<Record<string, Pos>>({});
@@ -122,7 +153,21 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   const drawn = [...input.edges, ...(showExternal ? input.external : [])].filter((e) => byAddress.has(e.from) && byAddress.has(e.to));
   const paths = drawn.map((e) => edgePath(byAddress.get(e.from)!, byAddress.get(e.to)!));
   const labelText = (e: RelationEdge) => (e.kind === 'pda' ? 'seeds' : e.label);
-  const labelAt = placeLabels(drawn.map((e, i) => ({ x: paths[i]!.lx, y: paths[i]!.ly, text: labelText(e) })));
+  const transfers = (input.transfers ?? []).filter((t) => (tab === 'all' || t.step === tab) && t.from !== t.to);
+  const flows = (showTransfers ? transfers : []).filter((t) => byAddress.has(t.from) && byAddress.has(t.to));
+  const flowPaths = flows.map((t) => {
+    const a = byAddress.get(t.from)!;
+    const b = byAddress.get(t.to)!;
+    // edgePath draws left to right (or down the right side when stacked): the arrow goes on the receiving end.
+    const forward = Math.abs(a.x - b.x) < GRAPH.nodeW || a.x < b.x;
+    return { ...edgePath(a, b), forward };
+  });
+  const labelAt = placeLabels([
+    ...drawn.map((e, i) => ({ x: paths[i]!.lx, y: paths[i]!.ly, text: labelText(e) })),
+    ...flows.map((t, i) => ({ x: flowPaths[i]!.lx, y: flowPaths[i]!.ly, text: transferLabel(t) })),
+  ]);
+  const flowLabelAt = labelAt.slice(drawn.length);
+  const hovered = hover && !drag.current ? byAddress.get(hover) : undefined;
 
   const fit = () => {
     const w = viewport.current?.clientWidth ?? contentW;
@@ -196,12 +241,30 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             <div className="relative" style={{ width: contentW * zoom, height: contentH * zoom }}>
               <div className="absolute top-0 left-0 origin-top-left" style={{ width: contentW, height: contentH, transform: `scale(${zoom})` }}>
                 <svg aria-hidden="true" width={contentW} height={contentH} viewBox={`0 0 ${contentW} ${contentH}`} className="absolute inset-0">
+                  <defs>
+                    <marker id="clef-flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M0 0 L10 5 L0 10 z" fill={TRANSFER_STROKE} />
+                    </marker>
+                  </defs>
                   {drawn.map((e, i) => {
                     const p = paths[i]!;
                     const stroke = e.status === 'mismatch' ? '#C8402A' : e.external ? '#CBD0DA' : e.kind === 'pda' ? '#0F7A62' : '#9AA1AE';
                     const dash = e.external ? '3 4' : e.kind === 'pda' ? '5 4' : undefined;
                     return <path key={edgeKey(e)} d={p.d} stroke={stroke} strokeWidth={1.5} fill="none" strokeDasharray={dash} />;
                   })}
+                  {flows.map((t, i) => (
+                    <path
+                      key={`f-${i}`}
+                      data-transfer={t.kind}
+                      d={flowPaths[i]!.d}
+                      stroke={TRANSFER_STROKE}
+                      strokeWidth={1.75}
+                      fill="none"
+                      strokeDasharray={t.inner ? '1 3' : undefined}
+                      strokeLinecap="round"
+                      {...(flowPaths[i]!.forward ? { markerEnd: 'url(#clef-flow-arrow)' } : { markerStart: 'url(#clef-flow-arrow)' })}
+                    />
+                  ))}
                   {/* Labels after every edge, with a halo, so no line runs through a label. */}
                   {drawn.map((e, i) => (
                     <text
@@ -218,11 +281,19 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       {labelText(e)}
                     </text>
                   ))}
+                  {flows.map((t, i) => (
+                    <text key={`fl-${i}`} x={flowLabelAt[i]!.x} y={flowLabelAt[i]!.y} fontSize={12} fontWeight={600} fill={TRANSFER_STROKE} stroke="#FFFFFF" strokeWidth={4} strokeLinejoin="round" paintOrder="stroke">
+                      {transferLabel(t)}
+                    </text>
+                  ))}
                 </svg>
                 {placedNodes.map((n) => {
                   const on = n.address === selected?.address;
                   const mine = n.col === 0;
                   const program = input.programs.has(n.address);
+                  const fact = factFor(input, n.address, tab);
+                  const owner = ownerText(fact);
+                  const badge = fact?.lifecycle === 'created' ? 'new' : fact?.lifecycle === 'closed' ? 'closed' : null;
                   return (
                     <button
                       key={n.address}
@@ -231,6 +302,11 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       onPointerDown={onPointerDown(n)}
                       onPointerMove={onPointerMove}
                       onPointerUp={onPointerUp}
+                      onPointerEnter={() => setHover(n.address)}
+                      onPointerLeave={() => setHover((h) => (h === n.address ? null : h))}
+                      onFocus={() => setHover(n.address)}
+                      onBlur={() => setHover((h) => (h === n.address ? null : h))}
+                      aria-describedby={hovered?.address === n.address ? 'clef-graph-card' : undefined}
                       onClick={() => {
                         if (justDragged.current) {
                           justDragged.current = false;
@@ -251,8 +327,12 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                                 : 'border border-line'
                       } ${n.external ? 'bg-surface-4' : mine ? 'bg-info-tint' : program ? 'bg-primary-bg' : 'bg-surface'}`}
                     >
+                      {badge && (
+                        <span className={`absolute -top-2 right-2 rounded-full px-1.5 text-[10px] leading-4 font-semibold uppercase ${badge === 'new' ? 'bg-ok text-white' : 'bg-danger-text text-white'}`}>{badge}</span>
+                      )}
                       <span className="w-full truncate text-xs font-semibold">{n.title}</span>
                       <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={input.programs.has(n.address) ? 'program · ' : pdaChild(input, n.address) ? 'PDA · ' : undefined} /></span>
+                      {owner && !program && <span className="w-full truncate text-[11px] text-muted">owner · {owner}</span>}
                     </button>
                   );
                 })}
@@ -260,11 +340,34 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                   <span>— in the request</span>
                   <span className="text-ok">- - PDA seeds</span>
                   <span>··· outside the request</span>
+                  {transfers.length > 0 && <span style={{ color: TRANSFER_STROKE }}>→ transfer (dotted: by a called program)</span>}
                 </div>
               </div>
             </div>
           </div>
+          {hovered && (
+            <div
+              id="clef-graph-card"
+              role="tooltip"
+              className="pointer-events-none absolute z-[4] w-[260px] rounded-xl border border-line bg-surface px-3 py-2.5 shadow-lg"
+              style={cardPosition(hovered, zoom, viewport.current)}
+            >
+              <AccountCard title={hovered.title} address={hovered.address} fact={factFor(input, hovered.address, tab)} transfers={transfers} label={label} program={input.programs.has(hovered.address)} compact />
+            </div>
+          )}
         </div>
+      )}
+      {transfers.length > 0 && (
+        <label className="flex cursor-pointer items-center gap-2 self-start text-xs">
+          <input type="checkbox" role="switch" checked={showTransfers} aria-checked={showTransfers} onChange={() => setShowTransfers(!showTransfers)} className="m-0 size-[18px] accent-primary" />
+          Show SOL and token transfers ({transfers.length})
+        </label>
+      )}
+      {input.transfersPartial && <span className="text-xs text-muted">The RPC didn't report what the called programs moved: only transfers the instructions make themselves are drawn.</span>}
+      {selected && (
+        <section role="group" aria-label="Selected account details" className="rounded-xl border border-line bg-surface px-3.5 py-3">
+          <AccountCard title={selected.title} address={selected.address} fact={factFor(input, selected.address, tab)} transfers={transfers} label={label} program={input.programs.has(selected.address)} />
+        </section>
       )}
       {selected && (
         <section role="group" aria-label="Selected account" className="grid grid-cols-2 gap-4 rounded-xl border border-line bg-surface px-3.5 py-3">
@@ -288,6 +391,93 @@ function RelationRows({ title, rows }: { title: string; rows: { k: string; v: st
           <span className={r.ok.startsWith('✓') ? 'text-ok' : r.ok.startsWith('✗') ? 'text-danger-text' : 'text-warn'}>{r.ok}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Next to the node, inside the visible part of the viewport. */
+function cardPosition(n: GraphNode, zoom: number, viewport: HTMLDivElement | null): { left: number; top: number } {
+  const sl = viewport?.scrollLeft ?? 0;
+  const st = viewport?.scrollTop ?? 0;
+  const vw = viewport?.clientWidth ?? 672;
+  const right = (n.x + GRAPH.nodeW) * zoom - sl + 8;
+  const left = right + 260 > vw ? Math.max(4, n.x * zoom - sl - 268) : right;
+  return { left, top: Math.max(4, n.y * zoom - st) };
+}
+
+const LIFECYCLE: Record<AccountFactView['lifecycle'], string | null> = {
+  created: 'Created by this transaction',
+  closed: 'Closed by this transaction',
+  missing: "Doesn't exist before or after this transaction",
+  existing: null,
+};
+
+/** What Clef knows of an account: owner, size, lamports and token balance before and after, and what moves through it. */
+export function AccountCard({ title, address, fact, transfers, label, program, compact = false }: {
+  title: string;
+  address: string;
+  fact: AccountFactView | null;
+  transfers: TransferView[];
+  label: (a: string) => string;
+  program: boolean;
+  compact?: boolean;
+}) {
+  const life = fact ? LIFECYCLE[fact.lifecycle] : null;
+  const moves = transfers.filter((t) => t.from === address || t.to === address);
+  const shown = compact ? moves.slice(0, 6) : moves;
+  const row = (k: string, v: ReactNode) => (
+    <div className="flex gap-2 text-xs">
+      <span className="w-[72px] flex-none text-muted">{k}</span>
+      <span className="min-w-0 flex-1 break-words">{v}</span>
+    </div>
+  );
+  const change = (before: string | null, after: string | null, delta: string | null) =>
+    before === after || after === null ? (
+      <span className="font-mono">{before ?? 'unknown'}{after === null && before !== null ? ' (after: unknown)' : ''}</span>
+    ) : (
+      <span className="font-mono">
+        {before ?? '?'} → {after}
+        {delta && <span className={delta.startsWith('-') ? ' text-danger-text' : ' text-ok'}> ({delta})</span>}
+      </span>
+    );
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="truncate text-xs font-semibold">{title}</span>
+      {!compact ? <Pubkey value={address} className="self-start text-xs text-muted" /> : <span className="font-mono text-xs text-muted">{shortAddress(address)}</span>}
+      {life && <span className={`text-xs font-semibold ${fact?.lifecycle === 'closed' ? 'text-danger-text' : fact?.lifecycle === 'created' ? 'text-ok' : 'text-muted'}`}>{life}</span>}
+      {!fact && <span className="text-xs text-muted">{program ? 'Program' : 'No state known for this account.'}</span>}
+      {fact && (
+        <>
+          {fact.owner && row(fact.executable ? 'Loader' : 'Owner', <>{fact.ownerName ?? label(fact.owner)}{!compact && fact.ownerName && <> <Pubkey value={fact.owner} className="text-muted" /></>}{fact.ownerNow && <span className="text-muted"> (today)</span>}</>)}
+          {fact.executable && row('Kind', 'Program (executable)')}
+          {fact.dataLength !== null && row('Data', `${fact.dataLength.toLocaleString('en-US')} bytes`)}
+          {row('Lamports', change(fact.lamports.before, fact.lamports.after, fact.lamports.delta))}
+          {fact.token && (
+            <>
+              {row('Token', <>{fact.token.symbol} · held by {label(fact.token.holder)}</>)}
+              {row('Balance', change(fact.token.before, fact.token.after, fact.token.delta))}
+            </>
+          )}
+        </>
+      )}
+      {shown.length > 0 && (
+        <div className="mt-1 flex flex-col gap-0.5">
+          <span className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">Transfers</span>
+          {shown.map((t, i) => {
+            const out = t.from === address;
+            const other = out ? t.to : t.from;
+            const verb = t.kind === 'create' ? (out ? 'funds new' : 'funded by') : t.kind === 'mint' ? (out ? 'mints to' : 'minted from') : t.kind === 'burn' ? (out ? 'burns at' : 'burned from') : out ? 'to' : 'from';
+            return (
+              <span key={i} className="text-xs">
+                <span className={out ? 'text-danger-text' : 'text-ok'}>{out ? '−' : '+'}{t.amount}</span> {verb} {label(other)}
+                {t.kind === 'create' && t.ownerName && <span className="text-muted"> (owner {t.ownerName}{t.space !== undefined ? `, ${t.space} bytes` : ''})</span>}
+                {t.inner && <span className="text-muted"> · via CPI in #{t.instructionIndex + 1}</span>}
+              </span>
+            );
+          })}
+          {moves.length > shown.length && <span className="text-xs text-muted">+{moves.length - shown.length} more (select the account)</span>}
+        </div>
+      )}
     </div>
   );
 }

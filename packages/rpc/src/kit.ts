@@ -4,6 +4,7 @@ import {
   SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR,
   getBase64Decoder,
   getBase64Encoder,
+  getBase58Encoder,
   type Address,
   type Base64EncodedWireTransaction,
   type Rpc,
@@ -15,7 +16,10 @@ import type { SendOptions, TransactionSender } from './sender';
 import {
   UnsupportedMethodError,
   type ChainReader,
+  type CompiledInnerInstruction,
   type FetchedTransaction,
+  type InnerInstruction,
+  type InnerInstructions,
   type RawAccount,
   type ReadOptions,
   type SequenceResult,
@@ -97,6 +101,40 @@ export async function retryRateLimited<T>(run: () => Promise<T>, delaysMs: reado
       await new Promise((r) => setTimeout(r, delaysMs[attempt]));
     }
   }
+}
+
+type RpcInner = { index: number | bigint; instructions: readonly unknown[] };
+const base58 = (s: unknown) => (typeof s === 'string' ? new Uint8Array(getBase58Encoder().encode(s)) : null);
+
+/** `meta.innerInstructions` of a base64 `getTransaction`: compiled (account indexes, base58 data). */
+function compiledInner(list: readonly RpcInner[] | null | undefined): InnerInstructions<CompiledInnerInstruction> | null {
+  if (!list) return null;
+  return list.map((group) => ({
+    index: Number(group.index),
+    instructions: group.instructions.flatMap((raw) => {
+      const ix = raw as { programIdIndex?: number | bigint; accounts?: readonly (number | bigint)[]; data?: unknown };
+      const data = base58(ix.data);
+      if (ix.programIdIndex === undefined || !ix.accounts || !data) return [];
+      return [{ programIdIndex: Number(ix.programIdIndex), accounts: ix.accounts.map(Number), data }];
+    }),
+  }));
+}
+
+/** `simulateTransaction` inner instructions: by address, parsed for programs the RPC knows. */
+function resolvedInner(list: readonly RpcInner[]): InnerInstructions<InnerInstruction> {
+  return list.map((group) => ({
+    index: Number(group.index),
+    instructions: group.instructions.flatMap((raw): InnerInstruction[] => {
+      const ix = raw as { programId?: string; accounts?: readonly string[]; data?: unknown; parsed?: unknown };
+      if (typeof ix.programId !== 'string') return [];
+      const parsed = ix.parsed as { type?: unknown; info?: unknown } | undefined;
+      if (parsed && typeof parsed.type === 'string' && parsed.info && typeof parsed.info === 'object') {
+        return [{ programId: ix.programId as Address, accounts: [], data: null, parsed: { type: parsed.type, info: parsed.info as Record<string, unknown> } }];
+      }
+      const data = base58(ix.data);
+      return data ? [{ programId: ix.programId as Address, accounts: (ix.accounts ?? []).map((a) => a as Address), data }] : [];
+    }),
+  }));
 }
 
 export class KitChainReader implements ChainReader, TransactionSender {
@@ -218,6 +256,7 @@ export class KitChainReader implements ChainReader, TransactionSender {
         },
         logMessages: [...(m.logMessages ?? [])],
         computeUnitsConsumed: m.computeUnitsConsumed === undefined || m.computeUnitsConsumed === null ? null : BigInt(m.computeUnitsConsumed),
+        innerInstructions: compiledInner(m.innerInstructions),
       },
     };
     if (this.url !== null) {
@@ -235,6 +274,7 @@ export class KitChainReader implements ChainReader, TransactionSender {
         commitment: 'confirmed',
         sigVerify: false,
         replaceRecentBlockhash: true,
+        innerInstructions: true,
         accounts: { encoding: 'base64', addresses: [...addresses] },
         ...(options.minContextSlot !== undefined && { minContextSlot: options.minContextSlot }),
       })
@@ -246,6 +286,7 @@ export class KitChainReader implements ChainReader, TransactionSender {
       postAccounts: value.accounts
         ? value.accounts.map((acc, i) => (acc ? toRaw(addresses[i]!, acc as unknown as EncodedAccount) : null))
         : addresses.map(() => null),
+      ...(value.innerInstructions && { innerInstructions: resolvedInner(value.innerInstructions) }),
       ...(context?.slot !== undefined && { slot: BigInt(context.slot) }),
     };
   }

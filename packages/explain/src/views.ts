@@ -5,8 +5,8 @@ import { formatUnits, programDisplay } from './format';
 import { toHex } from './hex';
 import { shortAddress } from './labels';
 import type { StateChange } from './state-changes';
-import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, TOKEN_PROGRAMS } from './registry';
-import type { AccountDiff, BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, LogKind, LogLine, RelationEdge, Warning } from './types';
+import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, PROGRAM_NAMES, TOKEN_PROGRAMS } from './registry';
+import type { AccountDiff, AccountFact, BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, LogKind, LogLine, RelationEdge, Transfer, Warning } from './types';
 
 export type ChangeView = { owner: string; asset: string; amount: string };
 export type AccountView = { name: string; address: string; label?: string; badges: string[] };
@@ -71,6 +71,39 @@ export type ExpertView = Omit<BasicView, 'level' | 'fee'> & {
   /** e.g. '16,101 CU'. */
   computeUnits: string | null;
   externalRelations: RelationEdge[];
+  /** Every account of the transaction. */
+  accountFacts: AccountFactView[];
+  /** Null when unknown (no meta, no successful simulation, or the transaction failed). */
+  transfers: TransferView[] | null;
+  /** Only what the instructions move themselves: the RPC didn't say what the programs they called moved. */
+  transfersPartial?: true;
+};
+
+/** Amounts are formatted with their unit ('0.00203928 SOL'); deltas are signed ('+1.5 USDC'). */
+export type AccountFactView = {
+  address: string;
+  owner: string | null;
+  /** Clef's name for the owner program, when it knows it. */
+  ownerName?: string;
+  /** The owner and size are today's (a landed transaction's meta doesn't record them). */
+  ownerNow?: true;
+  executable: boolean;
+  dataLength: number | null;
+  lifecycle: AccountFact['lifecycle'];
+  lamports: { before: string | null; after: string | null; delta: string | null };
+  token?: { mint: string; holder: string; symbol: string; before: string | null; after: string | null; delta: string | null };
+};
+export type TransferView = {
+  kind: Transfer['kind'];
+  from: string;
+  to: string;
+  /** e.g. '0.5 SOL', '12 USDC'. */
+  amount: string;
+  instructionIndex: number;
+  inner: boolean;
+  owner?: string;
+  ownerName?: string;
+  space?: number;
 };
 
 export type DiffLineView = { sign: '+' | '-' | ' '; key: string; value: string; note?: string };
@@ -292,6 +325,9 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     logs: ex.logs && ex.logs.map(logLineView),
     computeUnits: ex.computeUnits === null ? null : cu(ex.computeUnits),
     externalRelations: ex.externalRelations.map(copyRelation),
+    accountFacts: ex.accountFacts.map(accountFactView),
+    transfers: ex.transfers && ex.transfers.map(transferView),
+    ...(ex.transfersPartial && { transfersPartial: true as const }),
     issues: ex.issues.map((i) => ({ ...i })),
     stateChanges: ex.stateChanges && ex.stateChanges.map(stateChangeView),
     instructions: ex.instructions.map((ix) => ({
@@ -305,6 +341,55 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
         return { ...a, signer: ref.signer, writable: ref.writable, ...(ref.lookupTable && { lookupTable: ref.lookupTable }) };
       }),
     })),
+  };
+}
+
+const withUnit = (amount: bigint, decimals: number | null, symbol: string) => `${formatUnits(amount, decimals)} ${symbol}`;
+const signed = (delta: bigint, decimals: number | null, symbol: string) =>
+  `${delta > 0n ? '+' : ''}${withUnit(delta, decimals, symbol)}`;
+
+function accountFactView(f: AccountFact): AccountFactView {
+  const sol = (v: bigint | null) => (v === null ? null : withUnit(v, 9, 'SOL'));
+  const { before, after } = f.lamports;
+  const ownerName = f.owner ? PROGRAM_NAMES[f.owner] : undefined;
+  const view: AccountFactView = {
+    address: f.address,
+    owner: f.owner,
+    ...(ownerName && { ownerName }),
+    ...(f.ownerNow && { ownerNow: true as const }),
+    executable: f.executable,
+    dataLength: f.dataLength,
+    lifecycle: f.lifecycle,
+    lamports: { before: sol(before), after: sol(after), delta: before !== null && after !== null ? signed(after - before, 9, 'SOL') : null },
+  };
+  if (f.token) {
+    const t = f.token;
+    const symbol = t.symbol ?? shortAddress(t.mint);
+    const amount = (v: bigint | null) => (v === null ? null : withUnit(v, t.decimals, symbol));
+    view.token = {
+      mint: t.mint,
+      holder: t.holder,
+      symbol,
+      before: amount(t.before),
+      after: amount(t.after),
+      delta: t.before !== null && t.after !== null ? signed(t.after - t.before, t.decimals, symbol) : null,
+    };
+  }
+  return view;
+}
+
+function transferView(t: Transfer): TransferView {
+  const ownerName = t.owner ? PROGRAM_NAMES[t.owner] : undefined;
+  return {
+    kind: t.kind,
+    from: t.from,
+    to: t.to,
+    amount: withUnit(t.amount, t.decimals, t.symbol ?? (t.mint === 'SOL' ? 'SOL' : shortAddress(t.mint))),
+    instructionIndex: t.instructionIndex,
+    inner: t.inner,
+    ...(t.owner && { owner: t.owner }),
+    ...(ownerName && { ownerName }),
+    ...(t.space !== undefined && { space: t.space }),
   };
 }
 

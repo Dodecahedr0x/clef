@@ -137,6 +137,48 @@ export type BalanceChange = {
   delta: bigint;
 };
 
+/**
+ * Value the transaction moves between two accounts, from System and Token instructions, top-level or invoked by
+ * a program (CPI; only when the RPC returns inner instructions). `create`: lamports funding a new account.
+ * `mint` goes from the mint to the token account, `burn` from the token account to the mint.
+ */
+export type Transfer = {
+  kind: 'sol' | 'create' | 'token' | 'mint' | 'burn';
+  from: Address;
+  to: Address;
+  mint: Address | 'SOL';
+  amount: bigint;
+  symbol?: string;
+  /** Null when the mint's decimals are unknown. */
+  decimals: number | null;
+  /** 0-based top-level instruction. */
+  instructionIndex: number;
+  /** Made by a program the instruction invoked, not by the instruction itself. */
+  inner: boolean;
+  /** `create`: the new account's owner program and size. */
+  owner?: Address;
+  space?: number;
+};
+
+/** What Clef knows of one account of the transaction, before and after it. */
+export type AccountFact = {
+  address: Address;
+  /**
+   * Its owner program: after the transaction when the transaction creates it, else before. For a landed
+   * transaction (meta), today's owner (`ownerNow`), since the meta doesn't record owners.
+   */
+  owner: Address | null;
+  ownerNow?: true;
+  executable: boolean;
+  /** Bytes of data, same rule as `owner`; null when unknown. */
+  dataLength: number | null;
+  /** Null when unknown (account not loaded, or no simulation). */
+  lamports: { before: bigint | null; after: bigint | null };
+  /** `missing`: does not exist before, and nothing says it does after. */
+  lifecycle: 'created' | 'closed' | 'existing' | 'missing';
+  token?: { mint: Address; holder: Address; symbol?: string; decimals: number | null; before: bigint | null; after: bigint | null };
+};
+
 export type ExplainedTransaction = {
   tx: DecodedTransaction;
   instructions: ExplainedInstruction[];
@@ -158,6 +200,12 @@ export type ExplainedTransaction = {
   computeUnits: bigint | null;
   /** Edges with `external: true`: targets outside the transaction's keys. */
   externalRelations: RelationEdge[];
+  /** Every account of the transaction, in key order. */
+  accountFacts: AccountFact[];
+  /** Null when not known: no meta and no successful simulation (or the transaction failed). */
+  transfers: Transfer[] | null;
+  /** The RPC returned no inner instructions: `transfers` lists only those the instructions make themselves. */
+  transfersPartial?: true;
 };
 
 export type ExplainContext = {

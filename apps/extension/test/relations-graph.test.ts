@@ -52,6 +52,6 @@ describe('edge labels and routing', () => {
     const swapped = edgePath({ x: 400, y: 200 }, { x: 0, y: 0 });
     expect(swapped.d).toBe(left.d);
     const stacked = edgePath({ x: 10, y: 0 }, { x: 20, y: 300 });
-    expect(stacked.d).toMatch(/^M146 26 C/);
+    expect(stacked.d).toMatch(/^M146 32 C/);
   });
 });

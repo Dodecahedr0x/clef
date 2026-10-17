@@ -1,4 +1,4 @@
-import type { RawAccount, SimulationResult, TxMeta } from '@clef/rpc';
+import type { InnerInstruction, InnerInstructions, RawAccount, SimulationResult, TxMeta } from '@clef/rpc';
 import type { Address } from '@solana/kit';
 import { AccountCache, decodeTokenAccount } from './accounts';
 import { verifyAnchorExtras } from './anchor-relations';
@@ -16,9 +16,10 @@ import { estimateFee, evaluateRisks, type AccountInfo, type RiskInput, type Toke
 import { errorDetail } from './seeds';
 import { computeStateChanges, type StateChange } from './state-changes';
 import { summarize } from './summary';
+import { factsFromMeta, factsFromStates, flowInstructions, metaInner, transfersOf } from './transfers';
 import { sanitizeText } from './text';
 import { programDisplay } from './format';
-import type { AccountDiff, DecodedInstruction, DecodedTransaction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, LogLine, RelationEdge, Warning } from './types';
+import type { AccountDiff, AccountFact, DecodedInstruction, DecodedTransaction, ExplainContext, ExplainedInstruction, ExplainedTransaction, Issue, LogLine, RelationEdge, Transfer, Warning } from './types';
 
 type Unit = NonNullable<ExplainedInstruction['amountUnit']>;
 
@@ -73,7 +74,7 @@ type Simulated = {
  * A simulation's raw outcome: pre and post state, index-aligned with the writable accounts. `conservative`: the
  * chain kept changing, so `pre` was built by `highestSeen`.
  */
-type SimOutput = { logs?: string[]; unitsConsumed?: bigint | null };
+type SimOutput = { logs?: string[]; unitsConsumed?: bigint | null; inner?: InnerInstructions<InnerInstruction> };
 type SimRun = ({ pre: (RawAccount | null)[]; post: (RawAccount | null)[]; conservative?: true } | { failed: string }) & SimOutput;
 
 /**
@@ -135,7 +136,7 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
     try {
       const minContextSlot = cache.slot;
       const sim = await ctx.reader.simulate(wire, writable, minContextSlot === undefined ? undefined : { minContextSlot });
-      output = { logs: sim.logs, unitsConsumed: sim.unitsConsumed };
+      output = { logs: sim.logs, unitsConsumed: sim.unitsConsumed, ...(sim.innerInstructions && { inner: sim.innerInstructions }) };
       if (sim.err) return { failed: `Simulation failed: ${simError(sim.err)}`, ...output };
       post = sim.postAccounts;
       simSlot = sim.slot;
@@ -164,7 +165,7 @@ async function runSimulation(wire: Uint8Array, writable: readonly Address[], ctx
 function presetRun(preset: PresetSimulation, writable: readonly Address[]): SimRun {
   if ('failed' in preset) return { failed: preset.failed, ...(preset.logs && { logs: preset.logs }) };
   const { result, pre } = preset;
-  const output = { logs: result.logs, unitsConsumed: result.unitsConsumed };
+  const output = { logs: result.logs, unitsConsumed: result.unitsConsumed, ...(result.innerInstructions && { inner: result.innerInstructions }) };
   if (result.err) return { failed: `Simulation failed: ${simError(result.err)}`, ...output };
   const aligned = (list: readonly (RawAccount | null)[]) =>
     list.length === writable.length && list.every((a, i) => a === null || a.address === writable[i]);
@@ -409,11 +410,32 @@ export async function explainWith(
   let simulated: Simulated;
   let logs: LogLine[] | null = null;
   let computeUnits: bigint | null = null;
+  let accountFacts: AccountFact[] = [];
+  let transfers: Transfer[] | null = null;
+  let transfersPartial = false;
+  const mintInfo = (mint: Address) => labeler.mintInfo(mint);
   if (!input.meta) {
     const run = await simulation!;
     if (run.logs) logs = parseLogs(run.logs);
     computeUnits = run.unitsConsumed ?? null;
     simulated = await fromSimulation(run, writable, labeler, issues, load);
+    const states = simulated.states;
+    const at = new Map(writable.map((a, i) => [a as string, i]));
+    accountFacts = factsFromStates(addresses, (a) => {
+      const i = at.get(a);
+      if (i === undefined) return { pre: cache.get(a), post: cache.get(a) };
+      return states ? { pre: states.pre[i], post: states.post[i] } : { pre: cache.get(a), post: undefined };
+    }, mintInfo);
+    if (states && !('failed' in run)) {
+      const mints = new Map<string, Address>();
+      for (const s of [...states.pre, ...states.post]) {
+        const t = s && decodeTokenAccount(s);
+        if (t) mints.set(s.address, t.mint);
+      }
+      const mintOf = (a: Address) => mints.get(a) ?? decodeTokenAccount(cache.get(a))?.mint ?? null;
+      transfers = transfersOf(flowInstructions(tx.instructions, run.inner), mintOf, mintInfo);
+      transfersPartial = !run.inner;
+    }
     // Read after the simulation: a retry may have refreshed the pre-state.
     for (const a of addresses) {
       const token = decodeTokenAccount(cache.get(a));
@@ -434,6 +456,23 @@ export async function explainWith(
     if (meta.err) issues.push({ stage: 'execute', message: `Transaction failed: ${simError(meta.err)}` });
     const ownerOf = (a: Address) => decodeTokenAccount(cache.get(a))?.owner ?? null;
     simulated = { balanceChanges: balanceChangesFromMeta(addresses, meta, (mint) => labeler.mintInfo(mint), ownerOf) };
+    // A mint Clef didn't read still has its decimals in the meta.
+    const metaDecimals = new Map([...meta.preTokenBalances, ...meta.postTokenBalances].map((t) => [t.mint as string, t.decimals]));
+    const metaMintInfo = (mint: Address) => {
+      const d = metaDecimals.get(mint);
+      return mintInfo(mint) ?? (d === undefined ? null : { symbol: shortAddress(mint), decimals: d });
+    };
+    accountFacts = factsFromMeta(addresses, meta, cache, metaMintInfo);
+    if (!meta.err) {
+      const mints = new Map<string, Address>();
+      for (const t of [...meta.preTokenBalances, ...meta.postTokenBalances]) {
+        const a = addresses[t.accountIndex];
+        if (a) mints.set(a, t.mint);
+      }
+      const mintOf = (a: Address) => mints.get(a) ?? decodeTokenAccount(cache.get(a))?.mint ?? null;
+      transfers = transfersOf(flowInstructions(tx.instructions, meta.innerInstructions ? metaInner(meta, addresses) : undefined), mintOf, metaMintInfo);
+      transfersPartial = !meta.innerInstructions;
+    }
     // Pre-state as of the transaction, not today.
     for (const t of meta.preTokenBalances) {
       const at = addresses[t.accountIndex];
@@ -533,7 +572,8 @@ export async function explainWith(
 
   const explained: ExplainedTransaction = {
     tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary,
-    accountDiffs, logs, computeUnits, externalRelations: external,
+    accountDiffs, logs, computeUnits, externalRelations: external, accountFacts, transfers,
+    ...(transfersPartial && transfers && { transfersPartial: true as const }),
   };
   return { explained, writable, states: simulated.states ?? null, labeler };
 }

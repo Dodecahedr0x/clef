@@ -16,6 +16,23 @@ export type TokenBalance = {
   decimals: number;
 };
 
+/** An instruction a program invoked (CPI), by index into the transaction's account keys (static, then loaded). */
+export type CompiledInnerInstruction = { programIdIndex: number; accounts: number[]; data: Uint8Array };
+
+/**
+ * An inner instruction by address, as `simulateTransaction` returns them: parsed (`parsed` set, `data` null)
+ * when the RPC knows the program (System, Token, ...), else raw.
+ */
+export type InnerInstruction = {
+  programId: Address;
+  accounts: Address[];
+  data: Uint8Array | null;
+  parsed?: { type: string; info: Record<string, unknown> };
+};
+
+/** Inner instructions grouped by the 0-based top-level instruction that made them. */
+export type InnerInstructions<I> = { index: number; instructions: I[] }[];
+
 export type TxMeta = {
   err: unknown;
   fee: bigint;
@@ -27,6 +44,8 @@ export type TxMeta = {
   logMessages: string[];
   /** Compute units the transaction used (absent from old RPC responses and fixtures). */
   computeUnitsConsumed?: bigint | null;
+  /** Absent from old RPC responses and fixtures. */
+  innerInstructions?: InnerInstructions<CompiledInnerInstruction> | null;
 };
 
 export type FetchedTransaction = {
@@ -47,6 +66,8 @@ export type SimulationResult = {
    * transaction fee deducted (as the runtime does): the explain engine allows for the fee when judging outflows.
    */
   postAccounts: (RawAccount | null)[];
+  /** When the RPC returns them. */
+  innerInstructions?: InnerInstructions<InnerInstruction>;
   /** The slot the simulation ran at, when the reader reports it. */
   slot?: bigint;
 };

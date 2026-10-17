@@ -30,6 +30,8 @@ const expert: ExpertView = {
   logs: null,
   computeUnits: null,
   externalRelations: [],
+  accountFacts: [],
+  transfers: null,
   stateChanges: [{ address: 'TTTT', kind: 'token-delegate', before: null, after: 'DDDD', amount: '100', holder: 'AAAA', balance: '100' }],
   instructions: [{
     index: 0, program: 'System Program', programId: '11111111111111111111111111111111', name: 'transferSol', trust: 'curated',
