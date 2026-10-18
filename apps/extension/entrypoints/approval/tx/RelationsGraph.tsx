@@ -1,10 +1,10 @@
 import type { AccountFactView, RelationEdge, TransferView } from '@clef/explain';
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { shortAddress } from '../../../lib/format';
-import { edgeKey } from './model';
+import { layered, type Pos } from './graph-layout';
 import { Pubkey } from '../../../components';
 
-export const GRAPH = { width: 672, nodeW: 136, nodeH: 64, colX: [8, 184, 360, 536], top: 40, rowH: 110 } as const;
+export const GRAPH = { width: 672, minHeight: 240, nodeW: 136, nodeH: 64, gapX: 150, gapY: 22, top: 44, left: 8 } as const;
 
 export type GraphInput = {
   /** Edges between accounts of the request, tagged with the 0-based steps that contain them. */
@@ -43,77 +43,135 @@ export function factFor(g: GraphInput, address: string, tab: 'all' | number): (A
 /** Owner line of a node: Clef's name for the program, else its short address. */
 export const ownerText = (f: AccountFactView | null) => (f?.owner ? (f.ownerName ?? shortAddress(f.owner)) : null);
 
-export type GraphNode = { address: string; col: 0 | 1 | 2 | 3; x: number; y: number; title: string; sub: string; external: boolean };
+export type GraphNode = { address: string; x: number; y: number; title: string; external: boolean; isolated: boolean };
 
-const MINT_KINDS = new Set(['token-mint']);
+/** One drawn line: every relation (or every transfer) between the same two accounts, in the same direction. */
+export type GraphEdge = {
+  id: string;
+  kind: 'relation' | 'transfer';
+  from: string;
+  to: string;
+  /** Labels of the bundled facts, joined. */
+  label: string;
+  relations: RelationEdge[];
+  transfers: TransferView[];
+};
 
-/** Deterministic columns: you / your accounts, accounts, mints and programs, outside the request. */
-export function layoutGraph(g: GraphInput, showExternal: boolean): { nodes: GraphNode[]; height: number } {
+export type GraphLayout = { nodes: GraphNode[]; edges: GraphEdge[]; routes: Map<string, Pos[]>; width: number; height: number; isolatedTop: number | null };
+
+const relationLabel = (e: RelationEdge) => (e.kind === 'pda' ? 'seeds' : e.label);
+const transferLabel = (t: TransferView) => (t.kind === 'create' ? `funds ${t.amount}` : t.kind === 'mint' ? `mints ${t.amount}` : t.kind === 'burn' ? `burns ${t.amount}` : t.amount);
+const unique = (xs: string[]) => [...new Set(xs)];
+
+/** The edges to draw: relations (and outside ones when shown), and the selected step's transfers when shown. */
+export function graphEdges(g: GraphInput, opts: { showExternal: boolean; showTransfers: boolean; tab: 'all' | number }): GraphEdge[] {
+  const groups = new Map<string, GraphEdge>();
+  const add = (kind: GraphEdge['kind'], from: string, to: string, r?: RelationEdge, t?: TransferView) => {
+    if (from === to) return;
+    const id = `${kind}|${from}|${to}`;
+    const e = groups.get(id) ?? { id, kind, from, to, label: '', relations: [], transfers: [] };
+    if (r) e.relations.push(r);
+    if (t) e.transfers.push(t);
+    groups.set(id, e);
+  };
+  for (const e of [...g.edges, ...(opts.showExternal ? g.external : [])]) add('relation', e.from, e.to, e);
+  if (opts.showTransfers) {
+    for (const t of g.transfers ?? []) if (opts.tab === 'all' || t.step === opts.tab) add('transfer', t.from, t.to, undefined, t);
+  }
+  return [...groups.values()].map((e) => ({
+    ...e,
+    label: unique(e.kind === 'relation' ? e.relations.map(relationLabel) : e.transfers.map(transferLabel)).join(' · '),
+  }));
+}
+
+/** Accounts as nodes of a layered layout: yours first, accounts with no drawn link in a strip below. */
+export function layoutGraph(g: GraphInput, opts: { showExternal: boolean; showTransfers: boolean; tab: 'all' | number }): GraphLayout {
   const order: string[] = [];
   const add = (a: string) => {
     if (!order.includes(a)) order.push(a);
   };
-  for (const e of g.edges) {
-    add(e.from);
-    add(e.to);
-  }
   for (const a of g.mine) if (g.inRequest.has(a)) add(a);
+  for (const e of g.edges) (add(e.from), add(e.to));
   // Every account of the request is drawn, linked or not: a missing node would hide what the transaction touches.
   for (const a of g.inRequest.keys()) add(a);
-  if (showExternal) {
-    for (const e of g.external) {
-      add(e.from);
-      add(e.to);
-    }
-  }
-  const mintTargets = new Set<string>(g.edges.filter((e) => MINT_KINDS.has(e.kind)).map((e) => e.to));
-  const pdaPrograms = new Set<string>(g.edges.filter((e) => e.kind === 'pda').map((e) => e.to));
-  const colOf = (a: string): GraphNode['col'] => {
-    if (g.mine.has(a)) return 0;
-    if (!g.inRequest.has(a)) return 3;
-    if (g.programs.has(a) || mintTargets.has(a) || pdaPrograms.has(a)) return 2;
-    return 1;
-  };
-  const rows = [0, 0, 0, 0];
+  if (opts.showExternal) for (const e of g.external) (add(e.from), add(e.to));
+  const edges = graphEdges(g, opts);
+  const l = layered(order, edges, { nodeW: GRAPH.nodeW, nodeH: GRAPH.nodeH, gapX: GRAPH.gapX, gapY: GRAPH.gapY, margin: { top: GRAPH.top, left: GRAPH.left } });
+  const isolated = new Set(l.isolated);
   const nodes = order.map((address) => {
-    const col = colOf(address);
-    const row = rows[col]!++;
-    const title = g.labels.get(address) ?? shortAddress(address);
-    const sub = g.programs.has(address) ? 'program' : pdaChild(g, address) ? `PDA · ${shortAddress(address)}` : shortAddress(address);
-    return { address, col, x: GRAPH.colX[col], y: GRAPH.top + row * GRAPH.rowH, title, sub, external: col === 3 };
+    const { x, y } = l.pos.get(address)!;
+    return { address, x, y, title: g.labels.get(address) ?? shortAddress(address), external: !g.inRequest.has(address), isolated: isolated.has(address) };
   });
-  const height = Math.max(440, GRAPH.top + Math.max(...rows) * GRAPH.rowH);
-  return { nodes, height };
+  return { nodes, edges, routes: l.routes, width: Math.max(GRAPH.width, l.width), height: Math.max(GRAPH.minHeight, l.height), isolatedTop: l.isolatedTop };
 }
 
 const pdaChild = (g: GraphInput, a: string) => g.edges.some((e) => e.kind === 'pda' && e.from === a);
 
-type Pos = { x: number; y: number };
+type Side = 'left' | 'right';
+export type EdgeGeometry = { d: string; label: Pos };
 
-/** Routed by where the nodes are (they can be dragged), not by their layout column. */
-export function edgePath(a: Pos, b: Pos): { d: string; lx: number; ly: number } {
+/**
+ * Each edge leaves and enters a node on the side facing the other end. Ends sharing a node side are spread over
+ * its height in the order of where they go, so lines fan out instead of meeting at one point.
+ */
+export function edgeGeometry(edges: readonly GraphEdge[], at: Map<string, Pos>, routes: Map<string, Pos[]>): EdgeGeometry[] {
   const { nodeW, nodeH } = GRAPH;
-  const ay = a.y + nodeH / 2;
-  const by = b.y + nodeH / 2;
-  if (Math.abs(a.x - b.x) < nodeW) {
-    const x = Math.max(a.x, b.x) + nodeW;
-    return { d: `M${a.x + nodeW} ${ay} C${x + 30} ${ay} ${x + 30} ${by} ${b.x + nodeW} ${by}`, lx: x + 14, ly: (ay + by) / 2 };
+  const centre = (p: Pos) => ({ x: p.x + nodeW / 2, y: p.y + nodeH / 2 });
+  const plans = edges.map((e) => {
+    const a = at.get(e.from)!;
+    const b = at.get(e.to)!;
+    const bends = routes.get(e.id) ?? [];
+    const stacked = Math.abs(a.x - b.x) < nodeW && !bends.length;
+    const next = bends[0] ?? centre(b);
+    const prev = bends[bends.length - 1] ?? centre(a);
+    const out: Side = stacked || next.x >= a.x + nodeW / 2 ? 'right' : 'left';
+    const into: Side = stacked || prev.x > b.x + nodeW / 2 ? 'right' : 'left';
+    return { a, b, bends, stacked, out, into, towardOut: next.y, towardIn: prev.y };
+  });
+  const ends = new Map<string, { i: number; end: 'out' | 'in'; toward: number }[]>();
+  plans.forEach((p, i) => {
+    for (const [node, side, end, toward] of [[edges[i]!.from, p.out, 'out', p.towardOut], [edges[i]!.to, p.into, 'in', p.towardIn]] as const) {
+      const k = `${node}|${side}`;
+      ends.set(k, [...(ends.get(k) ?? []), { i, end, toward }]);
+    }
+  });
+  const portY = new Map<string, number>();
+  for (const [k, list] of ends) {
+    const node = at.get(k.slice(0, k.lastIndexOf('|')))!;
+    list.sort((x, y) => x.toward - y.toward || x.i - y.i);
+    list.forEach((e, j) => portY.set(`${e.i}|${e.end}`, node.y + 10 + ((nodeH - 20) * (j + 1)) / (list.length + 1)));
   }
-  const [l, r, ly0, ry] = a.x < b.x ? [a, b, ay, by] : [b, a, by, ay];
-  const x1 = l.x + nodeW;
-  const x2 = r.x;
-  const mx = (x1 + x2) / 2;
-  if (ly0 === ry) return { d: `M${x1} ${ly0} H${x2}`, lx: mx - 16, ly: ly0 - 8 };
-  return { d: `M${x1} ${ly0} C${mx} ${ly0} ${mx} ${ry} ${x2} ${ry}`, lx: mx - 16, ly: (ly0 + ry) / 2 };
+  return plans.map((p, i) => {
+    const s = { x: p.out === 'right' ? p.a.x + nodeW : p.a.x, y: portY.get(`${i}|out`)! };
+    const t = { x: p.into === 'right' ? p.b.x + nodeW : p.b.x, y: portY.get(`${i}|in`)! };
+    if (p.stacked) {
+      const x = Math.max(s.x, t.x) + 36;
+      return { d: `M${s.x} ${s.y} C${x} ${s.y} ${x} ${t.y} ${t.x} ${t.y}`, label: { x: x - 6, y: (s.y + t.y) / 2 } };
+    }
+    const pts = [s, ...p.bends, t];
+    let d = `M${s.x} ${s.y}`;
+    for (let j = 1; j < pts.length; j++) {
+      const a = pts[j - 1]!;
+      const b = pts[j]!;
+      const mx = (a.x + b.x) / 2;
+      d += ` C${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`;
+    }
+    const first = pts[1]!;
+    return { d, label: { x: (s.x + first.x) / 2, y: (s.y + first.y) / 2 } };
+  });
 }
 
-/** Moves each label off the ones already placed (alternating down/up a line at a time) so none overlap. */
+/** Labels fit the gap between columns; the full text is in the edge's tooltip. */
+export const LABEL_MAX = Math.floor((GRAPH.gapX - 12) / 6.5);
+export const fitLabel = (text: string) => (text.length > LABEL_MAX ? `${text.slice(0, LABEL_MAX - 1)}\u2026` : text);
+
+/** Moves each label (centred on x) off the ones already placed, a line at a time down then up, so none overlap. */
 export function placeLabels(labels: { x: number; y: number; text: string }[]): { x: number; y: number }[] {
   const LINE = 14;
   const boxes: { x1: number; x2: number; y1: number; y2: number }[] = [];
   return labels.map(({ x, y, text }) => {
     const w = text.length * 6.5 + 6;
-    const box = (dy: number) => ({ x1: x - 3, x2: x - 3 + w, y1: y + dy - 11, y2: y + dy + 3 });
+    const box = (dy: number) => ({ x1: x - w / 2, x2: x + w / 2, y1: y + dy - 11, y2: y + dy + 3 });
     let dy = 0;
     for (let i = 1; i < 12 && boxes.some((b) => { const c = box(dy); return c.x1 < b.x2 && b.x1 < c.x2 && c.y1 < b.y2 && b.y1 < c.y2; }); i++) {
       dy = (i % 2 ? 1 : -1) * Math.ceil(i / 2) * LINE;
@@ -127,7 +185,15 @@ const ZOOM = { min: 0.3, max: 2, step: 0.2 } as const;
 const clampZoom = (z: number) => Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(z * 100) / 100));
 
 const TRANSFER_STROKE = '#2F6FDB';
-const transferLabel = (t: TransferView) => (t.kind === 'create' ? `funds ${t.amount}` : t.kind === 'mint' ? `mints ${t.amount}` : t.kind === 'burn' ? `burns ${t.amount}` : t.amount);
+
+/** Mismatch red over PDA green over grey; outside the request lighter and dashed; by a called program dotted. */
+function edgeStyle(e: GraphEdge): { stroke: string; dash?: string; text: string; weight?: number } {
+  if (e.kind === 'transfer') return { stroke: TRANSFER_STROKE, text: TRANSFER_STROKE, weight: 600, ...(e.transfers.every((t) => t.inner) && { dash: '1 3' }) };
+  if (e.relations.some((r) => r.status === 'mismatch')) return { stroke: '#C8402A', text: '#B03A26' };
+  if (e.relations.every((r) => r.external)) return { stroke: '#CBD0DA', dash: '3 4', text: '#5C6475' };
+  if (e.relations.every((r) => r.kind === 'pda')) return { stroke: '#0F7A62', dash: '5 4', text: '#0F7A62' };
+  return { stroke: '#9AA1AE', text: '#5C6475' };
+}
 
 const STATUS_OK: Record<RelationEdge['status'], string> = { verified: '✓', mismatch: '✗ mismatch', unverified: '? unverified' };
 
@@ -135,43 +201,46 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   const [showExternal, setShowExternal] = useState(false);
   const [showTransfers, setShowTransfers] = useState(true);
   const [hover, setHover] = useState<string | null>(null);
-  const { nodes, height } = useMemo(() => layoutGraph(input, showExternal), [input, showExternal]);
+  const layout = useMemo(() => layoutGraph(input, { showExternal, showTransfers, tab }), [input, showExternal, showTransfers, tab]);
+  const { nodes, edges } = layout;
   const [picked, setPicked] = useState<string | null>(null);
   const [moved, setMoved] = useState<Record<string, Pos>>({});
   const [zoom, setZoom] = useState(1);
+  const zoomed = useRef(false);
   const drag = useRef<{ address: string; px: number; py: number; ox: number; oy: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
   const viewport = useRef<HTMLDivElement>(null);
   const placedNodes = nodes.map((n) => (moved[n.address] ? { ...n, ...moved[n.address] } : n));
   const byAddress = new Map(placedNodes.map((n) => [n.address, n]));
-  const contentW = Math.max(GRAPH.width, ...placedNodes.map((n) => n.x + GRAPH.nodeW + 16));
-  const contentH = Math.max(height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16));
-  const selected = (picked && byAddress.get(picked)) || nodes.find((n) => n.col === 1) || nodes[0];
+  const contentW = Math.max(layout.width, ...placedNodes.map((n) => n.x + GRAPH.nodeW + 16));
+  const contentH = Math.max(layout.height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16));
+  const selected =
+    (picked && byAddress.get(picked)) || placedNodes.find((n) => !n.external && !input.mine.has(n.address) && !input.programs.has(n.address)) || placedNodes[0];
   const label = (a: string) => input.labels.get(a) ?? shortAddress(a);
   const dim = (n: GraphNode) => tab !== 'all' && !n.external && !input.inRequest.get(n.address)?.has(tab);
 
-  const drawn = [...input.edges, ...(showExternal ? input.external : [])].filter((e) => byAddress.has(e.from) && byAddress.has(e.to));
-  const paths = drawn.map((e) => edgePath(byAddress.get(e.from)!, byAddress.get(e.to)!));
-  const labelText = (e: RelationEdge) => (e.kind === 'pda' ? 'seeds' : e.label);
   const transfers = (input.transfers ?? []).filter((t) => (tab === 'all' || t.step === tab) && t.from !== t.to);
-  const flows = (showTransfers ? transfers : []).filter((t) => byAddress.has(t.from) && byAddress.has(t.to));
-  const flowPaths = flows.map((t) => {
-    const a = byAddress.get(t.from)!;
-    const b = byAddress.get(t.to)!;
-    // edgePath draws left to right (or down the right side when stacked): the arrow goes on the receiving end.
-    const forward = Math.abs(a.x - b.x) < GRAPH.nodeW || a.x < b.x;
-    return { ...edgePath(a, b), forward };
-  });
-  const labelAt = placeLabels([
-    ...drawn.map((e, i) => ({ x: paths[i]!.lx, y: paths[i]!.ly, text: labelText(e) })),
-    ...flows.map((t, i) => ({ x: flowPaths[i]!.lx, y: flowPaths[i]!.ly, text: transferLabel(t) })),
-  ]);
-  const flowLabelAt = labelAt.slice(drawn.length);
+  // A dragged node keeps its links but drops the bends laid out for where it was.
+  const routes = new Map([...layout.routes].filter(([id]) => {
+    const e = edges.find((x) => x.id === id);
+    return !e || (!moved[e.from] && !moved[e.to]);
+  }));
+  const geometry = edgeGeometry(edges, new Map(placedNodes.map((n) => [n.address, n])), routes);
+  const labelAt = placeLabels(edges.map((e, i) => ({ ...geometry[i]!.label, text: fitLabel(e.label) })));
   const hovered = hover && !drag.current ? byAddress.get(hover) : undefined;
+  const faded = (e: GraphEdge) => !!hovered && e.from !== hovered.address && e.to !== hovered.address;
 
   const fit = () => {
     const w = viewport.current?.clientWidth ?? contentW;
     setZoom(clampZoom(Math.min(1, (w - 2) / contentW)));
+  };
+  // Starts fitted to the width, until the user zooms.
+  useEffect(() => {
+    if (!zoomed.current) fit();
+  }, [layout.width]);
+  const zoomBy = (f: (z: number) => number) => {
+    zoomed.current = true;
+    setZoom((z) => clampZoom(f(z)));
   };
   // Native and non-passive: React's wheel listener is passive, so it could not stop the page zoom/scroll.
   useEffect(() => {
@@ -180,7 +249,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      setZoom((z) => clampZoom(z * (e.deltaY > 0 ? 0.9 : 1.1)));
+      zoomBy((z) => z * (e.deltaY > 0 ? 0.9 : 1.1));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
@@ -228,10 +297,10 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
       ) : (
         <div className="relative">
           <div role="group" aria-label="Graph view" className="absolute top-2 right-2 z-[3] flex gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-sm">
-            <button type="button" aria-label="Zoom out" onClick={() => setZoom((z) => clampZoom(z - ZOOM.step))} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">−</button>
+            <button type="button" aria-label="Zoom out" onClick={() => zoomBy((z) => z - ZOOM.step)} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">−</button>
             <span className="flex w-11 items-center justify-center text-xs tabular-nums text-muted" aria-live="polite">{Math.round(zoom * 100)}%</span>
-            <button type="button" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z + ZOOM.step))} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">+</button>
-            <button type="button" onClick={fit} className="h-7 rounded-md border-0 bg-transparent px-2 text-xs text-ink hover:bg-surface-2">Fit</button>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomBy((z) => z + ZOOM.step)} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">+</button>
+            <button type="button" onClick={() => ((zoomed.current = true), fit())} className="h-7 rounded-md border-0 bg-transparent px-2 text-xs text-ink hover:bg-surface-2">Fit</button>
             {Object.keys(moved).length > 0 && (
               <button type="button" onClick={() => setMoved({})} className="h-7 rounded-md border-0 bg-transparent px-2 text-xs text-ink hover:bg-surface-2">Reset layout</button>
             )}
@@ -246,50 +315,56 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       <path d="M0 0 L10 5 L0 10 z" fill={TRANSFER_STROKE} />
                     </marker>
                   </defs>
-                  {drawn.map((e, i) => {
-                    const p = paths[i]!;
-                    const stroke = e.status === 'mismatch' ? '#C8402A' : e.external ? '#CBD0DA' : e.kind === 'pda' ? '#0F7A62' : '#9AA1AE';
-                    const dash = e.external ? '3 4' : e.kind === 'pda' ? '5 4' : undefined;
-                    return <path key={edgeKey(e)} d={p.d} stroke={stroke} strokeWidth={1.5} fill="none" strokeDasharray={dash} />;
+                  {edges.map((e, i) => {
+                    const st = edgeStyle(e);
+                    return (
+                      <path
+                        key={e.id}
+                        data-edge={e.kind}
+                        {...(e.kind === 'transfer' && { 'data-transfer': e.transfers.map((t) => t.kind).join(' ') })}
+                        d={geometry[i]!.d}
+                        stroke={st.stroke}
+                        strokeWidth={e.kind === 'transfer' ? 1.75 : 1.5}
+                        strokeLinecap="round"
+                        fill="none"
+                        strokeDasharray={st.dash}
+                        opacity={faded(e) ? 0.12 : 1}
+                        {...(e.kind === 'transfer' && { markerEnd: 'url(#clef-flow-arrow)' })}
+                      />
+                    );
                   })}
-                  {flows.map((t, i) => (
-                    <path
-                      key={`f-${i}`}
-                      data-transfer={t.kind}
-                      d={flowPaths[i]!.d}
-                      stroke={TRANSFER_STROKE}
-                      strokeWidth={1.75}
-                      fill="none"
-                      strokeDasharray={t.inner ? '1 3' : undefined}
-                      strokeLinecap="round"
-                      {...(flowPaths[i]!.forward ? { markerEnd: 'url(#clef-flow-arrow)' } : { markerStart: 'url(#clef-flow-arrow)' })}
-                    />
-                  ))}
                   {/* Labels after every edge, with a halo, so no line runs through a label. */}
-                  {drawn.map((e, i) => (
-                    <text
-                      key={`l-${edgeKey(e)}`}
-                      x={labelAt[i]!.x}
-                      y={labelAt[i]!.y}
-                      fontSize={12}
-                      fill={e.kind === 'pda' && !e.external ? '#0F7A62' : '#5C6475'}
-                      stroke="#FFFFFF"
-                      strokeWidth={4}
-                      strokeLinejoin="round"
-                      paintOrder="stroke"
-                    >
-                      {labelText(e)}
-                    </text>
-                  ))}
-                  {flows.map((t, i) => (
-                    <text key={`fl-${i}`} x={flowLabelAt[i]!.x} y={flowLabelAt[i]!.y} fontSize={12} fontWeight={600} fill={TRANSFER_STROKE} stroke="#FFFFFF" strokeWidth={4} strokeLinejoin="round" paintOrder="stroke">
-                      {transferLabel(t)}
-                    </text>
-                  ))}
+                  {edges.map((e, i) => {
+                    const st = edgeStyle(e);
+                    return (
+                      <text
+                        key={`l-${e.id}`}
+                        x={labelAt[i]!.x}
+                        y={labelAt[i]!.y}
+                        textAnchor="middle"
+                        fontSize={12}
+                        fontWeight={st.weight}
+                        fill={st.text}
+                        stroke="#FFFFFF"
+                        strokeWidth={4}
+                        strokeLinejoin="round"
+                        paintOrder="stroke"
+                        opacity={faded(e) ? 0.15 : 1}
+                      >
+                        <title>{e.label}</title>
+                        {fitLabel(e.label)}
+                      </text>
+                    );
+                  })}
                 </svg>
+                {layout.isolatedTop !== null && (
+                  <span className="absolute text-xs font-semibold tracking-[0.06em] text-muted uppercase" style={{ left: GRAPH.left, top: layout.isolatedTop - 22 }}>
+                    No drawn link
+                  </span>
+                )}
                 {placedNodes.map((n) => {
                   const on = n.address === selected?.address;
-                  const mine = n.col === 0;
+                  const mine = input.mine.has(n.address);
                   const program = input.programs.has(n.address);
                   const fact = factFor(input, n.address, tab);
                   const owner = ownerText(fact);

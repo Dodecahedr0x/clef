@@ -49,9 +49,10 @@ describe('relations graph account facts', () => {
     expect(created.textContent).toContain('owner · EMBE…M5qy');
     expect(node(/You · Main/).textContent).toContain('owner · System Program');
     expect(container.querySelectorAll('path[data-transfer]')).toHaveLength(2);
-    expect(container.querySelector('path[data-transfer="create"]')?.getAttribute('marker-end') ?? container.querySelector('path[data-transfer="create"]')?.getAttribute('marker-start')).toContain('clef-flow-arrow');
-    expect(screen.getByText('funds 0.00203928 SOL')).toBeTruthy();
-    expect(screen.getByText('15.5 USDC')).toBeTruthy();
+    expect(container.querySelector('path[data-transfer="create"]')?.getAttribute('marker-end')).toContain('clef-flow-arrow');
+    const labels = [...container.querySelectorAll('svg text')].map((t) => t.lastChild?.textContent);
+    expect(labels).toContain('funds 0.00203928 SOL');
+    expect(labels).toContain('15.5 USDC');
 
     fireEvent.click(screen.getByRole('switch', { name: /Show SOL and token transfers \(2\)/ }));
     expect(container.querySelectorAll('path[data-transfer]')).toHaveLength(0);

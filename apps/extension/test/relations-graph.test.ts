@@ -1,38 +1,121 @@
 import { describe, expect, it } from 'vitest';
-import { edgePath, layoutGraph, placeLabels, type GraphInput } from '../entrypoints/approval/tx/RelationsGraph';
+import { edgeGeometry, fitLabel, GRAPH, graphEdges, LABEL_MAX, layoutGraph, placeLabels, type GraphInput } from '../entrypoints/approval/tx/RelationsGraph';
+import { layered, type LayoutEdge } from '../entrypoints/approval/tx/graph-layout';
+
+const rel = (from: string, to: string, label = 'owner', over: Partial<GraphInput['edges'][number]> = {}): GraphInput['edges'][number] =>
+  ({ kind: 'token-owner', from, to, label, status: 'verified', external: false, steps: [0], ...over }) as GraphInput['edges'][number];
 
 const input = (over: Partial<GraphInput> = {}): GraphInput => ({
   edges: [],
   external: [],
-  inRequest: new Map([
-    ['ME', new Set([0])],
-    ['RECIPIENT', new Set([0])],
-    ['SESSION', new Set([0])],
-    ['PROGRAM', new Set([0])],
-  ]),
+  inRequest: new Map(['ME', 'RECIPIENT', 'SESSION', 'PROGRAM'].map((a) => [a, new Set([0])])),
   mine: new Set(['ME']),
   programs: new Set(['PROGRAM']),
   labels: new Map(),
   ...over,
 });
+const OPTS = { showExternal: false, showTransfers: true, tab: 'all' as const };
+const LO = { nodeW: GRAPH.nodeW, nodeH: GRAPH.nodeH, gapX: GRAPH.gapX, gapY: GRAPH.gapY, margin: { top: GRAPH.top, left: GRAPH.left } };
+const STEP = GRAPH.nodeW + GRAPH.gapX;
 
-describe('layoutGraph', () => {
-  it('draws every account of the request, even with no verified link', () => {
-    const { nodes } = layoutGraph(input(), false);
-    expect(nodes.map((n) => n.address).sort()).toEqual(['ME', 'PROGRAM', 'RECIPIENT', 'SESSION']);
-    expect(nodes.find((n) => n.address === 'ME')!.col).toBe(0);
-    expect(nodes.find((n) => n.address === 'PROGRAM')!.col).toBe(2);
-    expect(nodes.find((n) => n.address === 'SESSION')!.col).toBe(1);
+/** A busy transaction: hubs, a long edge, a cycle. */
+const BUSY: LayoutEdge[] = [
+  ['ta1', 'wallet'], ['ta2', 'wallet'], ['ta1', 'mint'], ['ta2', 'mint'], ['pda1', 'program'], ['pda2', 'program'],
+  ['pda1', 'ta1'], ['state', 'pda1'], ['state', 'mint'], ['state', 'program'], ['pda2', 'state'], ['ta3', 'pda2'], ['ta3', 'mint'],
+].map(([from, to]) => ({ id: `${from}>${to}`, from: from!, to: to! }));
+
+describe('layered layout', () => {
+  const nodes = [...new Set(BUSY.flatMap((e) => [e.from, e.to]))];
+
+  it('puts every edge between neighbouring columns, long ones bending through slots in the columns between', () => {
+    const l = layered(nodes, BUSY, LO);
+    for (const e of BUSY) {
+      const a = l.pos.get(e.from)!;
+      const b = l.pos.get(e.to)!;
+      const xs = [a.x + GRAPH.nodeW / 2, ...l.routes.get(e.id)!.map((p) => p.x), b.x + GRAPH.nodeW / 2];
+      for (let i = 1; i < xs.length; i++) expect(Math.abs(xs[i]! - xs[i - 1]!), e.id).toBe(STEP);
+    }
+    expect([...l.routes.values()].some((r) => r.length > 0)).toBe(true);
   });
 
-  it('adds accounts outside the request only when asked', () => {
-    const external = [{ from: 'SESSION', to: 'OUTSIDE', kind: 'program-owner', label: 'owner', status: 'verified', external: true, steps: [0] }] as GraphInput['external'];
-    expect(layoutGraph(input({ external }), false).nodes.some((n) => n.address === 'OUTSIDE')).toBe(false);
-    expect(layoutGraph(input({ external }), true).nodes.find((n) => n.address === 'OUTSIDE')?.col).toBe(3);
+  it('never puts a bend inside a node, nor two nodes on top of each other', () => {
+    const l = layered(nodes, BUSY, LO);
+    const boxes = nodes.map((n) => l.pos.get(n)!);
+    for (const r of l.routes.values()) {
+      for (const p of r) for (const b of boxes) expect(p.x > b.x && p.x < b.x + GRAPH.nodeW && p.y > b.y && p.y < b.y + GRAPH.nodeH).toBe(false);
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i]!, boxes[j]!];
+        expect(a.x === b.x && Math.abs(a.y - b.y) < GRAPH.nodeH + GRAPH.gapY, `${nodes[i]} / ${nodes[j]}`).toBe(false);
+      }
+    }
+  });
+
+  it('untangles crossings', () => {
+    // a-c and b-d cross in input order (c before d is reversed); the layout swaps them.
+    const edges: LayoutEdge[] = [{ id: '1', from: 'a', to: 'd' }, { id: '2', from: 'b', to: 'c' }];
+    const l = layered(['a', 'b', 'c', 'd'], edges, LO);
+    const above = (x: string, y: string) => l.pos.get(x)!.y < l.pos.get(y)!.y;
+    expect(above('a', 'b')).toBe(above('d', 'c'));
+  });
+
+  it('lays out cycles, and puts accounts with no edge in a strip below', () => {
+    const l = layered(['a', 'b', 'lonely'], [{ id: '1', from: 'a', to: 'b' }, { id: '2', from: 'b', to: 'a' }], LO);
+    expect(l.pos.get('a')!.x).not.toBe(l.pos.get('b')!.x);
+    expect(l.isolated).toEqual(['lonely']);
+    expect(l.pos.get('lonely')!.y).toBeGreaterThanOrEqual(l.isolatedTop!);
+    expect(l.isolatedTop!).toBeGreaterThan(Math.max(l.pos.get('a')!.y, l.pos.get('b')!.y) + GRAPH.nodeH);
+  });
+
+  it('is deterministic', () => {
+    expect(layered(nodes, BUSY, LO)).toEqual(layered(nodes, BUSY, LO));
   });
 });
 
-describe('edge labels and routing', () => {
+describe('graph edges', () => {
+  it('bundles every relation between the same two accounts into one line', () => {
+    const g = input({ edges: [rel('SESSION', 'PROGRAM', 'owned by'), rel('SESSION', 'PROGRAM', 'x', { kind: 'pda' }), rel('SESSION', 'PROGRAM', 'owned by')] });
+    const edges = graphEdges(g, OPTS);
+    expect(edges).toHaveLength(1);
+    expect(edges[0]!.label).toBe('owned by · seeds');
+    expect(edges[0]!.relations).toHaveLength(3);
+  });
+
+  it('draws the selected step’s transfers, and none when hidden', () => {
+    const t = (step: number) => ({ kind: 'sol' as const, from: 'ME', to: 'RECIPIENT', amount: `${step} SOL`, instructionIndex: 0, inner: false, step });
+    const g = input({ transfers: [t(0), t(1)] });
+    expect(graphEdges(g, OPTS).find((e) => e.kind === 'transfer')!.label).toBe('0 SOL · 1 SOL');
+    expect(graphEdges(g, { ...OPTS, tab: 1 }).find((e) => e.kind === 'transfer')!.label).toBe('1 SOL');
+    expect(graphEdges(g, { ...OPTS, showTransfers: false }).some((e) => e.kind === 'transfer')).toBe(false);
+  });
+
+  it('adds accounts outside the request only when asked', () => {
+    const external = [{ ...rel('SESSION', 'OUTSIDE'), kind: 'program-owner', external: true }] as GraphInput['external'];
+    expect(layoutGraph(input({ external }), OPTS).nodes.some((n) => n.address === 'OUTSIDE')).toBe(false);
+    expect(layoutGraph(input({ external }), { ...OPTS, showExternal: true }).nodes.find((n) => n.address === 'OUTSIDE')?.external).toBe(true);
+  });
+
+  it('draws every account of the request, linked or not', () => {
+    const { nodes } = layoutGraph(input({ edges: [rel('SESSION', 'ME')] }), OPTS);
+    expect(nodes.map((n) => n.address).sort()).toEqual(['ME', 'PROGRAM', 'RECIPIENT', 'SESSION']);
+    expect(nodes.filter((n) => n.isolated).map((n) => n.address).sort()).toEqual(['PROGRAM', 'RECIPIENT']);
+  });
+});
+
+describe('edge geometry and labels', () => {
+  it('spreads the ends sharing a node side, in the order of where they go', () => {
+    const g = input({ edges: [rel('SESSION', 'ME'), rel('RECIPIENT', 'ME'), rel('PROGRAM', 'ME')] });
+    const l = layoutGraph(g, OPTS);
+    const at = new Map(l.nodes.map((n) => [n.address, n]));
+    const geo = edgeGeometry(l.edges, at, l.routes);
+    const ends = geo.map((x) => Number(/ (\S+)$/.exec(x.d)![1]));
+    expect(new Set(ends).size).toBe(3);
+    const fromY = l.edges.map((e) => at.get(e.from)!.y);
+    const rank = (xs: number[]) => xs.map((x) => xs.filter((y) => y < x).length);
+    expect(rank(ends)).toEqual(rank(fromY));
+  });
+
   it('moves overlapping labels apart so each stays readable', () => {
     const at = placeLabels([
       { x: 100, y: 50, text: 'owner' },
@@ -46,12 +129,10 @@ describe('edge labels and routing', () => {
     expect(at[3]).toEqual({ x: 400, y: 50 });
   });
 
-  it('routes an edge by where its nodes are, so dragged nodes keep their links', () => {
-    const left = edgePath({ x: 0, y: 0 }, { x: 400, y: 200 });
-    expect(left.d.startsWith('M136 ')).toBe(true);
-    const swapped = edgePath({ x: 400, y: 200 }, { x: 0, y: 0 });
-    expect(swapped.d).toBe(left.d);
-    const stacked = edgePath({ x: 10, y: 0 }, { x: 20, y: 300 });
-    expect(stacked.d).toMatch(/^M146 32 C/);
+  it('shortens labels to the gap between columns', () => {
+    expect(fitLabel('owner')).toBe('owner');
+    const long = fitLabel('owned by · seeds · stores · authority');
+    expect(long).toHaveLength(LABEL_MAX);
+    expect(long.endsWith('…')).toBe(true);
   });
 });
