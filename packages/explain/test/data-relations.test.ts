@@ -23,7 +23,7 @@ async function cacheWith(accounts: { address: Address; owner: Address; data: Uin
 }
 
 describe('dataRelations', () => {
-  it('links a program account to its program and to the keys its data holds; zero bytes never count as the System Program', async () => {
+  it('links accounts to their owner program in the transaction and to the keys their data holds; zero bytes never count as the System Program', async () => {
     // 8-byte header, then the vault and mint keys, then 32 zero bytes (an unset field).
     const data = new Uint8Array([...new Uint8Array(8).fill(1), ...key(VAULT), ...key(MINT), ...new Uint8Array(32)]);
     const cache = await cacheWith([
@@ -36,6 +36,8 @@ describe('dataRelations', () => {
       { kind: 'program-owner', from: STATE, to: PROGRAM, label: 'owned by', status: 'verified', external: false },
       expect.objectContaining({ kind: 'data-ref', from: STATE, to: VAULT, label: 'stores' }),
       expect.objectContaining({ kind: 'data-ref', from: STATE, to: MINT, label: 'stores' }),
+      // System and Token ownership are drawn too when that program is in the transaction.
+      { kind: 'program-owner', from: WALLET, to: SYSTEM, label: 'owned by', status: 'verified', external: false },
     ]);
   });
 

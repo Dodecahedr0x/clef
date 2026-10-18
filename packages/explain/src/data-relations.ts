@@ -29,8 +29,7 @@ function fieldFor(data: unknown, target: string, depth = 0): string | null {
 /**
  * Relations read from the accounts themselves, for every account of the transaction (not only those an IDL
  * constrains):
- * - `program-owner`: owned by a program that is also in the transaction (wallets and token accounts excluded:
- *   System and Token ownership is the norm, and token holders/mints have their own edges);
+ * - `program-owner`: owned by a program that is also in the transaction (System and Token included);
  * - `data-ref`: a program account whose data holds another key of the transaction. Raw 32-byte matches are
  *   unambiguous; the label is the field name when the program's IDL decodes the account.
  */
@@ -46,11 +45,11 @@ export function dataRelations(addresses: readonly Address[], cache: AccountCache
     const account = cache.get(address);
     if (!account || account.executable) continue;
     const owner = account.owner;
-    if (owner === SYSTEM_PROGRAM || TOKEN_PROGRAMS.has(owner)) continue;
-
     if (inTx.has(owner)) {
       edges.push({ kind: 'program-owner', from: address, to: owner, label: 'owned by', status: 'verified', external: false });
     }
+    // Wallets hold no data, and token accounts and mints have their own edges (holder, mint, authorities).
+    if (owner === SYSTEM_PROGRAM || TOKEN_PROGRAMS.has(owner)) continue;
 
     if (!account.data.length) continue;
     const haystack = latin1(account.data.subarray(0, MAX_SCAN));

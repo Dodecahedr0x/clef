@@ -59,7 +59,8 @@ export type GraphEdge = {
 
 export type GraphLayout = { nodes: GraphNode[]; edges: GraphEdge[]; routes: Map<string, Pos[]>; width: number; height: number; isolatedTop: number | null };
 
-const relationLabel = (e: RelationEdge) => (e.kind === 'pda' ? 'seeds' : e.label);
+/** has_one edges link the holder and the account its field names: the field ("admin") says it all. */
+const relationLabel = (e: RelationEdge) => (e.kind === 'pda' ? 'seeds' : e.kind === 'has_one' ? (e.label.split('.').pop() ?? e.label) : e.label);
 const transferLabel = (t: TransferView) => (t.kind === 'create' ? `funds ${t.amount}` : t.kind === 'mint' ? `mints ${t.amount}` : t.kind === 'burn' ? `burns ${t.amount}` : t.amount);
 const unique = (xs: string[]) => [...new Set(xs)];
 
@@ -68,6 +69,8 @@ export function graphEdges(g: GraphInput, opts: { showExternal: boolean; showTra
   const groups = new Map<string, GraphEdge>();
   const add = (kind: GraphEdge['kind'], from: string, to: string, r?: RelationEdge, t?: TransferView) => {
     if (from === to) return;
+    // Relations have no direction on screen: one line per pair (a has_one and the stored field it checks merge).
+    if (kind === 'relation' && to < from) [from, to] = [to, from];
     const id = `${kind}|${from}|${to}`;
     const e = groups.get(id) ?? { id, kind, from, to, label: '', relations: [], transfers: [] };
     if (r) e.relations.push(r);
@@ -213,8 +216,9 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   const placedNodes = nodes.map((n) => (moved[n.address] ? { ...n, ...moved[n.address] } : n));
   const byAddress = new Map(placedNodes.map((n) => [n.address, n]));
   const contentW = Math.max(layout.width, ...placedNodes.map((n) => n.x + GRAPH.nodeW + 16));
-  // Room at the bottom for the zoom controls, which sit over the bottom-left corner.
-  const contentH = Math.max(layout.height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16)) + 40;
+  const contentH = Math.max(layout.height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16));
+  // Room under the graph, in screen pixels whatever the zoom, so the zoom controls (bottom-left) never cover a node.
+  const CONTROLS_ROOM = 52;
   const selected =
     (picked && byAddress.get(picked)) || placedNodes.find((n) => !n.external && !input.mine.has(n.address) && !input.programs.has(n.address)) || placedNodes[0];
   const label = (a: string) => input.labels.get(a) ?? shortAddress(a);
@@ -307,8 +311,8 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             )}
           </div>
           {/* Scrolls both ways; Ctrl/⌘ + wheel zooms. Nodes can be dragged to untangle edges. */}
-          <div ref={viewport} className="overflow-auto rounded-xl border border-line bg-surface" style={{ height: Math.min(contentH * zoom, 620) + 2 }}>
-            <div className="relative" style={{ width: contentW * zoom, height: contentH * zoom }}>
+          <div ref={viewport} className="overflow-auto rounded-xl border border-line bg-surface" style={{ height: Math.min(contentH * zoom + CONTROLS_ROOM, 620) + 2 }}>
+            <div className="relative" style={{ width: contentW * zoom, height: contentH * zoom + CONTROLS_ROOM }}>
               <div className="absolute top-0 left-0 origin-top-left" style={{ width: contentW, height: contentH, transform: `scale(${zoom})` }}>
                 <svg aria-hidden="true" width={contentW} height={contentH} viewBox={`0 0 ${contentW} ${contentH}`} className="absolute inset-0">
                   <defs>
@@ -367,6 +371,8 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                   const on = n.address === selected?.address;
                   const mine = input.mine.has(n.address);
                   const program = input.programs.has(n.address);
+                  const named = n.title !== shortAddress(n.address);
+                  const kind = program ? 'program' : pdaChild(input, n.address) ? 'PDA' : null;
                   const fact = factFor(input, n.address, tab);
                   const owner = ownerText(fact);
                   const badge = fact?.lifecycle === 'created' ? 'new' : fact?.lifecycle === 'closed' ? 'closed' : null;
@@ -406,8 +412,18 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       {badge && (
                         <span className={`absolute -top-2 right-2 rounded-full px-1.5 text-[10px] leading-4 font-semibold uppercase ${badge === 'new' ? 'bg-ok text-white' : 'bg-danger-text text-white'}`}>{badge}</span>
                       )}
-                      <span className="w-full truncate text-xs font-semibold">{n.title}</span>
-                      <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={input.programs.has(n.address) ? 'program · ' : pdaChild(input, n.address) ? 'PDA · ' : undefined} /></span>
+                      {/* Unnamed accounts are titled by their (copyable) key, so it is not repeated below. */}
+                      {named ? (
+                        <>
+                          <span className="w-full truncate text-xs font-semibold">{n.title}</span>
+                          <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={kind ? `${kind} · ` : undefined} /></span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-full truncate text-xs font-semibold"><Pubkey value={n.address} /></span>
+                          {kind && <span className="w-full truncate text-xs text-muted">{kind}</span>}
+                        </>
+                      )}
                       {owner && !program && <span className="w-full truncate text-[11px] text-muted">owner · {owner}</span>}
                     </button>
                   );
@@ -518,12 +534,13 @@ export function AccountCard({ title, address, fact, transfers, label, program, c
     );
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <span className="truncate text-xs font-semibold">{title}</span>
+      {title !== shortAddress(address) && <span className="truncate text-xs font-semibold">{title}</span>}
       {!compact ? <Pubkey value={address} className="self-start text-xs text-muted" /> : <span className="font-mono text-xs text-muted">{shortAddress(address)}</span>}
       {life && <span className={`text-xs font-semibold ${fact?.lifecycle === 'closed' ? 'text-danger-text' : fact?.lifecycle === 'created' ? 'text-ok' : 'text-muted'}`}>{life}</span>}
       {!fact && <span className="text-xs text-muted">{program ? 'Program' : 'No state known for this account.'}</span>}
       {fact && (
         <>
+          {!fact.owner && !program && row('Owner', <span className="text-muted">unknown (account not read)</span>)}
           {fact.owner && row(fact.executable ? 'Loader' : 'Owner', <>{fact.ownerName ?? label(fact.owner)}{!compact && fact.ownerName && <> <Pubkey value={fact.owner} className="text-muted" /></>}{fact.ownerNow && <span className="text-muted"> (today)</span>}</>)}
           {fact.executable && row('Kind', 'Program (executable)')}
           {fact.dataLength !== null && row('Data', `${fact.dataLength.toLocaleString('en-US')} bytes`)}

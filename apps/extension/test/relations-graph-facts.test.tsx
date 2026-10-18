@@ -102,3 +102,22 @@ describe('relations graph account facts', () => {
     expect(factFor(g, NEW, 1)!.lamports.delta).toBe('+0.2 SOL');
   });
 });
+
+describe('relations graph node text', () => {
+  it('shows an unnamed account’s key once (as its title), and a named one’s key under its name', () => {
+    render(<RelationsGraph input={input()} tab="all" batchSize={1} />);
+    const unnamed = node(/Gdxf/);
+    expect(within(unnamed).getAllByRole('button', { name: `Copy ${NEW}` })).toHaveLength(1);
+    expect(unnamed.textContent?.match(/Gdxf…/g)).toHaveLength(1);
+    const named = node(/Your USDC token account/);
+    expect(within(named).getByRole('button', { name: `Copy ${TOKEN}` })).toBeTruthy();
+  });
+
+  it('says when an account’s owner is unknown', () => {
+    const g = input();
+    g.facts!.set(NEW, [fact({ address: NEW, owner: null, ownerName: undefined, dataLength: null })]);
+    render(<RelationsGraph input={g} tab="all" batchSize={1} />);
+    fireEvent.pointerEnter(node(/Gdxf/));
+    expect(screen.getByRole('tooltip').textContent).toContain('unknown (account not read)');
+  });
+});

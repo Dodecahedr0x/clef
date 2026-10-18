@@ -82,6 +82,13 @@ describe('graph edges', () => {
     expect(edges[0]!.relations).toHaveLength(3);
   });
 
+  it('names a has_one line by its field, and merges it with the stored field it checks (either direction)', () => {
+    const g = input({ edges: [rel('SESSION', 'RECIPIENT', 'pool.admin', { kind: 'has_one' }), rel('RECIPIENT', 'SESSION', 'admin', { kind: 'data-ref' })] });
+    const edges = graphEdges(g, OPTS);
+    expect(edges).toHaveLength(1);
+    expect(edges[0]!.label).toBe('admin');
+  });
+
   it('draws the selected step’s transfers, and none when hidden', () => {
     const t = (step: number) => ({ kind: 'sol' as const, from: 'ME', to: 'RECIPIENT', amount: `${step} SOL`, instructionIndex: 0, inner: false, step });
     const g = input({ transfers: [t(0), t(1)] });
@@ -109,11 +116,20 @@ describe('edge geometry and labels', () => {
     const l = layoutGraph(g, OPTS);
     const at = new Map(l.nodes.map((n) => [n.address, n]));
     const geo = edgeGeometry(l.edges, at, l.routes);
-    const ends = geo.map((x) => Number(/ (\S+)$/.exec(x.d)![1]));
-    expect(new Set(ends).size).toBe(3);
-    const fromY = l.edges.map((e) => at.get(e.from)!.y);
+    const me = at.get('ME')!;
+    // The end of each line on ME's node (its first or last point), and where the line's other end is.
+    const ends = geo.map((x, i) => {
+      const nums = x.d.match(/-?\d+(\.\d+)?/g)!.map(Number);
+      const first = { x: nums[0]!, y: nums[1]! };
+      const last = { x: nums[nums.length - 2]!, y: nums[nums.length - 1]! };
+      const onMe = (p: { x: number; y: number }) => (p.x === me.x || p.x === me.x + GRAPH.nodeW) && p.y > me.y && p.y < me.y + GRAPH.nodeH;
+      const e = l.edges[i]!;
+      const other = at.get(e.from === 'ME' ? e.to : e.from)!;
+      return { y: (onMe(first) ? first : last).y, other: other.y };
+    });
+    expect(new Set(ends.map((e) => e.y)).size).toBe(3);
     const rank = (xs: number[]) => xs.map((x) => xs.filter((y) => y < x).length);
-    expect(rank(ends)).toEqual(rank(fromY));
+    expect(rank(ends.map((e) => e.y))).toEqual(rank(ends.map((e) => e.other)));
   });
 
   it('moves overlapping labels apart so each stays readable', () => {
