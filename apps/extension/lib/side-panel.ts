@@ -21,4 +21,10 @@ export async function applyOpenIn(openIn: Settings['openIn'], panel = sidePanelA
 }
 
 /** True inside the side panel page (it marks <html>), so the popup-only controls can hide. */
-export const inSidePanel = (): boolean => document.documentElement.classList.contains('panel');
+export const inSidePanel = (): boolean => document.documentElement.classList.contains('panel') && !inTab();
+
+/** True when Clef is open in a browser tab (popup.html with a hash, e.g. #tab). */
+export const inTab = (): boolean => document.documentElement.classList.contains('tab');
+
+/** The popup page as a full browser tab. */
+export const TAB_HASH = '#tab';

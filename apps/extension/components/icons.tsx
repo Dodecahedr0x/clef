@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type IconName = 'back' | 'panel' | 'close' | 'settings' | 'send' | 'receive' | 'swap' | 'history' | 'eye' | 'eye-off' | 'copy' | 'share' | 'lock' | 'check'
+export type IconName = 'back' | 'panel' | 'tab' | 'close' | 'settings' | 'send' | 'receive' | 'swap' | 'history' | 'eye' | 'eye-off' | 'copy' | 'share' | 'lock' | 'check'
   | 'info' | 'warn' | 'danger' | 'shield-check' | 'shield-x' | 'chevron-down' | 'chevron-right' | 'chevron-up' | 'plus' | 'refresh' | 'sliders' | 'filter'
   | 'instructions' | 'changes' | 'relations' | 'logs' | 'details' | 'camera' | 'usb' | 'qr' | 'key' | 'clef' | 'spinner';
 
@@ -38,6 +38,7 @@ const ICONS: Record<IconName, { w: number; d: ReactNode }> = {
   'chevron-right': { w: 2, d: <path d="m9 6 6 6-6 6" /> },
   'chevron-up': { w: 2, d: <path d="m6 15 6-6 6 6" /> },
   panel: { w: 2, d: <><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M14.5 4.5v15" /></> },
+  tab: { w: 2, d: <><path d="M13 4.5h6.5V11" /><path d="m19.5 4.5-8 8" /><path d="M10 5.5H6A2.5 2.5 0 0 0 3.5 8v10A2.5 2.5 0 0 0 6 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-4" /></> },
   plus: { w: 2, d: <path d="M12 5v14M5 12h14" /> },
   refresh: { w: 2, d: <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" /> },
   sliders: { w: 2, d: <><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></> },

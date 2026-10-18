@@ -6,7 +6,7 @@ import { call } from '../../../lib/api';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
-import { PanelButton } from './PanelButton';
+import { PanelButton, TabButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
 
 const NETWORK_LABEL: Record<Settings['network'], string> = { mainnet: 'Mainnet', devnet: 'Devnet', localnet: 'Localnet', custom: 'Custom RPC' };
@@ -249,11 +249,13 @@ function BasicPortfolio() {
         >
           <span className="w-[18px] h-[18px] rounded-full bg-info-dot shrink-0" />
           <span className="text-[14px] font-medium truncate">{account?.label ?? 'No account'}</span>
-          {account && <Pubkey value={account.address} className="text-[12px] text-muted whitespace-nowrap shrink-0" />}
+          {/* No room for the address in the 360px popup next to the name; the side panel and tab show it. */}
+          {account && <Pubkey value={account.address} className="max-[399px]:hidden text-[12px] text-muted whitespace-nowrap shrink-0" />}
           <span className="ml-auto text-muted"><Icon name="chevron-down" size={14} /></span>
         </button>
+        <TabButton />
         <PanelButton />
-        <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-11 h-11 flex items-center justify-center bg-transparent border-0 rounded-[10px] text-muted">
+        <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-9 h-11 flex-none flex items-center justify-center bg-transparent border-0 rounded-[10px] text-muted">
           <Icon name="settings" size={20} />
         </button>
       </header>
@@ -346,6 +348,7 @@ function ExpertPortfolio() {
         <div className="ml-auto">
           {settings.networkSwitchInHeader && sw && <NetworkSwitch compact value={sw} onChange={(v) => void switchNetwork(v)} />}
         </div>
+        <TabButton />
         <PanelButton />
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-10 h-11 flex items-center justify-center bg-transparent border-0 text-muted">
           <Icon name="settings" size={20} />

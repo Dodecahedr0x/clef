@@ -2,11 +2,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyOpenIn } from '../lib/side-panel';
 
-const h = vi.hoisted(() => ({ call: vi.fn(async () => ({})), getCurrent: vi.fn(async () => ({ id: 7 })) }));
+const h = vi.hoisted(() => ({ call: vi.fn(async () => ({})), getCurrent: vi.fn(async () => ({ id: 7 })), create: vi.fn(async () => ({})) }));
 vi.mock('../lib/api', () => ({ call: h.call }));
-vi.mock('wxt/browser', () => ({ browser: { windows: { getCurrent: h.getCurrent } } }));
+vi.mock('wxt/browser', () => ({ browser: { windows: { getCurrent: h.getCurrent }, tabs: { create: h.create }, runtime: { getURL: (p: string) => `chrome-extension://clef${p}` } } }));
 
-const { PanelButton } = await import('../entrypoints/popup/screens/PanelButton');
+const { PanelButton, TabButton } = await import('../entrypoints/popup/screens/PanelButton');
 
 type Chrome = { sidePanel?: { open: ReturnType<typeof vi.fn>; setPanelBehavior: ReturnType<typeof vi.fn> } };
 const g = globalThis as unknown as { chrome?: Chrome };
@@ -20,7 +20,7 @@ function fakePanel() {
 afterEach(() => {
   cleanup();
   delete g.chrome;
-  document.documentElement.classList.remove('panel');
+  document.documentElement.classList.remove('panel', 'tab');
   h.call.mockClear();
 });
 
@@ -72,5 +72,34 @@ describe('PanelButton', () => {
     render(<PanelButton />);
     await Promise.resolve();
     expect(screen.queryByRole('button', { name: /side panel/ })).toBeNull();
+  });
+});
+
+describe('TabButton', () => {
+  it('opens Clef in a full tab and closes the popup', async () => {
+    const close = vi.spyOn(window, 'close').mockImplementation(() => {});
+    render(<TabButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Clef in a tab' }));
+    expect(h.create).toHaveBeenCalledWith({ url: 'chrome-extension://clef/popup.html#tab' });
+    await waitFor(() => expect(close).toHaveBeenCalled());
+    close.mockRestore();
+  });
+
+  it('keeps the side panel open', async () => {
+    document.documentElement.classList.add('panel');
+    const close = vi.spyOn(window, 'close').mockImplementation(() => {});
+    render(<TabButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Clef in a tab' }));
+    await waitFor(() => expect(h.create).toHaveBeenCalled());
+    expect(close).not.toHaveBeenCalled();
+    close.mockRestore();
+  });
+
+  it('in a tab: neither button shows', () => {
+    fakePanel();
+    document.documentElement.classList.add('panel', 'tab');
+    render(<><TabButton /><PanelButton /></>);
+    expect(screen.queryByRole('button', { name: 'Open Clef in a tab' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Keep Clef open in the side panel' })).toBeNull();
   });
 });
