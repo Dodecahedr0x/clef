@@ -213,7 +213,8 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   const placedNodes = nodes.map((n) => (moved[n.address] ? { ...n, ...moved[n.address] } : n));
   const byAddress = new Map(placedNodes.map((n) => [n.address, n]));
   const contentW = Math.max(layout.width, ...placedNodes.map((n) => n.x + GRAPH.nodeW + 16));
-  const contentH = Math.max(layout.height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16));
+  // Room at the bottom for the zoom controls, which sit over the bottom-left corner.
+  const contentH = Math.max(layout.height, ...placedNodes.map((n) => n.y + GRAPH.nodeH + 16)) + 40;
   const selected =
     (picked && byAddress.get(picked)) || placedNodes.find((n) => !n.external && !input.mine.has(n.address) && !input.programs.has(n.address)) || placedNodes[0];
   const label = (a: string) => input.labels.get(a) ?? shortAddress(a);
@@ -296,7 +297,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
         <p className="m-0 rounded-xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
       ) : (
         <div className="relative">
-          <div role="group" aria-label="Graph view" className="absolute top-2 right-2 z-[3] flex gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-sm">
+          <div role="group" aria-label="Graph view" className="absolute bottom-3 left-2 z-[3] flex gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-sm">
             <button type="button" aria-label="Zoom out" onClick={() => zoomBy((z) => z - ZOOM.step)} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">−</button>
             <span className="flex w-11 items-center justify-center text-xs tabular-nums text-muted" aria-live="polite">{Math.round(zoom * 100)}%</span>
             <button type="button" aria-label="Zoom in" onClick={() => zoomBy((z) => z + ZOOM.step)} className="h-7 w-7 rounded-md border-0 bg-transparent text-sm text-ink hover:bg-surface-2">+</button>
