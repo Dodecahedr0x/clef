@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Icon, Pill, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
-import { AllClear, DangerCards, Deltas, TxTabs, UNKNOWN_CHANGES, WarnCards } from './parts';
+import { AllClear, DangerCards, Deltas, Summary, TxTabs, UNKNOWN_CHANGES, WarnCards } from './parts';
 
 const SHOWN_ACCOUNTS = 5;
 
@@ -174,7 +174,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
     <div className="flex flex-col gap-3.5 px-4 pt-[18px]">
       {!single && <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={onTab} />}
       <section className="flex flex-col gap-1 px-1">
-        <h1 className="m-0 text-xl font-semibold tracking-[-0.02em]">{summary}</h1>
+        <Summary text={summary} className="m-0 text-xl font-semibold tracking-[-0.02em]" />
         <Deltas changes={changes} fee={fee} />
       </section>
       <DangerCards warnings={dangers} />

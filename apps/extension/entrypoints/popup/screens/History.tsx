@@ -76,9 +76,11 @@ function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; 
   const tone = failed ? 'warn' : item.kind === 'receive' ? 'ok' : 'neutral';
   const body = (
     <>
+      {/* The signature names the transaction; Clef's summary of it is a hint, cut to one line (full on hover). */}
       <div className="flex flex-col flex-1 min-w-0">
-        <span className="text-[14px] font-medium truncate">{item.title}</span>
-        <span className="text-[12px] text-muted truncate">
+        <span className="text-[14px] font-medium truncate"><Pubkey value={item.signature} /></span>
+        <span className="text-[12px] text-muted truncate" title={item.title}>{item.title}</span>
+        <span className="text-[11px] text-muted truncate">
           {source}
           {when}
           {failed && ' · nothing moved'}

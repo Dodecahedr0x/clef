@@ -1,7 +1,7 @@
 import type { BatchView, Warning } from '@clef/explain';
 import { Amount, Avatar } from '../../../components';
 import { direction, displayAmount } from './model';
-import { AllClear, DangerCards, UNKNOWN_CHANGES, WarnCards } from './parts';
+import { AllClear, DangerCards, Summary, UNKNOWN_CHANGES, WarnCards } from './parts';
 import { useOnChain } from './source';
 
 const AVATAR_TONE = ['violet', 'info', 'ok', 'warn', 'primary'] as const;
@@ -18,7 +18,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
       <div className="flex flex-col gap-3.5 px-4 pt-5">
         <section className="flex flex-col gap-1.5 px-1">
           <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
-          <h1 className="m-0 text-2xl leading-[1.2] font-semibold tracking-[-0.02em]">{c.summary}</h1>
+          <Summary text={c.summary} className="m-0 text-2xl leading-[1.2] font-semibold tracking-[-0.02em]" />
         </section>
         <DangerCards warnings={dangers} />
         <WarnCards warnings={others} />
@@ -41,7 +41,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
     <div className="flex flex-col gap-5 px-5 pt-6">
       <section className="flex flex-col gap-2">
         <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
-        <h1 className="m-0 text-[26px] leading-[1.2] font-semibold tracking-[-0.02em]">{c.summary}</h1>
+        <Summary text={c.summary} className="m-0 text-[26px] leading-[1.2] font-semibold tracking-[-0.02em]" />
         {view.steps.length > 1 && <span className="text-sm text-muted">{view.steps.length} transactions, signed together</span>}
       </section>
 

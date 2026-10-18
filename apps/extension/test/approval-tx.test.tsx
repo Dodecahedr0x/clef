@@ -315,7 +315,8 @@ describe('Danger', () => {
     expect(screen.getByText('This site is on a phishing list')).toBeTruthy();
     const danger = screen.getByRole('region', { name: 'Danger' });
     expect(within(danger).getByText('DANGER')).toBeTruthy();
-    expect(within(danger).getByText('Owner change')).toBeTruthy();
+    expect(within(danger).getByText('Owner change.')).toBeTruthy();
+    expect(danger.textContent).toContain('SetAuthority makes 5Qz8…uN4d the owner of your USDC account.');
     expect(within(screen.getByRole('region', { name: 'Warnings' })).getByText('WARN')).toBeTruthy();
     expect(screen.getByText(/none now · fee 0.000005 SOL/)).toBeTruthy();
     const sign = screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement;

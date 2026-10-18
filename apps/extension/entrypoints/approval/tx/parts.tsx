@@ -2,7 +2,8 @@ import type { ChangeView, Warning } from '@clef/explain';
 import type { PhishingHit } from '@clef/wallet-core';
 import { Icon } from '../../../components';
 import { direction, displayAmount, listSteps, ruleTitle, type Tab } from './model';
-import { useIdlAdder } from './source';
+import { useState } from 'react';
+import { useIdlAdder, useOnChain } from './source';
 
 export function PhishingBanner({ hit }: { hit: PhishingHit }) {
   return (
@@ -16,51 +17,74 @@ export function PhishingBanner({ hit }: { hit: PhishingHit }) {
   );
 }
 
+/**
+ * Clef's one-line description of the transaction: the heading of a request to sign; for a past transaction
+ * (whose title is its signature) a small grey line.
+ */
+export function Summary({ text, className }: { text: string; className: string }) {
+  if (useOnChain()) return <p className="m-0 text-xs leading-normal text-muted [overflow-wrap:anywhere]">{text}</p>;
+  return <h1 className={className}>{text}</h1>;
+}
+
+/** Dangers are never folded away: each is one compact line, title then message. */
 export function DangerCards({ warnings }: { warnings: Warning[] }) {
   if (!warnings.length) return null;
   return (
-    <section aria-label="Danger" className="flex flex-col gap-3 rounded-[14px] border border-danger-line bg-danger-bg p-3.5">
+    <section aria-label="Danger" className="flex flex-col gap-1.5 rounded-[10px] border border-danger-line bg-danger-bg px-3 py-2">
       {warnings.map((w, i) => (
-        <div key={i} className="flex flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold tracking-[0.04em] text-white">DANGER</span>
-            <span className="text-sm font-semibold text-danger-ink-2">{ruleTitle(w.rule)}</span>
-          </div>
-          <p className="m-0 text-sm leading-normal text-danger-ink [overflow-wrap:anywhere]">{w.message}</p>
-        </div>
+        <p key={i} className="m-0 flex items-baseline gap-2 text-xs leading-[1.45] text-danger-ink">
+          <span className="flex-none rounded-full bg-danger px-1.5 text-[10px] leading-4 font-semibold tracking-[0.04em] text-white">DANGER</span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            <strong className="font-semibold text-danger-ink-2">{ruleTitle(w.rule)}.</strong> {w.message}
+          </span>
+        </p>
       ))}
     </section>
   );
 }
 
+/** Warnings beyond this many are behind "Show N more". */
+export const WARN_VISIBLE = 3;
+
 export function WarnCards({ warnings }: { warnings: Warning[] }) {
   const addIdl = useIdlAdder();
+  const [all, setAll] = useState(false);
   if (!warnings.length) return null;
+  // Warnings before infos, so folding hides the least important.
+  const sorted = [...warnings.filter((w) => w.severity !== 'info'), ...warnings.filter((w) => w.severity === 'info')];
+  const shown = all ? sorted : sorted.slice(0, WARN_VISIBLE);
   return (
-    <section aria-label="Warnings" className="flex flex-col gap-2 rounded-xl border border-warn-line bg-warn-bg px-3.5 py-3 text-xs text-warn-ink">
-      {warnings.map((w, i) => (
-        <div key={i} className="flex flex-col gap-1">
-          <div className="flex items-start gap-2">
-            <span className={`flex-none rounded-full px-[7px] py-px text-xs font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
-            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{w.message}</span>
+    <section aria-label="Warnings" className="flex flex-col gap-1 rounded-[10px] border border-warn-line bg-warn-bg px-3 py-2 text-xs leading-[1.45] text-warn-ink">
+      {shown.map((w, i) => (
+        <div key={i} className="flex flex-col">
+          <div className="flex items-baseline gap-2">
+            <span className={`flex-none rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+              {w.message}
+              {w.details && w.details.length > 0 && (
+                <details className="inline [&[open]]:block">
+                  <summary className="ml-1 inline cursor-pointer font-semibold underline">Why?</summary>
+                  <ul className="m-0 mt-1 flex list-disc flex-col gap-0.5 pl-4 [overflow-wrap:anywhere]">
+                    {w.details.map((d, j) => (
+                      <li key={j}>{d}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </span>
             {w.programId && addIdl && (
               <button type="button" onClick={() => addIdl(w.programId!)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold whitespace-nowrap text-info underline">
                 Add IDL
               </button>
             )}
           </div>
-          {w.details && w.details.length > 0 && (
-            <details className="ml-[46px]">
-              <summary className="cursor-pointer text-xs font-semibold text-warn-ink">Why?</summary>
-              <ul className="m-0 mt-1 flex list-disc flex-col gap-1 pl-4 [overflow-wrap:anywhere]">
-                {w.details.map((d, j) => (
-                  <li key={j}>{d}</li>
-                ))}
-              </ul>
-            </details>
-          )}
         </div>
       ))}
+      {sorted.length > WARN_VISIBLE && (
+        <button type="button" onClick={() => setAll(!all)} className="self-start border-0 bg-transparent p-0 text-xs font-semibold text-warn-ink underline">
+          {all ? 'Show fewer' : `Show ${sorted.length - WARN_VISIBLE} more`}
+        </button>
+      )}
     </section>
   );
 }

@@ -62,8 +62,10 @@ describe('History transaction detail', () => {
     h.state = state('basic');
     h.result = ok;
     render(<TxDetail />);
-    expect(screen.getByText('jup.ag')).toBeTruthy();
-    expect(screen.getByText(/^Confirmed · /)).toBeTruthy();
+    // Titled by its signature (copyable); the site and Clef's summary are secondary, the summary is no heading.
+    expect(screen.getByRole('button', { name: 'Copy 5igSig' })).toBeTruthy();
+    expect(screen.getByText(/^Confirmed · .* · jup\.ag$/)).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
     expect(screen.getByText('This transaction')).toBeTruthy();
     expect(screen.getByText('Recorded on chain')).toBeTruthy();
     expect(screen.queryByText(/Simulated/)).toBeNull();

@@ -582,6 +582,12 @@ describe('History', () => {
 
   it('opens a transaction in the same view, with the dApp that asked for it when Clef knows', () => {
     render(<HistoryScreen />);
+    // Each row is titled by its signature (click copies it, without opening the row); the summary is a subtitle.
+    const row = screen.getByRole('button', { name: 'Details of Swap SOL → USDC' });
+    expect(within(row).getByRole('button', { name: 'Copy swapSig' })).toBeTruthy();
+    expect(within(row).getByText('Swap SOL → USDC').className).toMatch(/text-muted/);
+    fireEvent.click(within(row).getByRole('button', { name: 'Copy swapSig' }));
+    expect(m.go).not.toHaveBeenCalledWith(expect.objectContaining({ signature: 'swapSig' }));
     fireEvent.click(screen.getByRole('button', { name: 'Details of Swap SOL → USDC' }));
     expect(m.go).toHaveBeenLastCalledWith({ name: 'history/tx', signature: 'swapSig', origin: 'https://jup.ag' });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Details of Received from 9vRt…k2Lm' }), { key: 'Enter' });

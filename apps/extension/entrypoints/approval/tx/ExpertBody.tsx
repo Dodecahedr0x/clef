@@ -4,7 +4,7 @@ import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
-import { DangerCards, Deltas, TxTabs, WarnCards } from './parts';
+import { DangerCards, Deltas, Summary, TxTabs, WarnCards } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
 import { SimulationLogs } from './SimulationLogs';
@@ -187,7 +187,7 @@ export function ExpertBody(p: {
         )}
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline gap-3.5 tabular-nums">
-            <h1 className="m-0 min-w-0 text-lg font-semibold tracking-[-0.02em] [overflow-wrap:anywhere] min-[600px]:text-2xl">{title}</h1>
+            <Summary text={title} className="m-0 min-w-0 text-lg font-semibold tracking-[-0.02em] [overflow-wrap:anywhere] min-[600px]:text-2xl" />
             <span className={`ml-auto text-xs ${dangers.length ? 'text-danger-text' : others.length ? 'text-warn' : 'text-ok'}`}>
               {shownWarnings.length ? `${shownWarnings.length} warning${shownWarnings.length === 1 ? '' : 's'}` : 'No warnings'}
             </span>

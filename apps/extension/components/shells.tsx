@@ -40,7 +40,7 @@ export function PopupScreen({
 
 export const INTERNAL_SITE_PREFIX = 'clef://';
 
-function siteName(origin: string): string {
+export function siteName(origin: string): string {
   if (origin.startsWith(INTERNAL_SITE_PREFIX)) return 'Clef';
   try {
     return new URL(origin).host;
@@ -51,6 +51,7 @@ function siteName(origin: string): string {
 
 export function ApprovalFrame({
   site,
+  title,
   subtitle,
   headerRight,
   banner,
@@ -60,6 +61,8 @@ export function ApprovalFrame({
   onBack,
 }: {
   site: { origin: string; icon?: string };
+  /** Replaces the site name as the header title. */
+  title?: ReactNode;
   subtitle: ReactNode;
   headerRight?: ReactNode;
   banner?: ReactNode;
@@ -80,7 +83,7 @@ export function ApprovalFrame({
           {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[14px] font-semibold">{name}</span>
+          <span className="truncate text-[14px] font-semibold">{title ?? name}</span>
           <span className="truncate text-[12px] text-muted">{subtitle}</span>
         </div>
         {headerRight && <div className="flex flex-none items-center gap-2">{headerRight}</div>}
