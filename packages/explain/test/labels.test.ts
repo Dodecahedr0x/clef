@@ -1,8 +1,8 @@
 import { MemoryChainReader } from '@clef/rpc';
 import { findAssociatedTokenPda } from '@solana-program/token';
-import { address, type Address } from '@solana/kit';
+import { address, getProgramDerivedAddress, type Address } from '@solana/kit';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { AccountCache, Labeler, shortAddress, tokenRelations, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../src';
+import { AccountCache, ATA_PROGRAM, Labeler, shortAddress, tokenRelations, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../src';
 import { ME, OTHER, USDC, tokenAccountData } from './helpers';
 
 describe('token relations and labels', () => {
@@ -23,6 +23,20 @@ describe('token relations and labels', () => {
       ['token-mint', myAta, USDC, 'verified'],
       ['ata', myAta, ME, 'verified'],
     ]);
+  });
+
+  it('gives an ATA its seeds (owner, token program, mint) and deriving program, which derive it again', async () => {
+    const ata = (await tokenRelations([myAta], cache)).find((e) => e.kind === 'ata')!;
+    expect(ata.derivedBy).toBe(ATA_PROGRAM);
+    expect(ata.seeds?.map((s) => [s.kind, s.display, s.type?.kind])).toEqual([
+      ['account', 'owner', 'pubkey'],
+      ['account', 'token program', 'pubkey'],
+      ['account', 'mint', 'pubkey'],
+    ]);
+    const bytes = ata.seeds!.map((s) => Uint8Array.from(s.hex!.match(/../g)!, (h) => parseInt(h, 16)));
+    const [again, bump] = await getProgramDerivedAddress({ programAddress: address(ATA_PROGRAM), seeds: bytes });
+    expect(again).toBe(myAta);
+    expect(ata.bump).toBe(bump);
   });
 
   it('labels wallets, token accounts, mints and programs', () => {

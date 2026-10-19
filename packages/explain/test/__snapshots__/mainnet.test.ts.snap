@@ -1120,10 +1120,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "3TCYZkF4yzLhoVWNQMytR6YsU6Fqh6A5jGsJAH9epump",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "7M4yraEfBn6HPCWt33tWxjawoEK7Mg6upes9ibhQwp18",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "37ab442af53e7783b70961e65d5b110f991e9ada5ddbd0a041282a10b571c356",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "246d8729743b2970d7f030dd8abca11fc0d045597926f05e5661ba5b31db869f",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "4kJtkAurp3DVraRaLpDKES2mowquE8FT8ZB1qNyU2aMK",
     },
@@ -1144,10 +1172,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "3TCYZkF4yzLhoVWNQMytR6YsU6Fqh6A5jGsJAH9epump",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "2kzMSUGFQdNJsp453RubakDBuSZc2wXu4pfQDxpMWNc7",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "0ea64fdb4c4ca4e98080c8b0a6d15022a251430c706848b5e125aeb7ef101c3c",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "246d8729743b2970d7f030dd8abca11fc0d045597926f05e5661ba5b31db869f",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
@@ -1168,10 +1224,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "Bw4QKox44BNGfRAyUWRZ3YuyfzAiHxUuzp1PMkBMurTc",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "0ea64fdb4c4ca4e98080c8b0a6d15022a251430c706848b5e125aeb7ef101c3c",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "zBo71s7chLU8e5NSXQVqP87h5tkjcRDj9yZg6aRNaif",
     },
@@ -1192,10 +1276,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "4ac2f8d0dd5cbc97e3289c197cb5062a54f3d956b9ce6e5115f96567aa5cb3e6",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV",
     },
@@ -1216,10 +1328,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "BQwyQrWoA7DXs4eFPpGmBhUSNJNMhF6YnHoqZ3nTvmox",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "9c93979b733aa1c81a3398be5e19aa38335bd51810bfb758e0c6c97b7d422d50",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "BYD8fZwQrfFZ9UG4E1Drb8EFGNmxGfTGUds8pzoHSw6o",
     },
@@ -1240,10 +1380,38 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "qkYdTGRPHbWTWuBMz45bCiU6a23axRqf6sBHm9295WY",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "8770157eebeb678a655db99b37f6b1326c7657db90cfb8a87abef8c7b6f2c869",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
     },
@@ -2695,10 +2863,38 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "DsjPNCjFrQDXGZ96UzohaMm9PQJJUxWFQ6Gy6do9CSLT",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "3wXqpGzsqM67KrKUnaGpznAFSaXXcbrt6rszdUR53nvo",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "639f1c3379aae01b49650051904353255b213810ea27c352831985b0d3ab34ac",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "bf4b3589e6117b8c6491873744950ef8066507718dc21a53a5b28f60c1d93764",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "7ht5dpZstYWwNwqc7DAUCzqAhVNEwFEjuvfcKmbfBYPd",
     },
@@ -2719,10 +2915,38 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "DsjPNCjFrQDXGZ96UzohaMm9PQJJUxWFQ6Gy6do9CSLT",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "6JVoL88znFLYiPonxpvDpezdQWkpio7Px12RAWxoRfFU",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "d25034463c40dac2ebda32997746fe9be9f1b06d16c54b88e295825a82b7977d",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "bf4b3589e6117b8c6491873744950ef8066507718dc21a53a5b28f60c1d93764",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
@@ -2743,10 +2967,38 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 252,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "9CPHmpepoqDwBqq6mSJb8rbqo1KW66QjYdWxNT8DZHvX",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "d25034463c40dac2ebda32997746fe9be9f1b06d16c54b88e295825a82b7977d",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "F9yYscWarHyAusNr5x8SVZ8yCD8HtSxGhSaWRWsavovk",
     },
@@ -2767,10 +3019,38 @@ exports[`mainnet fixture jupiter-swap-v0.json > explains deterministically from 
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "HjQjngTDqoHE6aaGhUqfz9aQ7WZcBRjy5xB8PScLSr8i",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "439e6510c03d65fad931e89d04be0bb70d51971f51c415fb344c07db419f2122",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
     },
@@ -4753,10 +5033,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "SAtoZGJkh4Eid9EQZYXWnCNVn5asZrWZLouBMX1SHi1",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "5ekepu9jUM8Sb4eEMNvMyqPwgXBk15D7CPoSrVRbRggt",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "51edee86b289d7af780d9343fda52c10ba1167cd419b06f443409cbf8a4af49d",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "0672b4d9b827c318697f80bba8ce968fe71bdd001e06f21a57b1813f5d247432",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
@@ -4777,10 +5085,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "6Fc1knxEuytvJ5RrxdCkcy27r1NkPnETWTTJpkbneT85",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "449641f84958dc73a76a85d8756f55c02cdaca89ba1932790c368ab157e92d73",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "233cea474d6cb513dad421c82e681f80ed7512455dfb91fc68363b99d9156582",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "5cjcW9wExnJJiqgLjq7DEG75Pm6JBgE1hNv4B2vHXUW6",
     },
@@ -4801,10 +5137,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "6YMR5yemq2aLNWCj2DUoTtdUMpSR1QA7rgPebhtv9yiF",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "926856d83cc0b79f9460dfe9bb241f854b471a0df0ac45eb1efe5416b98d96c2",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "233cea474d6cb513dad421c82e681f80ed7512455dfb91fc68363b99d9156582",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
@@ -4825,10 +5189,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "6cDo6ekEHrJaoWnWDkHguqqg89xC52RdhFJZLNVwdeqi",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "51edee86b289d7af780d9343fda52c10ba1167cd419b06f443409cbf8a4af49d",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "233cea474d6cb513dad421c82e681f80ed7512455dfb91fc68363b99d9156582",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "6WpTC3RJdn1qw8wy15eWk6LNDftjfyi8APZ811nq1xpU",
     },
@@ -4849,10 +5241,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "SAtoZGJkh4Eid9EQZYXWnCNVn5asZrWZLouBMX1SHi1",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "6nG2miqkUBaMQhjbQSnKyb68VHJj7sdUk5oCePUW6RJY",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "926856d83cc0b79f9460dfe9bb241f854b471a0df0ac45eb1efe5416b98d96c2",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "0672b4d9b827c318697f80bba8ce968fe71bdd001e06f21a57b1813f5d247432",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
@@ -4873,10 +5293,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "7xrjio4HMDaBCXCHdFoqBUvP3epvh7DKnECpmVBZ5ZW3",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "d452be15407b5ca3f5c56889726a59e18ec29743df9525369095c42485fa67f0",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c6fa7af3bedbad3a3d65f36aabc97431b1bbe4c2d2f6e0e47ca60203452f5d61",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "FHpcNSe6tb2n15bAdq4BkeYWGyZKFD7yLYrH92ng7wCT",
     },
@@ -4897,10 +5345,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "9eVjv46ddWcUz38Ce552KXH16SCm8gzta8Ft9oDKWFJZ",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "926856d83cc0b79f9460dfe9bb241f854b471a0df0ac45eb1efe5416b98d96c2",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c6fa7af3bedbad3a3d65f36aabc97431b1bbe4c2d2f6e0e47ca60203452f5d61",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
@@ -4921,10 +5397,38 @@ exports[`mainnet fixture jupiter-swap-v1.json > explains deterministically from 
       "to": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
     },
     {
+      "bump": 253,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "BrNy16TZKKJLpGimWmarzH8XnQuCxJWKuWvUcW2t8QFi",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "926856d83cc0b79f9460dfe9bb241f854b471a0df0ac45eb1efe5416b98d96c2",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "091e73d17a5526d448e589aea5afe7c22cd61c5b66a86a427ab262309514e55c",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "ArWoX1NSUC8ZhhS6ywP1Eqq48ANoCJpZPRy8qifFARK7",
     },
@@ -8390,10 +8894,38 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 253,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "3CCrmmaVuM4VUP2K6PCN7XXmxdrpmZi3juhgG1bKTb86",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "bc3b623f25cea922483b4f4988cb612bdbfe72164f14333d8f2ebae34f4cd2b5",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "DfnAf5XeBAgdUhYXZRZN1hFCFuN9DMDTwBxaCdznA1ZW",
     },
@@ -8414,10 +8946,38 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "apMiaut8NyMAq9Mihh6wddCKRr89DdKAcEMfPX1pump",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "7xY3ZDwxxG3QrPdHQqqcwy5Fw8m3ZqxX5wTRyDZq2CaD",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "3aca0da01f6ab70ea597a1793806756369d7fd2d41c2f5cd580bc9d5b9fb823e",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "08a9b6b1610312894e1d76ebaf7a0d380f48ab6ecd78bf89c8184cc9a79fbe0f",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
@@ -8438,10 +8998,38 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "Bvtgim23rfocUzxVX9j9QFxTbBnH8JZxnaGLCEkXvjKS",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "838474292e675a94b436ecb0a9988942328a83ddc6233802961267c5cd6117cb",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "9rPYyANsfQZw3DnDmKE3YCQF5E8oD89UXoHn9JFEhJUz",
     },
@@ -8462,10 +9050,38 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "CA7v8gHfbquYXyDnDx6QxWW8hmL1H7X6Y2RYDrGLnuck",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "c54b96b5c931941e46ea4be2e0e31127744fc6b74cfb455efeaf8bd571792ced",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
     },
@@ -8486,10 +9102,38 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "to": "So11111111111111111111111111111111111111112",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "FtGMCnrALG7YQyyoREUMRUqry7Xn42xm1M3ygNxtgDE5",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "3aca0da01f6ab70ea597a1793806756369d7fd2d41c2f5cd580bc9d5b9fb823e",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "4xVLv5sM1B3VfKN5qzTNPKY6MeBzkr4JX1MYQWJcRwBK",
     },
@@ -10749,10 +11393,38 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "EHJMZdc43u4dcQ9uDcUv5VuB9podCoPhx8PDtByzpump",
     },
     {
+      "bump": 251,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "5LGuRYACR9yvt7AP6S7axgbe9ZJfEpDhYKJr1cyfPd6n",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "99af0b9c05e8860c5c7c18f34a4569f418843a6af798b3387f3e5bcca084930a",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c554d887515bf988ac07db0ac6733884799fb3c9746d370e2740ef002f96b85f",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "BLvBwxmJsHrErp87wtL1zzKXtgBb2hyDpH2aG4BHdfRb",
     },
@@ -10773,10 +11445,38 @@ exports[`mainnet fixture token-2022-transfer.json > explains deterministically f
       "to": "EHJMZdc43u4dcQ9uDcUv5VuB9podCoPhx8PDtByzpump",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "ETJUhAGZAUous2sNuZ6L1FQoaeNdh7rdhsRFiB4ZmJJR",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "f9e3f31c3e72153db20c0e099546a31fbd4e1ed4099c5d35bdf1ad6ea50207c5",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c554d887515bf988ac07db0ac6733884799fb3c9746d370e2740ef002f96b85f",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "HpU7m8syz7xNbLWSfoVNET9zQ36VMAoeQftiJMonsVXi",
     },
@@ -11356,10 +12056,38 @@ exports[`mainnet fixture token-approve.json > explains deterministically from re
       "to": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "397V1ZYjMQmgcjjMmw3aoqeoajWFwhXAsCgMHC48gz3i",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "1d367c4fa6fed351a44e19ff0b05a8af3fd6effdb274eb587d07350856065d3b",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "ce010e60afedb22717bd63192f54145a3f965a33bb82d2c7029eb2ce1e208264",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "2y31cYqJmDxP1UGrkURhUgBdtGPcrk22r3Rf7y5pSvZp",
     },
@@ -11709,10 +12437,38 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "bump": 254,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "7dQmths1cyCQ4xaC5KcVfXz4BvVWtnHc3hcgnfnE1PBx",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "efbefcc7c4e006f14236ee8fd4dbac8d0fc619e9f11bda6c78202011f45de0e1",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c6fa7af3bedbad3a3d65f36aabc97431b1bbe4c2d2f6e0e47ca60203452f5d61",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS",
     },
@@ -11733,10 +12489,38 @@ exports[`mainnet fixture usdc-transfer.json > explains deterministically from re
       "to": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     },
     {
+      "bump": 255,
+      "derivedBy": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
       "external": false,
       "from": "GhJS4CbrnTifXymQZ91SCWjxJo8SmtcxeEXFWEk5bM35",
       "kind": "ata",
       "label": "associated token account",
+      "seeds": [
+        {
+          "display": "owner",
+          "hex": "a715cdaa55ac648f08894b3deaa2da33139d4638b6bfd87909ef5797a2fd92aa",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "token program",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+        {
+          "display": "mint",
+          "hex": "c6fa7af3bedbad3a3d65f36aabc97431b1bbe4c2d2f6e0e47ca60203452f5d61",
+          "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
+        },
+      ],
       "status": "verified",
       "to": "CFENNno45k6Di1SxCL4XXZ38taaUNYh6hquTMu1tp8U9",
     },

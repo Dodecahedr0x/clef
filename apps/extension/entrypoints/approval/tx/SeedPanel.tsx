@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pubkey } from '../../../components';
 import { editorFor, seedBytes, seedText, type SeedEditor } from './seed-codec';
 
+const programOf = (e: RelationEdge) => e.derivedBy ?? e.to;
+
 const editorTag = (e: SeedEditor) => (e.kind === 'number' ? `${e.format}${e.endian === 'be' ? ' BE' : ''}` : e.kind);
 
 /**
@@ -14,14 +16,14 @@ export function SeedPanel({ account, edges, label }: { account: string; edges: R
   // One block per distinct derivation (several instructions may check the same PDA).
   const derivations = [...new Map(
     edges
-      .filter((e) => e.kind === 'pda' && e.from === account && e.seeds?.length && e.seeds.every((s) => s.hex !== undefined))
-      .map((e) => [`${e.to}|${e.seeds!.map((s) => s.hex).join('|')}`, e]),
+      .filter((e) => (e.kind === 'pda' || e.kind === 'ata') && e.from === account && e.seeds?.length && e.seeds.every((s) => s.hex !== undefined))
+      .map((e) => [`${programOf(e)}|${e.seeds!.map((s) => s.hex).join('|')}`, e]),
   ).values()];
   if (!derivations.length) return null;
   return (
     <>
       {derivations.map((e) => (
-        <Derivation key={`${account}|${e.to}|${e.seeds!.map((s) => s.hex).join('|')}`} edge={e} account={account} label={label} />
+        <Derivation key={`${account}|${programOf(e)}|${e.seeds!.map((s) => s.hex).join('|')}`} edge={e} account={account} label={label} />
       ))}
     </>
   );
@@ -45,14 +47,14 @@ function Derivation({ edge, account, label }: { edge: RelationEdge; account: str
       setDerived(null);
       return;
     }
-    getProgramDerivedAddress({ programAddress: edge.to as Address, seeds: bytes as Uint8Array[] }).then(
+    getProgramDerivedAddress({ programAddress: programOf(edge) as Address, seeds: bytes as Uint8Array[] }).then(
       ([address, bump]) => live && setDerived({ address, bump }),
       (e: unknown) => live && setDerived({ error: e instanceof Error && e.message ? e.message : 'Could not derive an address from these seeds' }),
     );
     return () => {
       live = false;
     };
-  }, [texts.join('\u0000'), edge.to]);
+  }, [texts.join('\u0000'), programOf(edge)]);
 
   const same = derived && 'address' in derived && derived.address === account;
   return (
@@ -60,7 +62,7 @@ function Derivation({ edge, account, label }: { edge: RelationEdge; account: str
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">Seeds</span>
         <span className="min-w-0 truncate text-xs text-muted">
-          derived by {label(edge.to)} <Pubkey value={edge.to} />
+          derived by {label(programOf(edge))} <Pubkey value={programOf(edge)} />
         </span>
         {edited && (
           <button type="button" onClick={() => setTexts(initial)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold text-info underline">

@@ -1,14 +1,16 @@
 import { findAssociatedTokenPda } from '@solana-program/token';
-import type { Address } from '@solana/kit';
+import { getAddressEncoder, type Address } from '@solana/kit';
 import { decodeMintDecimals, decodeTokenAccount, type AccountCache } from './accounts';
-import { KNOWN_MINTS, PROGRAM_NAMES } from './registry';
-import type { RelationEdge } from './types';
+import { toHex } from './hex';
+import { ATA_PROGRAM, KNOWN_MINTS, PROGRAM_NAMES } from './registry';
+import type { RelationEdge, SeedInfo } from './types';
 
 export const shortAddress = (a: string) => `${a.slice(0, 4)}\u2026${a.slice(-4)}`;
 
 /** Facts read straight from token account data: never from IDL names. */
 export async function tokenRelations(addresses: readonly Address[], cache: AccountCache): Promise<RelationEdge[]> {
   const edges: RelationEdge[] = [];
+  const encoder = getAddressEncoder();
   for (const address of new Set(addresses)) {
     const account = cache.get(address);
     const token = decodeTokenAccount(account);
@@ -17,8 +19,17 @@ export async function tokenRelations(addresses: readonly Address[], cache: Accou
       { kind: 'token-owner', from: address, to: token.owner, label: 'token owner', status: 'verified', external: false },
       { kind: 'token-mint', from: address, to: token.mint, label: 'mint', status: 'verified', external: false },
     );
-    const [ata] = await findAssociatedTokenPda({ owner: token.owner, mint: token.mint, tokenProgram: account.owner });
-    if (ata === address) edges.push({ kind: 'ata', from: address, to: token.owner, label: 'associated token account', status: 'verified', external: false });
+    const [ata, bump] = await findAssociatedTokenPda({ owner: token.owner, mint: token.mint, tokenProgram: account.owner });
+    if (ata === address) {
+      const key = (display: string, a: Address): SeedInfo => ({ kind: 'account', display, hex: toHex(new Uint8Array(encoder.encode(a))), type: { kind: 'pubkey' } });
+      edges.push({
+        kind: 'ata', from: address, to: token.owner, label: 'associated token account', status: 'verified', external: false,
+        // Seeds: holder, token program, mint (ATA program PDA).
+        seeds: [key('owner', token.owner), key('token program', account.owner), key('mint', token.mint)],
+        bump,
+        derivedBy: ATA_PROGRAM as Address,
+      });
+    }
   }
   return edges;
 }

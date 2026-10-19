@@ -77,6 +77,24 @@ describe('SeedPanel', () => {
     await waitFor(() => expect(panel.textContent).toContain('✓ this account'));
   });
 
+  it('shows an ATA’s seeds, derived by the Associated Token program', async () => {
+    const OWNER = '5Hs51hUxpr9cBz8gwbsFNVcJqdtPeJR8MoUNxoUSGP8a' as Address;
+    const TOKEN = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address;
+    const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' as Address;
+    const keys = [OWNER, TOKEN, MINT].map((a) => new Uint8Array(getAddressEncoder().encode(a)));
+    const [ata] = await getProgramDerivedAddress({ programAddress: ATA_PROGRAM, seeds: keys });
+    const seed = (display: string, i: number): SeedInfo => ({ kind: 'account', display, hex: hex(keys[i]!), type: { kind: 'pubkey' } });
+    const edge: RelationEdge = {
+      kind: 'ata', from: ata, to: OWNER, label: 'associated token account', status: 'verified', external: false,
+      seeds: [seed('owner', 0), seed('token program', 1), seed('mint', 2)], derivedBy: ATA_PROGRAM,
+    };
+    render(<SeedPanel account={ata} edges={[edge]} label={(a) => (a === ATA_PROGRAM ? 'Associated Token Program' : a)} />);
+    const panel = screen.getByRole('region', { name: 'Seeds' });
+    expect(panel.textContent).toContain('derived by Associated Token Program');
+    expect((within(panel).getByLabelText(/^mint/) as HTMLInputElement).value).toBe(MINT);
+    await waitFor(() => expect(panel.textContent).toContain('✓ this account'));
+  });
+
   it('shows nothing for an account that is not a PDA', () => {
     const { container } = render(<SeedPanel account={MINT} edges={[]} label={() => ''} />);
     expect(container.textContent).toBe('');

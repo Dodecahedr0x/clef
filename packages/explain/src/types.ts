@@ -107,6 +107,8 @@ export type RelationEdge = {
   instructionIndex?: number;
   seeds?: SeedInfo[];
   bump?: number;
+  /** The program deriving the address from `seeds`, when it is not `to` (an ATA's `to` is its holder). */
+  derivedBy?: Address;
   /** A fact from on-chain state reaching outside the transaction's keys (program owner, authorities, ...). */
   external: boolean;
   /** Not the PDA the IDL describes, yet controlled by the same program (another instance of it?): unconfirmed. */
