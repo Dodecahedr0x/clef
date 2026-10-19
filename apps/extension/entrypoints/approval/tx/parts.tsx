@@ -26,68 +26,79 @@ export function Summary({ text, className }: { text: string; className: string }
   return <h1 className={className}>{text}</h1>;
 }
 
-/** Dangers are never folded away: each is one compact line, title then message. */
-export function DangerCards({ warnings }: { warnings: Warning[] }) {
-  if (!warnings.length) return null;
-  return (
-    <section aria-label="Danger" className="flex flex-col gap-1.5 rounded-[10px] border border-danger-line bg-danger-bg px-3 py-2">
-      {warnings.map((w, i) => (
-        <p key={i} className="m-0 flex items-baseline gap-2 text-xs leading-[1.45] text-danger-ink">
-          <span className="flex-none rounded-full bg-danger px-1.5 text-[10px] leading-4 font-semibold tracking-[0.04em] text-white">DANGER</span>
-          <span className="min-w-0 [overflow-wrap:anywhere]">
-            <strong className="font-semibold text-danger-ink-2">{ruleTitle(w.rule)}.</strong> {w.message}
-          </span>
-        </p>
-      ))}
-    </section>
-  );
-}
-
-/** Warnings beyond this many are behind "Show N more". */
+/** Warnings and infos beyond this many are behind "Show N more" (dangers never are). */
 export const WARN_VISIBLE = 3;
 
-export function WarnCards({ warnings }: { warnings: Warning[] }) {
+const PILL: Record<Warning['severity'], { text: string; className: string }> = {
+  danger: { text: 'DANGER', className: 'bg-danger' },
+  warn: { text: 'WARN', className: 'bg-warn' },
+  info: { text: 'INFO', className: 'bg-info' },
+};
+const RANK: Record<Warning['severity'], number> = { danger: 0, warn: 1, info: 2 };
+
+/**
+ * Dangers, warnings and infos in one compact table, most severe first: a row each (severity, message, action).
+ * Dangers are tinted and never folded away; the rest fold after three.
+ */
+export function WarningsTable({ warnings }: { warnings: Warning[] }) {
   const addIdl = useIdlAdder();
   const [all, setAll] = useState(false);
   if (!warnings.length) return null;
-  // Warnings before infos, so folding hides the least important.
-  const sorted = [...warnings.filter((w) => w.severity !== 'info'), ...warnings.filter((w) => w.severity === 'info')];
-  const shown = all ? sorted : sorted.slice(0, WARN_VISIBLE);
+  const sorted = [...warnings].sort((a, b) => RANK[a.severity] - RANK[b.severity]);
+  const dangers = sorted.filter((w) => w.severity === 'danger').length;
+  const shown = all ? sorted : sorted.slice(0, dangers + WARN_VISIBLE);
   return (
-    <section aria-label="Warnings" className="flex flex-col gap-1 rounded-[10px] border border-warn-line bg-warn-bg px-3 py-2 text-xs leading-[1.45] text-warn-ink">
-      {shown.map((w, i) => (
-        <div key={i} className="flex flex-col">
-          <div className="flex items-baseline gap-2">
-            <span className={`flex-none rounded-full px-1.5 text-[10px] leading-4 font-semibold text-white ${w.severity === 'info' ? 'bg-info' : 'bg-warn'}`}>{w.severity === 'info' ? 'INFO' : 'WARN'}</span>
-            <span className="min-w-0 break-words [overflow-wrap:anywhere]">
-              {w.message}
-              {w.details && w.details.length > 0 && (
-                <details className="inline [&[open]]:block">
-                  <summary className="ml-1 inline cursor-pointer font-semibold underline">Why?</summary>
-                  <ul className="m-0 mt-1 flex list-disc flex-col gap-0.5 pl-4 [overflow-wrap:anywhere]">
-                    {w.details.map((d, j) => (
-                      <li key={j}>{d}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </span>
-            {w.programId && addIdl && (
-              <button type="button" onClick={() => addIdl(w.programId!)} className="ml-auto flex-none border-0 bg-transparent p-0 text-xs font-semibold whitespace-nowrap text-info underline">
-                Add IDL
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-      {sorted.length > WARN_VISIBLE && (
-        <button type="button" onClick={() => setAll(!all)} className="self-start border-0 bg-transparent p-0 text-xs font-semibold text-warn-ink underline">
-          {all ? 'Show fewer' : `Show ${sorted.length - WARN_VISIBLE} more`}
+    <section aria-label={dangers ? 'Danger and warnings' : 'Warnings'} className="overflow-hidden rounded-[10px] border border-line bg-surface">
+      <table className="w-full border-collapse text-xs leading-[1.45]">
+        <tbody>
+          {shown.map((w, i) => {
+            const danger = w.severity === 'danger';
+            return (
+              <tr key={i} className={`border-t border-line-soft first:border-t-0 ${danger ? 'bg-danger-bg text-danger-ink' : 'text-ink'}`}>
+                <td className="w-px py-1.5 pr-2 pl-2.5 align-top">
+                  <span className={`inline-block rounded-full px-1.5 text-[10px] leading-4 font-semibold tracking-[0.04em] whitespace-nowrap text-white ${PILL[w.severity].className}`}>{PILL[w.severity].text}</span>
+                </td>
+                <td className="py-1.5 pr-2.5 align-top [overflow-wrap:anywhere]">
+                  {danger && <strong className="font-semibold text-danger-ink-2">{ruleTitle(w.rule)}. </strong>}
+                  {w.message}
+                  {w.details && w.details.length > 0 && (
+                    <details className="inline [&[open]]:block">
+                      <summary className="ml-1 inline cursor-pointer font-semibold text-muted underline">Why?</summary>
+                      <ul className="m-0 mt-1 flex list-disc flex-col gap-0.5 pl-4 text-muted [overflow-wrap:anywhere]">
+                        {w.details.map((d, j) => (
+                          <li key={j}>{d}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </td>
+                {w.programId && addIdl ? (
+                  <td className="w-px py-1.5 pr-2.5 align-top whitespace-nowrap">
+                    <button type="button" onClick={() => addIdl(w.programId!)} className="border-0 bg-transparent p-0 text-xs font-semibold text-info underline">
+                      Add IDL
+                    </button>
+                  </td>
+                ) : (
+                  <td className="w-px p-0" />
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {sorted.length > dangers + WARN_VISIBLE && (
+        <button type="button" onClick={() => setAll(!all)} className="w-full border-0 border-t border-line-soft bg-surface-2 px-2.5 py-1 text-left text-xs font-semibold text-muted">
+          {all ? 'Show fewer' : `Show ${sorted.length - shown.length} more`}
         </button>
       )}
     </section>
   );
 }
+
+/** The table, for dangers alone (e.g. "could not explain"). */
+export const DangerCards = WarningsTable;
+/** The table, for warnings alone. */
+export const WarnCards = WarningsTable;
 
 export function AllClear({ compact }: { compact?: boolean }) {
   if (compact) {

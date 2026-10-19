@@ -313,11 +313,15 @@ describe('Danger', () => {
     }));
     const { onDecide, user } = setup('basic', { origin: 'https://airdrop-claim.example', transactions: [wires[0]], phishing: { reason: 'blocklist', match: 'airdrop-claim.example' } });
     expect(screen.getByText('This site is on a phishing list')).toBeTruthy();
-    const danger = screen.getByRole('region', { name: 'Danger' });
+    // One compact table: dangers first (tinted, titled), then warnings.
+    const danger = screen.getByRole('region', { name: 'Danger and warnings' });
     expect(within(danger).getByText('DANGER')).toBeTruthy();
     expect(within(danger).getByText('Owner change.')).toBeTruthy();
     expect(danger.textContent).toContain('SetAuthority makes 5Qz8…uN4d the owner of your USDC account.');
-    expect(within(screen.getByRole('region', { name: 'Warnings' })).getByText('WARN')).toBeTruthy();
+    expect(within(danger).getByText('WARN')).toBeTruthy();
+    const rows = within(danger).getAllByRole('row');
+    expect(rows[0]!.textContent).toMatch(/^DANGER/);
+    expect(rows.at(-1)!.textContent).toMatch(/^WARN/);
     expect(screen.getByText(/none now · fee 0.000005 SOL/)).toBeTruthy();
     const sign = screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement;
     expect(sign.disabled).toBe(true);
@@ -347,7 +351,7 @@ describe('Danger', () => {
         return v;
       });
       const { onDecide, user } = setup(level);
-      const danger = screen.getAllByRole('region', { name: 'Danger' })[0]!;
+      const danger = screen.getAllByRole('region', { name: /^Danger/ })[0]!;
       expect(within(danger).getByText(/Clef could not explain transaction 2/)).toBeTruthy();
       expect(within(danger).getByText(/Clef could not explain transaction 3/)).toBeTruthy();
       const sign = screen.getByRole('button', { name: 'Sign all 3 anyway' }) as HTMLButtonElement;

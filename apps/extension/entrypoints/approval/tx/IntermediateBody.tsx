@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Icon, Pill, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
-import { AllClear, DangerCards, Deltas, Summary, TxTabs, UNKNOWN_CHANGES, WarnCards } from './parts';
+import { AllClear, Deltas, Summary, TxTabs, UNKNOWN_CHANGES, WarningsTable } from './parts';
 
 const SHOWN_ACCOUNTS = 5;
 
@@ -177,8 +177,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
         <Summary text={summary} className="m-0 text-xl font-semibold tracking-[-0.02em]" />
         <Deltas changes={changes} fee={fee} />
       </section>
-      <DangerCards warnings={dangers} />
-      {others.length ? <WarnCards warnings={others} /> : dangers.length ? null : <AllClear compact />}
+      {dangers.length || others.length ? <WarningsTable warnings={[...dangers, ...others]} /> : <AllClear compact />}
       {step && !sv && <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">Clef could not explain this transaction.</p>}
       {sv ? <StepDetail view={sv} /> : !step && <StepList view={view} onPick={onTab} />}
     </div>

@@ -53,3 +53,19 @@ describe('WarnCards · compact', () => {
     expect(screen.queryByText('info two')).toBeNull();
   });
 });
+
+describe('WarningsTable', () => {
+  it('lists dangers first and never folds them; warnings fold after three', async () => {
+    const { WarningsTable } = await import('../entrypoints/approval/tx/parts');
+    const w = (severity: Warning['severity'], message: string): Warning => ({ rule: 'x', severity, message });
+    const list = [w('warn', 'w1'), w('danger', 'd1'), w('warn', 'w2'), w('info', 'i1'), w('danger', 'd2'), w('warn', 'w3'), w('warn', 'w4')];
+    render(<WarningsTable warnings={list} />);
+    const table = screen.getByRole('region', { name: 'Danger and warnings' });
+    const rows = () => screen.getAllByRole('row').map((r) => r.textContent?.replace(/^(DANGER|WARN|INFO)/, '$1 '));
+    expect(rows()).toEqual([expect.stringMatching(/^DANGER .*d1$/), expect.stringMatching(/^DANGER .*d2$/), 'WARN w1', 'WARN w2', 'WARN w3']);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more' }));
+    expect(rows()).toHaveLength(7);
+    expect(rows().at(-1)).toBe('INFO i1');
+    expect(table.querySelectorAll('tr.bg-danger-bg')).toHaveLength(2);
+  });
+});

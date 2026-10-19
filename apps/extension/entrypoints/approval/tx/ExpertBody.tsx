@@ -4,7 +4,7 @@ import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
-import { DangerCards, Deltas, Summary, TxTabs, WarnCards } from './parts';
+import { Deltas, Summary, TxTabs, WarningsTable } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
 import { SimulationLogs } from './SimulationLogs';
@@ -228,8 +228,7 @@ export function ExpertBody(p: {
         <main className="box-border flex min-w-0 flex-1 flex-col gap-8 overflow-y-auto px-5 pt-4 pb-6">
           {(dangers.length > 0 || others.length > 0) && (
             <div className="flex flex-col gap-3">
-              <DangerCards warnings={dangers} />
-              <WarnCards warnings={others} />
+              <WarningsTable warnings={[...dangers, ...others]} />
             </div>
           )}
           <StateChanges diffs={diffs} isAll={isAll} batchSize={n} ownerOf={ownerOf} network={state.settings.network} onResimulate={p.onResimulate} />

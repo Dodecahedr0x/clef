@@ -1,7 +1,7 @@
 import type { BatchView, Warning } from '@clef/explain';
 import { Amount, Avatar } from '../../../components';
 import { direction, displayAmount } from './model';
-import { AllClear, DangerCards, Summary, UNKNOWN_CHANGES, WarnCards } from './parts';
+import { AllClear, Summary, UNKNOWN_CHANGES, WarningsTable } from './parts';
 import { useOnChain } from './source';
 
 const AVATAR_TONE = ['violet', 'info', 'ok', 'warn', 'primary'] as const;
@@ -20,8 +20,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
           <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
           <Summary text={c.summary} className="m-0 text-2xl leading-[1.2] font-semibold tracking-[-0.02em]" />
         </section>
-        <DangerCards warnings={dangers} />
-        <WarnCards warnings={others} />
+        <WarningsTable warnings={[...dangers, ...others]} />
         <section className="flex items-center rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-muted tabular-nums">
           <span>{onChain ? 'Balance changes' : 'Simulated balance changes'}</span>
           <span className="ml-auto text-ink">
@@ -73,7 +72,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
         </div>
       </section>
 
-      {others.length ? <WarnCards warnings={others} /> : <AllClear />}
+      {others.length ? <WarningsTable warnings={others} /> : <AllClear />}
     </div>
   );
 }
