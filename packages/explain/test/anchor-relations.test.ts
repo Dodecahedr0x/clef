@@ -229,7 +229,7 @@ describe('verifyAnchorExtras', () => {
         [`${CLEAN}.${CLEAN}`, `${CLEAN} not identified`],
         [`PDA(${CLEAN})`, expect.stringMatching(/^expected /)],
       ]);
-      expect(edges[1]!.seeds).toEqual([{ kind: 'arg', display: CLEAN }]);
+      expect(edges[1]!.seeds).toEqual([expect.objectContaining({ kind: 'arg', display: CLEAN, type: { kind: 'pubkey' } })]);
     });
 
     it('sanitizes a decoded string field quoted in a mismatch', async () => {

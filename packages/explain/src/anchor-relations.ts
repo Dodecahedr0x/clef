@@ -4,6 +4,7 @@ import { camelCase, isNode, type RootNode } from '@codama/nodes';
 import { getLastNodeFromPath } from '@codama/visitors-core';
 import { getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import { decodeTokenAccount, type AccountCache } from './accounts';
+import { toHex } from './hex';
 import type { IdentifiedInstruction } from './identify';
 import { isAbsent, isTrustedProgram, programs } from './idl-lookup';
 import { TOKEN_PROGRAMS } from './registry';
@@ -187,10 +188,11 @@ async function verifyNestedSeeds(
       if (seed.kind === 'const') {
         const bytes = new Uint8Array(seed.bytes);
         encoded.push(bytes);
-        info.push({ kind: 'const', display: displayBytes(bytes) });
+        info.push({ kind: 'const', display: displayBytes(bytes), hex: toHex(bytes) });
       } else {
-        encoded.push(new Uint8Array(getAddressEncoder().encode(await resolveAddress(seed))));
-        info.push({ kind: seed.kind, display: seed.path.join('.') });
+        const bytes = new Uint8Array(getAddressEncoder().encode(await resolveAddress(seed)));
+        encoded.push(bytes);
+        info.push({ kind: seed.kind, display: seed.path.join('.'), hex: toHex(bytes), type: { kind: 'pubkey' } });
       }
     }
     programAddress = seedProgram ? await resolveAddress(seedProgram) : ix.programId;

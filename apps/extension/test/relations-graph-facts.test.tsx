@@ -104,13 +104,15 @@ describe('relations graph account facts', () => {
 });
 
 describe('relations graph node text', () => {
-  it('shows an unnamed account’s key once (as its title), and a named one’s key under its name', () => {
+  it('shows an unnamed account’s key once (as its title), and a named one’s key under its name; a click selects, never copies', () => {
     render(<RelationsGraph input={input()} tab="all" batchSize={1} />);
     const unnamed = node(/Gdxf/);
-    expect(within(unnamed).getAllByRole('button', { name: `Copy ${NEW}` })).toHaveLength(1);
     expect(unnamed.textContent?.match(/Gdxf…/g)).toHaveLength(1);
-    const named = node(/Your USDC token account/);
-    expect(within(named).getByRole('button', { name: `Copy ${TOKEN}` })).toBeTruthy();
+    expect(within(unnamed).queryByRole('button')).toBeNull();
+    expect(node(/Your USDC token account/).textContent).toContain('9j8y…Ukpj');
+    fireEvent.click(within(unnamed).getByText(/Gdxf…/));
+    // Selected: its details (with the copyable key) show below.
+    expect(within(screen.getByRole('group', { name: 'Selected account details' })).getByRole('button', { name: `Copy ${NEW}` })).toBeTruthy();
   });
 
   it('says when an account’s owner is unknown', () => {

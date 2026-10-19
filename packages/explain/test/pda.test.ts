@@ -48,9 +48,10 @@ describe('verifyCodamaPdas', () => {
       [accounts.pool, 'verified'],
       [accounts.poolVault, 'verified'],
     ]);
+    // Each seed carries its bytes and IDL type, so a UI can edit it and derive again.
     expect(edges[0]!.seeds).toEqual([
-      { kind: 'const', display: '"pool"' },
-      { kind: 'account', display: 'mint' },
+      { kind: 'const', display: '"pool"', hex: '706f6f6c', type: { kind: 'bytes' } },
+      { kind: 'account', display: 'mint', hex: expect.stringMatching(/^[0-9a-f]{64}$/), type: { kind: 'pubkey' } },
     ]);
     expect(edges[0]!.label).toBe('PDA("pool", mint)');
   });

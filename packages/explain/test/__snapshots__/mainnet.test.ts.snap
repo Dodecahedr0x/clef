@@ -1257,15 +1257,27 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "seeds": [
         {
           "display": "protocolFeeRecipient",
+          "hex": "4ac2f8d0dd5cbc97e3289c197cb5062a54f3d956b9ce6e5115f96567aa5cb3e6",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -1281,7 +1293,11 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "seeds": [
         {
           "display": ""__event_authority"",
+          "hex": "5f5f6576656e745f617574686f72697479",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -1297,15 +1313,27 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "seeds": [
         {
           "display": "coinCreatorVaultAuthority",
+          "hex": "9c93979b733aa1c81a3398be5e19aa38335bd51810bfb758e0c6c97b7d422d50",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -1321,11 +1349,19 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "seeds": [
         {
           "display": ""fee_config"",
+          "hex": "6665655f636f6e666967",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
         {
           "display": "0x0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
+          "hex": "0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -1377,11 +1413,16 @@ exports[`mainnet fixture anchor-pda.json > explains deterministically from recor
       "seeds": [
         {
           "display": ""creator_vault"",
+          "hex": "63726561746f725f7661756c74",
           "kind": "const",
         },
         {
           "display": "pool.coinCreator",
+          "hex": "4a5a8e4a27cf7b41c5ab00845d441f68f5133475d7eabd2ebae3e8754479f0a2",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8462,15 +8503,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "protocolFeeRecipient",
+          "hex": "838474292e675a94b436ecb0a9988942328a83ddc6233802961267c5cd6117cb",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8486,7 +8539,11 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""__event_authority"",
+          "hex": "5f5f6576656e745f617574686f72697479",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8502,15 +8559,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "coinCreatorVaultAuthority",
+          "hex": "bc3b623f25cea922483b4f4988cb612bdbfe72164f14333d8f2ebae34f4cd2b5",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8526,11 +8595,19 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""fee_config"",
+          "hex": "6665655f636f6e666967",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
         {
           "display": "0x0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
+          "hex": "0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8582,11 +8659,16 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""creator_vault"",
+          "hex": "63726561746f725f7661756c74",
           "kind": "const",
         },
         {
           "display": "pool.coinCreator",
+          "hex": "f0f48651e83d37521b0757dcbb79ef748aa357fc05e79af60019eab4bb9740be",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8602,15 +8684,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "protocolFeeRecipient",
+          "hex": "838474292e675a94b436ecb0a9988942328a83ddc6233802961267c5cd6117cb",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8626,7 +8720,11 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""__event_authority"",
+          "hex": "5f5f6576656e745f617574686f72697479",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8642,15 +8740,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "coinCreatorVaultAuthority",
+          "hex": "bc3b623f25cea922483b4f4988cb612bdbfe72164f14333d8f2ebae34f4cd2b5",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8666,11 +8776,19 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""fee_config"",
+          "hex": "6665655f636f6e666967",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
         {
           "display": "0x0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
+          "hex": "0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8736,15 +8854,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "protocolFeeRecipient",
+          "hex": "838474292e675a94b436ecb0a9988942328a83ddc6233802961267c5cd6117cb",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8760,7 +8890,11 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""__event_authority"",
+          "hex": "5f5f6576656e745f617574686f72697479",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8776,15 +8910,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "coinCreatorVaultAuthority",
+          "hex": "bc3b623f25cea922483b4f4988cb612bdbfe72164f14333d8f2ebae34f4cd2b5",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8800,11 +8946,19 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""fee_config"",
+          "hex": "6665655f636f6e666967",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
         {
           "display": "0x0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
+          "hex": "0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8870,15 +9024,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "protocolFeeRecipient",
+          "hex": "838474292e675a94b436ecb0a9988942328a83ddc6233802961267c5cd6117cb",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8894,7 +9060,11 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""__event_authority"",
+          "hex": "5f5f6576656e745f617574686f72697479",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",
@@ -8910,15 +9080,27 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": "coinCreatorVaultAuthority",
+          "hex": "bc3b623f25cea922483b4f4988cb612bdbfe72164f14333d8f2ebae34f4cd2b5",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteTokenProgram",
+          "hex": "06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
         {
           "display": "quoteMint",
+          "hex": "069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001",
           "kind": "account",
+          "type": {
+            "kind": "pubkey",
+          },
         },
       ],
       "status": "verified",
@@ -8934,11 +9116,19 @@ exports[`mainnet fixture pumpswap-bundle-v1.json > explains deterministically fr
       "seeds": [
         {
           "display": ""fee_config"",
+          "hex": "6665655f636f6e666967",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
         {
           "display": "0x0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
+          "hex": "0c14defc825ec67694250818bb654065f4298d3156d571b4d4f8090c18e9a863",
           "kind": "const",
+          "type": {
+            "kind": "bytes",
+          },
         },
       ],
       "status": "verified",

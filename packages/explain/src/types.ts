@@ -74,7 +74,21 @@ export type ExplainedInstruction = {
   idlMismatch?: { source: IdlSourceKind; programName: string; instructions: string[] }[];
 };
 
-export type SeedInfo = { kind: 'const' | 'account' | 'arg'; display: string };
+/** How a seed's bytes read, from the IDL's seed type: lets a UI edit it as text, a key or a number. */
+export type SeedType =
+  | { kind: 'string' }
+  | { kind: 'pubkey' }
+  | { kind: 'number'; format: 'u8' | 'u16' | 'u32' | 'u64' | 'u128' | 'i8' | 'i16' | 'i32' | 'i64' | 'i128'; endian: 'le' | 'be' }
+  | { kind: 'bytes' };
+
+export type SeedInfo = {
+  kind: 'const' | 'account' | 'arg';
+  display: string;
+  /** The seed's bytes as derived, lowercase hex (absent on edges recorded before seeds carried them). */
+  hex?: string;
+  /** Absent when the IDL gives no simple type: a UI then guesses from the bytes. */
+  type?: SeedType;
+};
 
 export type RelationKind = 'pda' | 'has_one' | 'token-owner' | 'token-mint' | 'ata'
   | 'program-owner' | 'ata-derivation' | 'mint-authority' | 'freeze-authority' | 'delegate' | 'close-authority'

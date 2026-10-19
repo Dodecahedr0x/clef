@@ -4,8 +4,23 @@ import { getRecordLinkablesVisitor, LinkableDictionary, visit } from '@codama/vi
 import { getProgramDerivedAddress, isAddress, type Address } from '@solana/kit';
 import type { IdentifiedInstruction } from './identify';
 import { instructionNodes, isAbsent, isTrustedProgram, programs } from './idl-lookup';
+import { toHex } from './hex';
 import { displayBytes, errorDetail, pdaStatus, sanitizeEdge, Unresolvable } from './seeds';
-import type { RelationEdge, SeedInfo } from './types';
+import type { RelationEdge, SeedInfo, SeedType } from './types';
+
+const NUMBER_FORMATS = new Set(['u8', 'u16', 'u32', 'u64', 'u128', 'i8', 'i16', 'i32', 'i64', 'i128']);
+
+/** The seed's IDL type when it is a plain string, key or integer (encoded without prefix); nothing otherwise. */
+function seedType(type: unknown): { type?: SeedType } {
+  const t = type as { kind?: string; format?: string; endian?: string } | undefined;
+  if (t?.kind === 'stringTypeNode') return { type: { kind: 'string' } };
+  if (t?.kind === 'publicKeyTypeNode') return { type: { kind: 'pubkey' } };
+  if (t?.kind === 'numberTypeNode' && t.format && NUMBER_FORMATS.has(t.format)) {
+    return { type: { kind: 'number', format: t.format as Extract<SeedType, { kind: 'number' }>['format'], endian: t.endian === 'be' ? 'be' : 'le' } };
+  }
+  if (t?.kind === 'bytesTypeNode') return { type: { kind: 'bytes' } };
+  return {};
+}
 
 type Visitors = { codec: ReturnType<typeof getNodeCodecVisitor>; value: ReturnType<typeof getValueNodeVisitor> };
 const visitorsCache = new WeakMap<RootNode, Visitors>();
@@ -68,7 +83,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
           const constant = isNode(seed.value, 'programIdValueNode') ? pdaProgramAddress : visit(seed.value, value);
           const bytes = new Uint8Array(seedCodec.encode(constant));
           encoded.push(bytes);
-          seeds.push({ kind: 'const', display: displayBytes(bytes) });
+          seeds.push({ kind: 'const', display: displayBytes(bytes), hex: toHex(bytes), ...seedType(seed.type) });
           continue;
         }
         const seedValue = (dv.seeds ?? []).find((s) => s.name === seed.name)?.value;
@@ -89,7 +104,7 @@ export async function verifyCodamaPdas(ix: IdentifiedInstruction): Promise<Relat
         }
         const bytes = new Uint8Array(seedCodec.encode(resolved));
         encoded.push(bytes);
-        seeds.push(display ?? { kind: 'const', display: displayBytes(bytes) });
+        seeds.push({ ...(display ?? { kind: 'const', display: displayBytes(bytes) }), hex: toHex(bytes), ...seedType(seed.type) });
       }
 
       programAddress = pdaProgramAddress;

@@ -2,6 +2,7 @@ import type { AccountFactView, RelationEdge, TransferView } from '@clef/explain'
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { shortAddress } from '../../../lib/format';
 import { layered, type Pos } from './graph-layout';
+import { SeedPanel } from './SeedPanel';
 import { Pubkey } from '../../../components';
 
 export const GRAPH = { width: 672, minHeight: 240, nodeW: 136, nodeH: 64, gapX: 150, gapY: 22, top: 44, left: 8 } as const;
@@ -416,15 +417,16 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       {badge && (
                         <span className={`absolute -top-2 right-2 rounded-full px-1.5 text-[10px] leading-4 font-semibold uppercase ${badge === 'new' ? 'bg-ok text-white' : 'bg-danger-text text-white'}`}>{badge}</span>
                       )}
-                      {/* Unnamed accounts are titled by their (copyable) key, so it is not repeated below. */}
+                      {/* Unnamed accounts are titled by their key, not repeated below. A click selects the node (its key
+                          is copyable in the panel below): at small zoom a copy target here would swallow the clicks. */}
                       {named ? (
                         <>
                           <span className={`w-full truncate text-xs font-semibold ${fromIdl ? 'font-mono' : ''}`} {...(fromIdl && { title: 'Name from the program’s IDL' })}>{n.title}</span>
-                          <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={kind ? `${kind} · ` : undefined} /></span>
+                          <span className="w-full truncate font-mono text-xs text-muted">{kind ? `${kind} · ` : ''}{shortAddress(n.address)}</span>
                         </>
                       ) : (
                         <>
-                          <span className="w-full truncate text-xs font-semibold"><Pubkey value={n.address} /></span>
+                          <span className="w-full truncate font-mono text-xs font-semibold">{shortAddress(n.address)}</span>
                           {kind && <span className="w-full truncate text-xs text-muted">{kind}</span>}
                         </>
                       )}
@@ -465,6 +467,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
           <AccountCard title={selected.title} address={selected.address} fact={factFor(input, selected.address, tab)} transfers={transfers} label={label} program={input.programs.has(selected.address)} />
         </section>
       )}
+      {selected && <SeedPanel account={selected.address} edges={input.edges} label={label} />}
       {selected && (
         <section role="group" aria-label="Selected account" className="grid grid-cols-2 gap-4 rounded-xl border border-line bg-surface px-3.5 py-3">
           <RelationRows title={`${selected.title} · in the request`} rows={inRows} />
