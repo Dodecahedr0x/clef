@@ -636,17 +636,19 @@ describe('explain', () => {
       });
       await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n })]) }, ctx(reader));
       expect(sims).toEqual([{ minContextSlot: 42n }]);
-      // The pre-read has no constraint; the re-read after simulating is tied to the simulation's slot.
-      expect(reads).toEqual([undefined, { minContextSlot: 50n }]);
+      // The pre-read has no constraint; the re-read after simulating is tied to the simulation's slot. (A last
+      // read, for display only, fetches the programs the transaction only calls.)
+      expect(reads.slice(0, 2)).toEqual([undefined, { minContextSlot: 50n }]);
     });
   });
 
-  it('does not read program accounts that appear only as programs', async () => {
+  it('reads program accounts that appear only as programs last, for display (owner shown), not for the rules', async () => {
     const reader = new MemoryChainReader();
-    const requested: string[] = [];
+    reader.setAccount({ address: DRAINER, owner: address('BPFLoaderUpgradeab1e11111111111111111111111'), data: new Uint8Array(36), executable: true });
+    const calls: string[][] = [];
     const getAccounts = reader.getAccounts.bind(reader);
     reader.getAccounts = async (addresses) => {
-      requested.push(...addresses);
+      calls.push([...addresses]);
       return getAccounts(addresses);
     };
     const drain: Instruction = {
@@ -654,10 +656,13 @@ describe('explain', () => {
       // The Token program is passed as an account here (for a CPI): that one is read.
       accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: address(TOKEN_PROGRAM), role: AccountRole.READONLY }],
     };
-    await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n }), drain]) }, ctx(reader));
-    expect(requested).not.toContain('11111111111111111111111111111111');
-    expect(requested).not.toContain(DRAINER);
-    expect(requested).toContain(TOKEN_PROGRAM);
+    const ex = await explain({ wire: buildWire([getTransferSolInstruction({ source: me, destination: OTHER, amount: 1n }), drain]) }, ctx(reader));
+    const [first, ...rest] = calls;
+    expect(first).not.toContain('11111111111111111111111111111111');
+    expect(first).not.toContain(DRAINER);
+    expect(first).toContain(TOKEN_PROGRAM);
+    expect(rest.at(-1)).toEqual(expect.arrayContaining(['11111111111111111111111111111111', DRAINER]));
+    expect(ex.accountFacts.find((f) => f.address === DRAINER)).toMatchObject({ owner: 'BPFLoaderUpgradeab1e11111111111111111111111', executable: true });
   });
 
   it('simulates and diffs a writable account loaded from a lookup table', async () => {

@@ -26,6 +26,7 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
   const inRequest = new Map<string, Set<number>>();
   const programs = new Set<string>();
   const labels = new Map<string, string>();
+  const idlNames = new Map<string, string>();
   const facts = new Map<string, (AccountFactView & { step: number })[]>();
   let transfers: (TransferView & { step: number })[] | null = null;
   let transfersPartial = false;
@@ -52,6 +53,8 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
       for (const a of ix.accounts) {
         use(a.address, s.index);
         if (a.label && !labels.has(a.address)) labels.set(a.address, a.label);
+        // '#3' is an account the IDL doesn't name.
+        if (!/^#\d+$/.test(a.name) && !idlNames.has(a.address)) idlNames.set(a.address, a.name);
       }
     }
     for (const d of v.accountDiffs ?? []) if (!labels.has(d.address)) labels.set(d.address, d.title);
@@ -61,7 +64,7 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
     if (v.transfers) transfers = [...(transfers ?? []), ...v.transfers.map((t) => ({ ...t, step: s.index }))];
     if (v.transfers && v.transfersPartial) transfersPartial = true;
   }
-  return { edges: [...edges.values()], external: [...external.values()], inRequest, mine, programs, labels, facts, transfers, transfersPartial };
+  return { edges: [...edges.values()], external: [...external.values()], inRequest, mine, programs, labels, idlNames, facts, transfers, transfersPartial };
 }
 
 /** A detail value that copies its full form (an address or hash shown shortened) on click. */

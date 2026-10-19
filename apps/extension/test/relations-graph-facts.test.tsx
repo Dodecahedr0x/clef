@@ -121,3 +121,15 @@ describe('relations graph node text', () => {
     expect(screen.getByRole('tooltip').textContent).toContain('unknown (account not read)');
   });
 });
+
+describe('relations graph IDL names', () => {
+  it('titles an unlabelled account by its IDL name, set apart (mono, marked) from trusted labels', () => {
+    render(<RelationsGraph input={input({ idlNames: new Map([[NEW, 'globalConfig'], [TOKEN, 'userAta']]) })} tab="all" batchSize={1} />);
+    const idl = within(node(/globalConfig/)).getByText('globalConfig');
+    expect(idl.className).toMatch(/font-mono/);
+    expect(idl.getAttribute('title')).toBe('Name from the program’s IDL');
+    // A trusted label wins over the IDL's name.
+    expect(screen.queryByText('userAta')).toBeNull();
+    expect(within(node(/Your USDC token account/)).getByText('Your USDC token account').className).not.toMatch(/font-mono/);
+  });
+});

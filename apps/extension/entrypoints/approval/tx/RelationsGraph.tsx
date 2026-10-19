@@ -15,6 +15,8 @@ export type GraphInput = {
   mine: Set<string>;
   programs: Set<string>;
   labels: Map<string, string>;
+  /** The account's name in the instruction's IDL (e.g. 'globalConfig'), for accounts with no trusted label. */
+  idlNames?: Map<string, string>;
   /** Per account, what each step that uses it says of it. */
   facts?: Map<string, (AccountFactView & { step: number })[]>;
   /** Null when no step's transfers are known. */
@@ -103,7 +105,7 @@ export function layoutGraph(g: GraphInput, opts: { showExternal: boolean; showTr
   const isolated = new Set(l.isolated);
   const nodes = order.map((address) => {
     const { x, y } = l.pos.get(address)!;
-    return { address, x, y, title: g.labels.get(address) ?? shortAddress(address), external: !g.inRequest.has(address), isolated: isolated.has(address) };
+    return { address, x, y, title: g.labels.get(address) ?? g.idlNames?.get(address) ?? shortAddress(address), external: !g.inRequest.has(address), isolated: isolated.has(address) };
   });
   return { nodes, edges, routes: l.routes, width: Math.max(GRAPH.width, l.width), height: Math.max(GRAPH.minHeight, l.height), isolatedTop: l.isolatedTop };
 }
@@ -221,7 +223,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
   const CONTROLS_ROOM = 52;
   const selected =
     (picked && byAddress.get(picked)) || placedNodes.find((n) => !n.external && !input.mine.has(n.address) && !input.programs.has(n.address)) || placedNodes[0];
-  const label = (a: string) => input.labels.get(a) ?? shortAddress(a);
+  const label = (a: string) => input.labels.get(a) ?? input.idlNames?.get(a) ?? shortAddress(a);
   const dim = (n: GraphNode) => tab !== 'all' && !n.external && !input.inRequest.get(n.address)?.has(tab);
 
   const transfers = (input.transfers ?? []).filter((t) => (tab === 'all' || t.step === tab) && t.from !== t.to);
@@ -372,6 +374,8 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                   const mine = input.mine.has(n.address);
                   const program = input.programs.has(n.address);
                   const named = n.title !== shortAddress(n.address);
+                  // Names from an IDL are the program describing itself: set apart from Clef's trusted labels.
+                  const fromIdl = !input.labels.has(n.address) && !!input.idlNames?.has(n.address);
                   const kind = program ? 'program' : pdaChild(input, n.address) ? 'PDA' : null;
                   const fact = factFor(input, n.address, tab);
                   const owner = ownerText(fact);
@@ -415,7 +419,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       {/* Unnamed accounts are titled by their (copyable) key, so it is not repeated below. */}
                       {named ? (
                         <>
-                          <span className="w-full truncate text-xs font-semibold">{n.title}</span>
+                          <span className={`w-full truncate text-xs font-semibold ${fromIdl ? 'font-mono' : ''}`} {...(fromIdl && { title: 'Name from the program’s IDL' })}>{n.title}</span>
                           <span className="w-full truncate text-xs text-muted"><Pubkey value={n.address} prefix={kind ? `${kind} · ` : undefined} /></span>
                         </>
                       ) : (

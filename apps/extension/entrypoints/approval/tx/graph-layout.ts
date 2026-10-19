@@ -77,12 +77,14 @@ export function layered(nodes: readonly string[], edges: readonly LayoutEdge[], 
   for (const n of graphNodes) columns[layer.get(n)!]!.push({ id: n, dummy: false });
   const segments: [string, string][] = [];
   const chains = new Map<string, string[]>();
+  const dummyFrom = new Map<string, string>();
   for (const { id, u, v } of dag) {
     const chain = [u];
     for (let l = layer.get(u)! - 1; l > layer.get(v)!; l--) {
       const d = `\u0000${id}\u0000${l}`;
       columns[l]!.push({ id: d, dummy: true });
       layer.set(d, l);
+      dummyFrom.set(d, u);
       chain.push(d);
     }
     chain.push(v);
@@ -97,24 +99,23 @@ export function layered(nodes: readonly string[], edges: readonly LayoutEdge[], 
     nb(b).right.push(a);
   }
 
-  // 4. Order each column by the mean position of its neighbours, keeping the order with the fewest crossings.
+  // 4. Order each column to minimise crossings: barycenter sweeps, then swapping neighbours while it helps
+  // ("transpose"), from two starting orders (input order, and depth-first from the first nodes); the best wins.
   const index = new Map<string, number>();
   const reindex = () => columns.forEach((c) => c.forEach((it, i) => index.set(it.id, i)));
-  reindex();
-  const crossings = () => {
+  // Segments between column l (their first end) and column l - 1.
+  const segsAt: [string, string][][] = columns.map(() => []);
+  for (const seg of segments) segsAt[layer.get(seg[0])!]!.push(seg);
+  const crossingsAt = (l: number) => {
+    if (l < 1 || l >= columns.length) return 0;
+    const segs = segsAt[l]!.map(([a, b]) => [index.get(a)!, index.get(b)!] as const);
     let count = 0;
-    for (let l = 1; l < columns.length; l++) {
-      const segs = segments.filter(([a]) => layer.get(a) === l).map(([a, b]) => [index.get(a)!, index.get(b)!] as const);
-      for (let i = 0; i < segs.length; i++) {
-        for (let j = i + 1; j < segs.length; j++) {
-          if ((segs[i]![0] - segs[j]![0]) * (segs[i]![1] - segs[j]![1]) < 0) count++;
-        }
-      }
+    for (let i = 0; i < segs.length; i++) {
+      for (let j = i + 1; j < segs.length; j++) if ((segs[i]![0] - segs[j]![0]) * (segs[i]![1] - segs[j]![1]) < 0) count++;
     }
     return count;
   };
-  let best = columns.map((c) => [...c]);
-  let bestCount = crossings();
+  const crossings = () => columns.reduce((sum, _, l) => sum + crossingsAt(l), 0);
   const sortBy = (col: Item[], side: 'left' | 'right') => {
     const key = new Map(col.map((it, i) => {
       const ns = nb(it.id)[side];
@@ -122,16 +123,68 @@ export function layered(nodes: readonly string[], edges: readonly LayoutEdge[], 
     }));
     col.sort((a, b) => key.get(a.id)! - key.get(b.id)!);
   };
-  for (let iter = 0; iter < 8 && bestCount > 0; iter++) {
-    if (iter % 2 === 0) for (let l = 1; l < columns.length; l++) (sortBy(columns[l]!, 'left'), reindex());
-    else for (let l = columns.length - 2; l >= 0; l--) (sortBy(columns[l]!, 'right'), reindex());
-    const c = crossings();
-    if (c < bestCount) {
-      bestCount = c;
-      best = columns.map((col) => [...col]);
+  const transpose = () => {
+    for (let pass = 0, improved = true; improved && pass < 20; pass++) {
+      improved = false;
+      for (let l = 0; l < columns.length; l++) {
+        const col = columns[l]!;
+        for (let i = 0; i + 1 < col.length; i++) {
+          const before = crossingsAt(l) + crossingsAt(l + 1);
+          [col[i], col[i + 1]] = [col[i + 1]!, col[i]!];
+          reindex();
+          if (crossingsAt(l) + crossingsAt(l + 1) < before) improved = true;
+          else {
+            [col[i], col[i + 1]] = [col[i + 1]!, col[i]!];
+            reindex();
+          }
+        }
+      }
     }
+  };
+  const optimise = (swaps: boolean) => {
+    let best = columns.map((c) => [...c]);
+    let bestCount = crossings();
+    for (let iter = 0; iter < (swaps ? 24 : 8) && bestCount > 0; iter++) {
+      if (iter % 2 === 0) for (let l = 1; l < columns.length; l++) (sortBy(columns[l]!, 'left'), reindex());
+      else for (let l = columns.length - 2; l >= 0; l--) (sortBy(columns[l]!, 'right'), reindex());
+      if (swaps) transpose();
+      const c = crossings();
+      if (c < bestCount) {
+        bestCount = c;
+        best = columns.map((col) => [...col]);
+      }
+    }
+    return { best, bestCount };
+  };
+  const starts: string[][] = [graphNodes];
+  const seen = new Set<string>();
+  const dfs: string[] = [];
+  const walk = (n: string) => {
+    if (seen.has(n)) return;
+    seen.add(n);
+    dfs.push(n);
+    for (const m of [...nb(n).left, ...nb(n).right]) walk(m);
+  };
+  for (const n of graphNodes) walk(n);
+  starts.push(dfs);
+  let winner: { best: Item[][]; bestCount: number } | null = null;
+  // Candidates: plain sweeps from the order the columns were built in (the swaps can settle in a worse local
+  // optimum), and sweeps with swaps from each start.
+  const built = columns.map((c) => [...c]);
+  const candidates: [string[] | null, boolean][] = [[null, false], ...starts.map((st) => [st, true] as [string[], boolean])];
+  for (const [start, swaps] of candidates) {
+    built.forEach((c, l) => (columns[l] = [...c]));
+    if (start) {
+      const rank = new Map(start.map((n, i) => [n, i]));
+      // Dummies follow the node their edge starts from.
+      const at = (id: string) => rank.get(id) ?? rank.get(dummyFrom.get(id) ?? '') ?? 0;
+      for (const col of columns) col.sort((a, b) => at(a.id) - at(b.id));
+    }
+    reindex();
+    const result = optimise(swaps);
+    if (!winner || result.bestCount < winner.bestCount) winner = result;
   }
-  best.forEach((c, l) => (columns[l] = c));
+  if (winner) winner.best.forEach((c, l) => (columns[l] = c));
   reindex();
 
   // 5. Heights: stack each column, then pull every item toward its neighbours' centre without overlapping.

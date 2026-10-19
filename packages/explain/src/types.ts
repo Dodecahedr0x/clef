@@ -200,7 +200,7 @@ export type ExplainedTransaction = {
   computeUnits: bigint | null;
   /** Edges with `external: true`: targets outside the transaction's keys. */
   externalRelations: RelationEdge[];
-  /** Every account of the transaction, in key order. */
+  /** Every account of the transaction in key order, then those outside it that relations or token holders name (as they are now). */
   accountFacts: AccountFact[];
   /** Null when not known: no meta and no successful simulation (or the transaction failed). */
   transfers: Transfer[] | null;

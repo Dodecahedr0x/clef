@@ -136,6 +136,7 @@ describe('account facts and transfers in an explanation', () => {
     reader.setAccount({ address: ME, owner: SYSTEM_PROGRAM, data: new Uint8Array(), lamports: 1n });
     reader.setAccount({ address: SRC, owner: TOKEN_PROGRAM, data: tokenAccountData(ME, USDC, 0n) });
     reader.setAccount({ address: DST, owner: TOKEN_PROGRAM, data: tokenAccountData(OTHER, USDC, 0n) });
+    reader.setAccount({ address: OTHER, owner: SYSTEM_PROGRAM, data: new Uint8Array() });
     const wire = buildWire([getTransferCheckedInstruction({ source: SRC, mint: USDC, destination: DST, authority: createNoopSigner(ME), amount: 5n, decimals: 6 })]);
     const ex0 = await explain({ wire }, { reader, idls: idls(reader), me: [ME] });
     const keys = ex0.tx.accounts.map((a) => a.address);
@@ -155,5 +156,8 @@ describe('account facts and transfers in an explanation', () => {
     expect(ex.accountFacts.find((f) => f.address === SRC)!.token).toMatchObject({ holder: ME, before: 10n, after: 5n, decimals: 6 });
     expect(ex.transfers?.map((t) => [t.kind, t.amount, t.inner])).toEqual([['token', 5n, false], ['token', 2n, true]]);
     expect(ex.transfersPartial).toBeUndefined();
+    // The destination's holder is not in the transaction, yet hovering it shows its owner (read for display).
+    expect(ex.tx.accounts.some((a) => a.address === OTHER)).toBe(false);
+    expect(ex.accountFacts.find((f) => f.address === OTHER)).toMatchObject({ owner: SYSTEM_PROGRAM, ownerNow: true });
   });
 });

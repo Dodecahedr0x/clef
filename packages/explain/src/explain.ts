@@ -410,7 +410,7 @@ export async function explainWith(
   let simulated: Simulated;
   let logs: LogLine[] | null = null;
   let computeUnits: bigint | null = null;
-  let accountFacts: AccountFact[] = [];
+  let factsOf: () => AccountFact[] = () => [];
   let transfers: Transfer[] | null = null;
   let transfersPartial = false;
   const mintInfo = (mint: Address) => labeler.mintInfo(mint);
@@ -421,7 +421,7 @@ export async function explainWith(
     simulated = await fromSimulation(run, writable, labeler, issues, load);
     const states = simulated.states;
     const at = new Map(writable.map((a, i) => [a as string, i]));
-    accountFacts = factsFromStates(addresses, (a) => {
+    factsOf = () => factsFromStates(addresses, (a) => {
       const i = at.get(a);
       if (i === undefined) return { pre: cache.get(a), post: cache.get(a) };
       return states ? { pre: states.pre[i], post: states.post[i] } : { pre: cache.get(a), post: undefined };
@@ -462,7 +462,11 @@ export async function explainWith(
       const d = metaDecimals.get(mint);
       return mintInfo(mint) ?? (d === undefined ? null : { symbol: shortAddress(mint), decimals: d });
     };
-    accountFacts = factsFromMeta(addresses, meta, cache, metaMintInfo);
+    factsOf = () => [
+      ...factsFromMeta(addresses, meta, cache, metaMintInfo),
+      // Accounts outside the transaction: as of today (the meta records only the transaction's accounts).
+      ...factsFromStates(outside(), (a) => ({ pre: cache.get(a), post: cache.get(a) }), metaMintInfo).map((f) => (f.owner ? { ...f, ownerNow: true as const } : f)),
+    ];
     if (!meta.err) {
       const mints = new Map<string, Address>();
       for (const t of [...meta.preTokenBalances, ...meta.postTokenBalances]) {
@@ -569,6 +573,19 @@ export async function explainWith(
   } catch (e) {
     issues.push({ stage: 'relations', message: errorDetail(e) });
   }
+
+  // Every account the explanation shows gets its owner, size and balance: programs the transaction only calls
+  // (not read so far), and accounts outside it (relation targets, token holders). Display only: best effort.
+  const shown = new Set<string>(addresses);
+  const named = [...new Set([...external.flatMap((r) => [r.from, r.to]), ...Object.values(tokenOwners)])].filter((a) => !shown.has(a)) as Address[];
+  // Those Clef could read (a failed read leaves the owner unknown: no fact rather than an empty one).
+  const outside = () => named.filter((a) => cache.get(a) !== undefined);
+  try {
+    await cache.load([...programOnly, ...named]);
+  } catch {
+    // Owners then show as unknown.
+  }
+  const accountFacts = input.meta ? factsOf() : [...factsOf(), ...factsFromStates(outside(), (a) => ({ pre: cache.get(a), post: cache.get(a) }), mintInfo)];
 
   const explained: ExplainedTransaction = {
     tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary,
