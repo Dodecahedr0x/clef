@@ -1,3 +1,4 @@
+import { markUnsafe } from '@clef/explain';
 import { signInMessageBytes, type ApprovalDecision, type ApprovalRequest, type SignerInfo } from '@clef/wallet-core';
 import type { Address } from '@solana/kit';
 import { useState, type ReactNode } from 'react';
@@ -5,7 +6,7 @@ import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { BlockedSiteBanner } from './BlockedSiteBanner';
 import { AccountRadio } from './ConnectApproval';
-import { CardLabel, ErrorLine, findAccount, Footer, Page, PhishingAck, signerFor, siteName, SiteMark, useApprove } from './shared';
+import { CardLabel, DangerBox, ErrorLine, findAccount, Footer, Page, PhishingAck, signerFor, siteName, SiteMark, useApprove } from './shared';
 import { Pubkey } from '../../../components';
 
 const CHAINS: Record<string, string> = { 'solana:mainnet': 'Mainnet', 'solana:devnet': 'Devnet', 'solana:testnet': 'Testnet', 'solana:localnet': 'Localnet' };
@@ -64,18 +65,27 @@ export function SignInApproval({
     void run(base, sign);
   };
 
+  // Text the site wrote, with invisible and direction-changing characters shown as markers (as in a message).
+  let marked = 0;
+  const shown = (s: string) => {
+    const m = markUnsafe(s);
+    marked += m.marked;
+    return m.text;
+  };
+  const blocked = expired;
+
   const rows: [string, ReactNode, ReactNode?, boolean?][] = [
-    ['Domain', domain, domainOk ? '✓ matches tab' : '✕ not this site', domainOk],
+    ['Domain', shown(domain), domainOk ? '✓ matches tab' : '✕ not this site', domainOk],
     ['Address', shownAddress ? <Pubkey value={shownAddress} /> : '—', addressOk ? '✓ yours' : '✕ not this account', addressOk],
   ];
-  if (input.statement) rows.push(['Statement', input.statement]);
-  if (input.uri) rows.push(['URI', input.uri]);
+  if (input.statement) rows.push(['Statement', shown(input.statement)]);
+  if (input.uri) rows.push(['URI', shown(input.uri)]);
   if (input.chainId) rows.push(['Chain', CHAINS[input.chainId] ?? input.chainId]);
   if (input.expirationTime) rows.push(['Expires', relativeTime(input.expirationTime), undefined, !expired]);
   if (input.notBefore) rows.push(['Not before', new Date(input.notBefore).toLocaleString()]);
-  if (input.requestId) rows.push(['Request ID', input.requestId]);
-  if (input.nonce) rows.push(['Nonce', input.nonce]);
-  if (input.resources?.length) rows.push(['Resources', input.resources.join('\n')]);
+  if (input.requestId) rows.push(['Request ID', shown(input.requestId)]);
+  if (input.nonce) rows.push(['Nonce', shown(input.nonce)]);
+  if (input.resources?.length) rows.push(['Resources', input.resources.map(shown).join('\n')]);
   const MONO = new Set(['Domain', 'Address', 'URI', 'Nonce', 'Request ID', 'Resources']);
 
   return (
@@ -100,6 +110,14 @@ export function SignInApproval({
           </fieldset>
         )}
 
+        {expired && (
+          <div className="mx-4 mb-3">
+            <DangerBox title="This sign-in request has expired">
+              It was only valid until {new Date(input.expirationTime!).toLocaleString()}. Clef blocks it: go back to {host} and start signing in again.
+            </DangerBox>
+          </div>
+        )}
+
         <section className="mx-4 overflow-hidden rounded-[12px] border border-line bg-surface">
           <CardLabel>Sign-in message</CardLabel>
           <dl className="m-0 grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-1 text-[12px]">
@@ -118,6 +136,11 @@ export function SignInApproval({
               );
             })}
           </dl>
+          {marked > 0 && (
+            <p className="m-0 border-t border-line-soft bg-warn-bg px-3 py-2 text-[12px] text-warn-ink">
+              {marked} invisible or direction-changing character{marked === 1 ? ' is' : 's are'} shown as ⟨U+…⟩ so nothing is hidden.
+            </p>
+          )}
         </section>
 
         <p className="mx-5 mb-0 mt-[14px] text-[12px] leading-normal text-muted">Signing in proves you own this address. It doesn’t approve any transaction.</p>
@@ -134,8 +157,9 @@ export function SignInApproval({
       <Footer
         rejectLabel="Cancel"
         approveLabel="Sign in"
-        dangerPrimary={!domainOk || !addressOk || !!phishing}
-        approveDisabled={!domainOk || !addressOk || (!!phishing && !ack) || busy}
+        dangerPrimary={!domainOk || !addressOk || blocked || !!phishing}
+        approveDisabled={!domainOk || !addressOk || blocked || (!!phishing && !ack) || busy}
+        busy={busy}
         onReject={() => onDecide({ approved: false })}
         onApprove={approve}
       />

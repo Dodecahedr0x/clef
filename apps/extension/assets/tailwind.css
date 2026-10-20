@@ -50,6 +50,10 @@
   --color-info-tint: #E8EFFD;
   --color-violet: #5B3FC4;
   --color-violet-bg: #ECE7FB;
+  --color-transfer: #2F6FDB; /* SOL and token movements in the relations graph */
+  --color-edge: #7A8190; /* a relations-graph link: 3:1 or more on the surface */
+  --color-temp-line: #9CB4E8; /* the dashed border of an account that only lives during the transaction */
+  --color-camera: #1E222B; /* behind a camera preview */
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }

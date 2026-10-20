@@ -135,3 +135,28 @@ describe('relations graph IDL names', () => {
     expect(within(node(/Your USDC token account/)).getByText('Your USDC token account').className).not.toMatch(/font-mono/);
   });
 });
+
+describe('relations graph without colour', () => {
+  const mismatch = { kind: 'token-owner', from: TOKEN, to: NEW, label: 'owner', status: 'mismatch' } as unknown as GraphInput['edges'][number];
+  const verified = { kind: 'token-mint', from: TOKEN, to: PROGRAM, label: 'mint', status: 'verified' } as unknown as GraphInput['edges'][number];
+
+  it('a mismatch is thicker, patterned and labelled ✗, not only red', () => {
+    const { container } = render(<RelationsGraph input={input({ edges: [mismatch, verified], transfers: [] })} tab="all" batchSize={1} />);
+    const paths = [...container.querySelectorAll('path[data-edge="relation"]')];
+    const bad = paths.find((p) => p.getAttribute('stroke') === 'var(--color-danger)')!;
+    expect(bad.getAttribute('stroke-dasharray')).toBeTruthy();
+    expect(Number(bad.getAttribute('stroke-width'))).toBeGreaterThan(2);
+    expect([...container.querySelectorAll('text')].some((t) => t.textContent?.startsWith('✗ owner'))).toBe(true);
+    expect(paths.find((p) => p !== bad)!.getAttribute('stroke')).toBe('var(--color-edge)');
+  });
+
+  it('lists every link with how it was checked', () => {
+    render(<RelationsGraph input={input({ edges: [mismatch, verified], transfers: [] })} tab="all" batchSize={1} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'Show as a list' }));
+    const table = screen.getByRole('table', { name: 'Links between the accounts in this request' });
+    const rows = within(table).getAllByRole('row').slice(1).map((r) => [...r.querySelectorAll('td')].map((c) => c.textContent));
+    expect(rows).toContainEqual(['Your USDC token account', 'owner', expect.stringMatching(/^Gdxf…GtAs$/), '✗ mismatch']);
+    expect(rows.some((r) => r[3] === '✓ verified')).toBe(true);
+    expect(screen.getByRole('group', { name: 'Selected account details' }).getAttribute('aria-live')).toBe('polite');
+  });
+});

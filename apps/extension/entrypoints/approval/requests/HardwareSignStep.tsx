@@ -32,7 +32,7 @@ export async function blindSigningHash(message: Uint8Array): Promise<string> {
 export function HardwareSignStep(p: Props) {
   const label = p.accountLabel ?? shortAddress(p.signer.address);
   const header = (
-    <Header mark={<SiteMark text={siteName(p.origin)} size={32} />} title={p.summary} subtitle={`${siteName(p.origin)} · ${label}`} />
+    <Header mark={<SiteMark text={siteName(p.origin)} size={28} />} title={p.summary} subtitle={`${siteName(p.origin)} · ${label}`} />
   );
   return (
     <Page>
@@ -67,7 +67,7 @@ function StepMark({ mark }: { mark: Mark }) {
   if (mark === 'failed') return <span className="w-[14px] font-semibold text-danger-text">✕</span>;
   if (mark === 'active')
     return (
-      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2752B8" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
         <path d="M12 3a9 9 0 1 0 9 9" />
       </svg>
     );

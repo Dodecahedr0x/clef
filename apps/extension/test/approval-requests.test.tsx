@@ -128,7 +128,8 @@ describe('ConnectApproval', () => {
     render(<ConnectApproval request={request} state={state} onDecide={onDecide} />);
     expect(screen.getByRole('heading', { name: 'jup.ag wants to connect' })).toBeTruthy();
     expect(screen.getByText('https://jup.ag')).toBeTruthy();
-    expect(screen.getByText('Not on phishing lists · first visit')).toBeTruthy();
+    expect(screen.getByText('Not on a phishing list · first visit')).toBeTruthy();
+    expect(screen.getByText(/Stays connected until you disconnect it/)).toBeTruthy();
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(4);
     expect(screen.getByRole('radio', { name: /Main/ })).toHaveProperty('checked', true);
@@ -149,7 +150,7 @@ describe('ConnectApproval', () => {
     const onDecide = vi.fn();
     const known = { ...(state as object), permissions: [{ origin: 'https://jup.ag', accounts: [MAIN], connectedAt: 1 }] } as never;
     render(<ConnectApproval request={request} state={known} onDecide={onDecide} />);
-    expect(screen.getByText('Not on phishing lists · connected before')).toBeTruthy();
+    expect(screen.getByText('Not on a phishing list · connected before')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onDecide).toHaveBeenCalledWith({ approved: false });
   });
@@ -158,7 +159,7 @@ describe('ConnectApproval', () => {
     const onDecide = vi.fn();
     render(<ConnectApproval request={{ ...request, origin: 'https://jup-ag.claim.example', phishing: { reason: 'blocklist', match: 'jup-ag.claim.example' } }} state={state} onDecide={onDecide} />);
     expect(screen.getByText('This site is on a phishing list')).toBeTruthy();
-    expect(screen.queryByText(/Not on phishing lists/)).toBeNull();
+    expect(screen.queryByText(/Not on a phishing list/)).toBeNull();
     const connect = screen.getByRole('button', { name: 'Connect anyway' }) as HTMLButtonElement;
     expect(connect.disabled).toBe(true);
     fireEvent.click(connect);
@@ -193,8 +194,8 @@ describe('MessageApproval', () => {
     expect(screen.getByRole('heading', { name: 'Sign a message' })).toBeTruthy();
     expect(screen.getByText(`UTF-8 text · ${message.length} bytes`)).toBeTruthy();
     expect(screen.getByText(/Nonce: 8f2c41a9e7/)).toBeTruthy();
-    expect(screen.getByText('Readable text — not a hidden transaction')).toBeTruthy();
-    expect(screen.getByText('Signing a message can’t move funds by itself')).toBeTruthy();
+    expect(screen.getByText('Readable text, not a hidden transaction')).toBeTruthy();
+    expect(screen.getByText(/can’t send funds on its own\. Some sites use signed messages as permission/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Hex' }));
     expect(screen.getByRole('button', { name: 'Hex' }).getAttribute('aria-pressed')).toBe('true');
@@ -209,7 +210,7 @@ describe('MessageApproval', () => {
     const onDecide = vi.fn();
     render(<MessageApproval request={{ ...request, message: legacyTx() }} state={state} onDecide={onDecide} />);
     expect(screen.getByText('This message is a Solana transaction')).toBeTruthy();
-    expect(screen.queryByText('Readable text — not a hidden transaction')).toBeNull();
+    expect(screen.queryByText('Readable text, not a hidden transaction')).toBeNull();
     expect(screen.queryByRole('checkbox')).toBeNull();
     const sign = screen.getByRole('button', { name: 'Sign' }) as HTMLButtonElement;
     expect(sign.disabled).toBe(true);
@@ -265,6 +266,18 @@ describe('SignInApproval', () => {
     render(<SignInApproval request={{ ...request, input: { ...input, domain: 'evil.example' } }} state={state} onDecide={onDecide} />);
     expect(screen.getByText('✕ not this site')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Sign in' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('an expired sign-in is blocked', () => {
+    render(<SignInApproval request={{ ...request, input: { ...input, expirationTime: new Date(now - 60_000).toISOString() } }} state={state} onDecide={vi.fn()} />);
+    expect(screen.getByText('This sign-in request has expired')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Sign in' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('invisible characters in the fields are shown, not hidden', () => {
+    render(<SignInApproval request={{ ...request, input: { ...input, statement: 'Sign in\u202e to Jupiter' } }} state={state} onDecide={vi.fn()} />);
+    expect(screen.getByText(/1 invisible or direction-changing character is shown/)).toBeTruthy();
+    expect(screen.getByText(/⟨U\+202E⟩/)).toBeTruthy();
   });
 
   it('an address that is not yours is flagged and blocks sign-in', () => {

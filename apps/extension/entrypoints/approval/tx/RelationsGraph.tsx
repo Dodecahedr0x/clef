@@ -193,24 +193,35 @@ export function placeLabels(labels: { x: number; y: number; text: string }[]): {
 const ZOOM = { min: 0.3, max: 2, step: 0.2 } as const;
 const clampZoom = (z: number) => Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(z * 100) / 100));
 
-const TRANSFER_STROKE = '#2F6FDB';
-const RELATION_STROKES = ['#9AA1AE', '#0F7A62', '#C8402A', '#CBD0DA'] as const;
-const markerId = (stroke: string) => `clef-rel-arrow-${stroke.slice(1)}`;
+const TRANSFER_STROKE = 'var(--color-transfer)';
+const STROKES = { edge: 'var(--color-edge)', pda: 'var(--color-ok)', mismatch: 'var(--color-danger)', external: 'var(--color-line-strong)' } as const;
+type StrokeKey = keyof typeof STROKES;
+const markerId = (key: StrokeKey) => `clef-rel-arrow-${key}`;
 
-/** Mismatch red over PDA green over grey; outside the request lighter and dashed; by a called program dotted. */
-function edgeStyle(e: GraphEdge): { stroke: string; dash?: string; text: string; weight?: number } {
-  if (e.kind === 'transfer') return { stroke: TRANSFER_STROKE, text: TRANSFER_STROKE, weight: 600, ...(e.transfers.every((t) => t.inner) && { dash: '1 3' }) };
-  if (e.relations.some((r) => r.status === 'mismatch')) return { stroke: '#C8402A', text: '#B03A26' };
-  if (e.relations.every((r) => r.external)) return { stroke: '#CBD0DA', dash: '3 4', text: '#5C6475' };
-  if (e.relations.every((r) => r.kind === 'pda')) return { stroke: '#0F7A62', dash: '5 4', text: '#0F7A62' };
-  return { stroke: '#9AA1AE', text: '#5C6475' };
+type EdgeStyle = { key: StrokeKey | 'transfer'; stroke: string; dash?: string; width: number; text: string; weight?: number; mark?: string };
+
+/**
+ * Not by colour alone: a mismatch is thicker, dash-dotted and labelled ✗; PDA seeds are long dashes, links
+ * outside the request short dots, transfers by a called program fine dots.
+ */
+export function edgeStyle(e: GraphEdge): EdgeStyle {
+  if (e.kind === 'transfer') return { key: 'transfer', stroke: TRANSFER_STROKE, width: 1.75, text: TRANSFER_STROKE, weight: 600, ...(e.transfers.every((t) => t.inner) && { dash: '1 3' }) };
+  if (e.relations.some((r) => r.status === 'mismatch')) return { key: 'mismatch', stroke: STROKES.mismatch, dash: '8 3 2 3', width: 2.5, text: 'var(--color-danger-text)', weight: 600, mark: '✗ ' };
+  if (e.relations.every((r) => r.external)) return { key: 'external', stroke: STROKES.external, dash: '2 5', width: 1.5, text: 'var(--color-muted)' };
+  if (e.relations.every((r) => r.kind === 'pda')) return { key: 'pda', stroke: STROKES.pda, dash: '7 4', width: 1.5, text: 'var(--color-ok)' };
+  return { key: 'edge', stroke: STROKES.edge, width: 1.5, text: 'var(--color-muted)' };
 }
+
+/** How a link was checked, for the list view: the worst of what it bundles. */
+const edgeCheck = (e: GraphEdge) =>
+  e.kind === 'transfer' ? 'transfer' : e.relations.some((r) => r.status === 'mismatch') ? '✗ mismatch' : e.relations.some((r) => r.status === 'unverified') ? '? unverified' : '✓ verified';
 
 const STATUS_OK: Record<RelationEdge['status'], string> = { verified: '✓', mismatch: '✗ mismatch', unverified: '? unverified' };
 
 export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; tab: 'all' | number; batchSize: number }) {
   const [showExternal, setShowExternal] = useState(false);
   const [showTransfers, setShowTransfers] = useState(true);
+  const [asList, setAsList] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
   const layout = useMemo(() => layoutGraph(input, { showExternal, showTransfers, tab }), [input, showExternal, showTransfers, tab]);
   const { nodes, edges } = layout;
@@ -239,7 +250,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
     return !e || (!moved[e.from] && !moved[e.to]);
   }));
   const geometry = edgeGeometry(edges, new Map(placedNodes.map((n) => [n.address, n])), routes);
-  const labelAt = placeLabels(edges.map((e, i) => ({ ...geometry[i]!.label, text: fitLabel(e.label) })));
+  const labelAt = placeLabels(edges.map((e, i) => ({ ...geometry[i]!.label, text: fitLabel((edgeStyle(e).mark ?? '') + e.label) })));
   const hovered = hover && !drag.current ? byAddress.get(hover) : undefined;
   const faded = (e: GraphEdge) => !!hovered && e.from !== hovered.address && e.to !== hovered.address;
 
@@ -310,8 +321,37 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             Show SOL and token transfers ({transfers.length})
           </label>
         )}
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <input type="checkbox" role="switch" checked={asList} aria-checked={asList} onChange={() => setAsList(!asList)} className="m-0 size-[18px] accent-primary" />
+          Show as a list
+        </label>
       </div>
-      {nodes.length === 0 ? (
+      {nodes.length > 0 && asList ? (
+        <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-line bg-surface text-left text-xs">
+          <caption className="sr-only">Links between the accounts in this request</caption>
+          <thead className="bg-surface-3 text-muted">
+            <tr>
+              <th scope="col" className="px-3 py-2 font-semibold">Account</th>
+              <th scope="col" className="px-3 py-2 font-semibold">Link</th>
+              <th scope="col" className="px-3 py-2 font-semibold">To</th>
+              <th scope="col" className="px-3 py-2 font-semibold">Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            {edges.map((e) => {
+              const check = edgeCheck(e);
+              return (
+                <tr key={e.id} className="[&>td]:border-t [&>td]:border-line-soft [&>td]:px-3 [&>td]:py-2 [&>td]:align-top">
+                  <td className="[overflow-wrap:anywhere]">{label(e.from)}</td>
+                  <td className="[overflow-wrap:anywhere]">{e.label}</td>
+                  <td className="[overflow-wrap:anywhere]">{label(e.to)}</td>
+                  <td className={`whitespace-nowrap ${check.startsWith('✗') ? 'font-semibold text-danger-text' : check.startsWith('?') ? 'text-warn' : check.startsWith('✓') ? 'text-ok' : 'text-muted'}`}>{check}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : nodes.length === 0 ? (
         <p className="m-0 rounded-xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
       ) : (
         <div className="relative">
@@ -330,9 +370,9 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
               <div className="absolute top-0 left-0 origin-top-left" style={{ width: contentW, height: contentH, transform: `scale(${zoom})` }}>
                 <svg aria-hidden="true" width={contentW} height={contentH} viewBox={`0 0 ${contentW} ${contentH}`} className="absolute inset-0">
                   <defs>
-                    {RELATION_STROKES.map((c) => (
-                      <marker key={c} id={markerId(c)} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M0 1 L9 5 L0 9 z" fill={c} />
+                    {(Object.keys(STROKES) as StrokeKey[]).map((k) => (
+                      <marker key={k} id={markerId(k)} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M0 1 L9 5 L0 9 z" fill={STROKES[k]} />
                       </marker>
                     ))}
                     <marker id="clef-flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -348,12 +388,12 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                         {...(e.kind === 'transfer' && { 'data-transfer': e.transfers.map((t) => t.kind).join(' ') })}
                         d={geometry[i]!.d}
                         stroke={st.stroke}
-                        strokeWidth={e.kind === 'transfer' ? 1.75 : 1.5}
+                        strokeWidth={st.width}
                         strokeLinecap="round"
                         fill="none"
                         strokeDasharray={st.dash}
                         opacity={faded(e) ? 0.12 : 1}
-                        markerEnd={e.kind === 'transfer' ? 'url(#clef-flow-arrow)' : `url(#${markerId(st.stroke)})`}
+                        markerEnd={st.key === 'transfer' ? 'url(#clef-flow-arrow)' : `url(#${markerId(st.key)})`}
                       />
                     );
                   })}
@@ -369,14 +409,14 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                         fontSize={12}
                         fontWeight={st.weight}
                         fill={st.text}
-                        stroke="#FFFFFF"
+                        stroke="var(--color-surface)"
                         strokeWidth={4}
                         strokeLinejoin="round"
                         paintOrder="stroke"
                         opacity={faded(e) ? 0.15 : 1}
                       >
-                        <title>{e.label}</title>
-                        {fitLabel(e.label)}
+                        <title>{(st.mark ?? '') + e.label}</title>
+                        {fitLabel((st.mark ?? '') + e.label)}
                       </text>
                     );
                   })}
@@ -417,7 +457,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                         }
                         setPicked(n.address);
                       }}
-                      style={{ left: n.x, top: n.y, width: GRAPH.nodeW, height: GRAPH.nodeH, opacity: dim(n) ? 0.35 : 1, touchAction: 'none', zIndex: moved[n.address] ? 2 : 1 }}
+                      style={{ left: n.x, top: n.y, width: GRAPH.nodeW, height: GRAPH.nodeH, opacity: dim(n) ? 0.6 : 1, touchAction: 'none', zIndex: moved[n.address] ? 2 : 1 }}
                       className={`absolute box-border flex cursor-grab flex-col items-start justify-center rounded-[10px] px-2.5 py-1.5 text-left text-ink active:cursor-grabbing ${
                         on
                           ? 'border-2 border-primary'
@@ -452,8 +492,9 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                 })}
                 <div className="absolute top-3 left-3.5 flex gap-3.5 text-xs text-muted">
                   <span>→ A label B: A is the account the link is about</span>
-                  <span className="text-ok">- - PDA seeds</span>
+                  <span className="text-ok">– – PDA seeds</span>
                   <span>··· outside the request</span>
+                  <span className="font-semibold text-danger-text">✗ –·– mismatch</span>
                   {transfers.length > 0 && <span style={{ color: TRANSFER_STROKE }}>→ transfer (dotted: by a called program)</span>}
                 </div>
               </div>
@@ -473,7 +514,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
       )}
       {input.transfersPartial && <span className="text-xs text-muted">The RPC didn't report what the called programs moved: only transfers the instructions make themselves are drawn.</span>}
       {selected && (
-        <section role="group" aria-label="Selected account details" className="rounded-xl border border-line bg-surface px-3.5 py-3">
+        <section role="group" aria-label="Selected account details" aria-live="polite" className="rounded-xl border border-line bg-surface px-3.5 py-3">
           <AccountCard title={selected.title} address={selected.address} fact={factFor(input, selected.address, tab)} transfers={transfers} label={label} program={input.programs.has(selected.address)} />
         </section>
       )}

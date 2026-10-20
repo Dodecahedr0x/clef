@@ -88,7 +88,7 @@ export function SquadsApproval({
   return (
     <Page banner={request.phishing && <BlockedSiteBanner hit={request.phishing} />}>
       <Header
-        mark={<SiteMark text={vault} size={32} tone="bg-warn-bg text-warn" />}
+        mark={<SiteMark text={vault} size={28} tone="bg-warn-bg text-warn" />}
         title={info ? `${vault} · Squads ${info.threshold} of ${info.members.length}` : `${vault} · Squads`}
         subtitle={`Request from ${host} · you sign as ${member}`}
       />
@@ -196,6 +196,7 @@ export function SquadsApproval({
         approveLabel="Propose & approve"
         dangerPrimary={needsAck}
         approveDisabled={!ready}
+        busy={busy}
         onReject={() => onDecide({ approved: false })}
         onApprove={() => run({ approved: true }, hardware ? () => hardware(request.proposals) : undefined)}
       />

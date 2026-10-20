@@ -23,7 +23,7 @@ export function diffCounts(diffs: AccountDiffView[]) {
 
 function DiffCard({ d }: { d: AccountDiffView }) {
   return (
-    <article aria-label={d.title} className={`overflow-hidden rounded-xl bg-surface ${d.tag === 'temp' ? 'border border-dashed border-[#9CB4E8]' : 'border border-line'}`}>
+    <article aria-label={d.title} className={`overflow-hidden rounded-xl bg-surface ${d.tag === 'temp' ? 'border border-dashed border-temp-line' : 'border border-line'}`}>
       <div className="flex items-center gap-2 border-b border-line-soft bg-surface-3 px-3.5 py-2">
         <span className="text-xs font-semibold">{d.title}</span>
         <Pubkey value={d.address} className="text-xs text-muted" />

@@ -1,5 +1,6 @@
 import { INTERNAL_ORIGIN, type ApprovalDecision, type PhishingHit, type PublicAccount, type SignerInfo } from '@clef/wallet-core';
 import { useState, type ReactNode } from 'react';
+import { ApprovalHeader, Button, DecisionFooter } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 
@@ -37,8 +38,8 @@ function toneFor(text: string): string {
   return TONES[h % TONES.length]!;
 }
 
-export function SiteMark({ text, size, blocked, tone }: { text: string; size: 32 | 56; blocked?: boolean; tone?: string }) {
-  const shape = size === 56 ? 'h-14 w-14 rounded-[14px] text-[20px]' : 'h-8 w-8 rounded-[8px] text-[14px]';
+export function SiteMark({ text, size, blocked, tone }: { text: string; size: 28 | 56; blocked?: boolean; tone?: string }) {
+  const shape = size === 56 ? 'h-14 w-14 rounded-[14px] text-[20px]' : 'size-7 rounded-[7px] text-[13px]';
   const colors = blocked ? 'border border-line bg-surface-2 text-muted' : (tone ?? toneFor(text));
   return (
     <span aria-hidden="true" className={`flex flex-none items-center justify-center font-semibold ${shape} ${colors}`}>
@@ -49,62 +50,33 @@ export function SiteMark({ text, size, blocked, tone }: { text: string; size: 32
 
 export function Page({ banner, children }: { banner?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-bg font-sans text-ink">
+    <div className="flex h-screen w-full min-w-0 flex-col overflow-hidden bg-bg font-sans text-ink">
       {banner}
       {children}
     </div>
   );
 }
 
+/** The transaction approval's header line (`ApprovalHeader`), with a site or vault mark. */
 export function Header({ mark, title, subtitle }: { mark: ReactNode; title: ReactNode; subtitle: ReactNode }) {
-  return (
-    <header className="flex items-center gap-[10px] border-b border-line-soft px-4 py-[14px]">
-      {mark}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[14px] font-semibold">{title}</span>
-        <span className="truncate text-[12px] text-muted">{subtitle}</span>
-      </div>
-    </header>
-  );
+  return <ApprovalHeader mark={mark} title={title} subtitle={subtitle} />;
 }
 
-const SECONDARY = 'h-12 rounded-[12px] border border-line-strong bg-surface text-[14px] font-medium text-ink cursor-pointer';
-const PRIMARY = 'h-12 rounded-[12px] border-0 bg-primary text-[14px] font-semibold text-white cursor-pointer';
-const DISABLED = 'h-12 rounded-[12px] border border-dashed border-line-strong bg-surface-2 text-[14px] font-medium text-faint cursor-not-allowed';
-
-export function Footer(p: {
-  onReject: () => void;
-  onApprove: () => void;
-  approveLabel: string;
-  rejectLabel?: string;
-  approveDisabled?: boolean;
-  dangerPrimary?: boolean;
-  approveIcon?: ReactNode;
-}) {
+/** The transaction approval's decision buttons (`DecisionFooter`): the same styles, busy state and Escape to reject. */
+export function Footer(p: Parameters<typeof DecisionFooter>[0]) {
   return (
-    <footer className="mt-auto grid grid-cols-2 gap-[10px] border-t border-line-soft p-4">
-      <button type="button" className={p.dangerPrimary ? PRIMARY : SECONDARY} onClick={p.onReject}>
-        {p.rejectLabel ?? 'Reject'}
-      </button>
-      <button
-        type="button"
-        className={`flex items-center justify-center gap-2 ${p.approveDisabled ? DISABLED : p.dangerPrimary ? SECONDARY : PRIMARY}`}
-        disabled={p.approveDisabled}
-        onClick={p.onApprove}
-      >
-        {p.approveIcon}
-        {p.approveLabel}
-      </button>
+    <footer className="mt-auto flex-none border-t border-line-soft">
+      <DecisionFooter {...p} />
     </footer>
   );
 }
 
 export function SingleFooter({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <footer className="mt-auto p-4">
-      <button type="button" className={`w-full ${SECONDARY}`} onClick={onClick}>
+    <footer className="mt-auto flex-none border-t border-line-soft p-4">
+      <Button variant="secondary" block onClick={onClick}>
         {label}
-      </button>
+      </Button>
     </footer>
   );
 }

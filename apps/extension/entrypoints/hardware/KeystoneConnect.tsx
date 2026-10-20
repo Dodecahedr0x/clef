@@ -163,7 +163,7 @@ export function KeystoneConnect() {
         <div
           role="img"
           aria-label="Camera preview, waiting for Keystone sync QR"
-          className="relative flex h-[240px] flex-none items-center justify-center overflow-hidden rounded-[16px] bg-[#1E222B]"
+          className="relative flex h-[240px] flex-none items-center justify-center overflow-hidden rounded-[16px] bg-camera"
         >
           <video ref={video} muted playsInline className="absolute inset-0 size-full object-cover" />
           <div className="relative size-40">

@@ -30,9 +30,9 @@ export function QrCode({ value, size, logo = false, label = 'QR code' }: { value
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[10px] bg-surface shadow-[0_0_0_4px_#FFFFFF]"
           style={{ width: badge, height: badge }}
         >
-          <svg width={badge * 0.72} height={badge * 0.72} viewBox="0 0 24 24" fill="none" stroke="#4A6B12" strokeWidth={1.8} strokeLinecap="round">
+          <svg width={badge * 0.72} height={badge * 0.72} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.8} strokeLinecap="round">
             <path d="M3 7h18M3 12h18M3 17h18" strokeOpacity="0.35" />
-            <circle cx="9" cy="12" r="3.2" fill="#FFFFFF" />
+            <circle cx="9" cy="12" r="3.2" fill="var(--color-surface)" />
             <path d="M12.2 12H20M17 12v3M20 12v2" />
           </svg>
         </span>

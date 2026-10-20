@@ -79,24 +79,34 @@ export function ApprovalFrame({
 }) {
   const name = siteName(site.origin);
   const internal = site.origin.startsWith(INTERNAL_SITE_PREFIX);
+  const mark = (
+    <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-[7px] border border-line bg-surface-2 text-[13px] font-semibold text-primary">
+      {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
+    </span>
+  );
   return (
     // A window narrower than its design width (resized, or opened small) reflows instead of hiding Sign off-screen.
     <div className={`flex ${width === 'fill' ? 'h-full' : 'h-screen'} w-full min-w-0 flex-col overflow-hidden bg-bg font-sans text-ink`} style={width === 'fill' ? undefined : { maxWidth: width }}>
       {banner}
-      <header className={`flex flex-none flex-wrap items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
-        {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
-        <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-[7px] border border-line bg-surface-2 text-[13px] font-semibold text-primary">
-          {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
-        </span>
-        <div className="flex min-w-0 flex-1 basis-28 flex-col">
-          <span className="truncate text-[13px] leading-tight font-semibold">{title ?? name}</span>
-          <span className="truncate text-[11px] leading-tight text-muted">{subtitle}</span>
-        </div>
-        {headerRight && <div className="ml-auto flex flex-none items-center gap-2">{headerRight}</div>}
-      </header>
+      <ApprovalHeader mark={mark} title={title ?? name} subtitle={subtitle} right={headerRight} onBack={onBack} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       <footer className="flex-none border-t border-line-soft">{footer}</footer>
     </div>
+  );
+}
+
+/** The header line of every approval: who is asking, what for, and (optionally) controls on the right. */
+export function ApprovalHeader({ mark, title, subtitle, right, onBack }: { mark: ReactNode; title: ReactNode; subtitle: ReactNode; right?: ReactNode; onBack?: () => void }) {
+  return (
+    <header className={`flex flex-none flex-wrap items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
+      {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
+      {mark}
+      <div className="flex min-w-0 flex-1 basis-28 flex-col">
+        <span className="truncate text-[13px] leading-tight font-semibold">{title}</span>
+        <span className="truncate text-[11px] leading-tight text-muted">{subtitle}</span>
+      </div>
+      {right && <div className="ml-auto flex flex-none items-center gap-2">{right}</div>}
+    </header>
   );
 }
 
@@ -169,6 +179,7 @@ export function DecisionFooter({
   busy = false,
   extra,
   dangerPrimary = false,
+  approveIcon,
 }: {
   onReject: () => void;
   onApprove: () => void;
@@ -178,6 +189,7 @@ export function DecisionFooter({
   busy?: boolean;
   extra?: ReactNode;
   dangerPrimary?: boolean;
+  approveIcon?: ReactNode;
 }) {
   // Escape rejects, the safe answer; not while signing, nor when it closes something open on top (a dialog, a select).
   const reject = useRef<(() => void) | null>(onReject);
@@ -200,7 +212,7 @@ export function DecisionFooter({
           {rejectLabel}
         </Button>
         <Button variant={dangerPrimary ? 'secondary' : 'primary'} onClick={onApprove} disabled={approveDisabled || busy} aria-busy={busy || undefined} className="min-w-0">
-          {busy && <Icon name="spinner" size={16} />}
+          {busy ? <Icon name="spinner" size={16} /> : approveIcon}
           {approveLabel}
         </Button>
       </div>

@@ -142,7 +142,7 @@ test('signMessage shows the text and verifies; a tx look-alike is blocked', asyn
   const signed = run(dapp, 'signMessage');
   const approval = await nextApproval(context);
   await expect(approval.getByText('Hello from the Clef test dApp')).toBeVisible();
-  await expect(approval.getByText('Readable text — not a hidden transaction')).toBeVisible();
+  await expect(approval.getByText('Readable text, not a hidden transaction')).toBeVisible();
   await decideAndClose(approval, 'Sign');
   expect(await signed).toEqual({ verified: true });
 

@@ -44,7 +44,7 @@ export function MessageApproval({
 
   return (
     <Page banner={phishing && <BlockedSiteBanner hit={phishing} />}>
-      <Header mark={<SiteMark text={host} size={32} blocked={!!phishing} />} title={host} subtitle={`Requests a message signature · ${accountName(state, request.account)}`} />
+      <Header mark={<SiteMark text={host} size={28} blocked={!!phishing} />} title={host} subtitle={`Requests a message signature · ${accountName(state, request.account)}`} />
 
       <div className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-4 pt-5 pb-4">
         <h1 className="mx-1 my-0 text-[20px] font-semibold tracking-[-0.01em]">Sign a message</h1>
@@ -84,9 +84,11 @@ export function MessageApproval({
         </section>
 
         {!blocked && m.kind !== 'binary' && (
-          <section className="flex flex-col gap-1.5 rounded-[12px] border border-ok-line bg-ok-bg px-[14px] py-3 text-[12px] text-ok-ink">
-            <CheckRow ok>Readable text — not a hidden transaction</CheckRow>
-            <CheckRow ok>Signing a message can’t move funds by itself</CheckRow>
+          <section className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-surface px-[14px] py-3 text-[12px] leading-[1.45] text-ink">
+            <CheckRow ok>Readable text, not a hidden transaction</CheckRow>
+            <p className="m-0 text-muted">
+              This isn’t a transaction, so it can’t send funds on its own. Some sites use signed messages as permission: only sign if you trust {host}.
+            </p>
           </section>
         )}
         {!blocked && m.kind === 'binary' && (
@@ -113,6 +115,7 @@ export function MessageApproval({
         approveLabel="Sign"
         dangerPrimary={blocked || !!phishing}
         approveDisabled={blocked || (!!phishing && !ack) || busy}
+        busy={busy}
         onReject={() => onDecide({ approved: false })}
         onApprove={() => run({ approved: true }, hardware ? () => hardware([request.message]) : undefined)}
       />

@@ -43,14 +43,14 @@ export function ConnectApproval({ request, state, onDecide }: { request: Extract
           <h1 className="m-0 text-[20px] font-semibold">{host} wants to connect</h1>
           <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
             {https && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F7A62" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-ok)" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
                 <rect x="5" y="11" width="14" height="10" rx="2" />
                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />
               </svg>
             )}
             {request.origin}
           </span>
-          {!phishing && <span className="text-[12px] text-ok">Not on phishing lists · {known ? 'connected before' : 'first visit'}</span>}
+          {!phishing && <span className="text-[12px] text-muted">Not on a phishing list · {known ? 'connected before' : 'first visit'}</span>}
         </section>
 
         <fieldset className="mx-4 flex flex-col gap-1.5 border-0 p-0">
@@ -65,6 +65,7 @@ export function ConnectApproval({ request, state, onDecide }: { request: Extract
           <CheckRow ok>Ask you to sign — every request comes back here</CheckRow>
           <CheckRow ok={false}>Move funds without your approval</CheckRow>
         </section>
+        <p className="mx-5 mt-2 mb-0 text-[12px] leading-[1.45] text-muted">Stays connected until you disconnect it in Settings · Connected sites.</p>
 
         {phishing && (
           <div className="mx-4 mt-3">
