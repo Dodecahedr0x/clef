@@ -46,7 +46,7 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
     <div className="flex flex-col gap-5 px-5 pt-6">
       <section className="flex flex-col gap-2">
         <span className="text-xs text-muted">{onChain ? 'This transaction' : 'You are about to'}</span>
-        <Summary plain text={c.summary} className="m-0 text-3xl leading-[1.2] font-semibold tracking-[-0.02em] max-[300px]:text-xl" />
+        <Summary plain text={c.summary} className="m-0 text-2xl leading-[1.2] font-semibold tracking-[-0.02em] max-[300px]:text-xl" />
         {c.recipient && <Recipient address={c.recipient} />}
         {view.steps.length > 1 && <span className="text-sm text-muted">{view.steps.length} transactions, signed together</span>}
       </section>

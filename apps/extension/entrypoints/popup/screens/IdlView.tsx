@@ -44,7 +44,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
 function Item({ title, meta, children, first }: { title: string; meta?: string; children?: ReactNode; first: boolean }) {
   const head = (
     <span className="flex min-w-0 items-baseline gap-2">
-      <span className="truncate font-mono text-sm font-semibold text-ink">{title}</span>
+      <span className="truncate font-mono text-xs font-semibold text-ink">{title}</span>
       {meta && <span className="ml-auto flex-none font-mono text-2xs text-muted">{meta}</span>}
     </span>
   );
