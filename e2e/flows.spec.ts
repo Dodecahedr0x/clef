@@ -211,7 +211,7 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   // History: the sent transaction opens its detail, explained like the approval but from the chain.
   await popup.reload();
   await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'History' }).click();
-  const row = popup.getByRole('button', { name: /^Details of Sent to / }).first();
+  const row = popup.getByRole('button', { name: /Sent to / }).first();
   await expect(row).toBeVisible({ timeout: 30_000 });
   await row.click();
   const detail = popup;

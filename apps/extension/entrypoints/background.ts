@@ -132,6 +132,11 @@ export default defineBackground(() => {
     phishing,
     reporter,
     service,
+    // No store caches in memory: clearing both areas leaves the background as on a fresh install.
+    erase: async () => {
+      await browser.storage.session.clear();
+      await browser.storage.local.clear();
+    },
   });
 
   browser.runtime.onConnect.addListener((port: Port) => {

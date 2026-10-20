@@ -72,7 +72,7 @@ export function TokenDetailScreen() {
   }
 
   const native = h.program === 'native';
-  const recent = items.filter((it) => it.deltas.some((d) => d.symbol === h.symbol)).slice(0, 5);
+  const recent = items.filter((it) => it.deltas.some((d) => d.mint === h.mint)).slice(0, 5);
 
   return (
     <PopupScreen
@@ -136,7 +136,7 @@ export function TokenDetailScreen() {
       <ul className="list-none mx-3 mt-0 mb-4 px-3 bg-surface border border-line rounded-[12px] text-[14px]">
         {recent.length === 0 && <li className="h-11 flex items-center text-[12px] text-muted">No recent activity</li>}
         {recent.map((it, i) => {
-          const d = it.deltas.find((x) => x.symbol === h.symbol)!;
+          const d = it.deltas.find((x) => x.mint === h.mint)!;
           return (
             <li key={it.signature} className={`h-11 flex items-center gap-2 ${i ? 'border-t border-line-soft' : ''}`}>
               <span className="flex-1 truncate">{it.title}</span>

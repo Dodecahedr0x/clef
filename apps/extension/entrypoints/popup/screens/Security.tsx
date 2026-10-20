@@ -3,6 +3,7 @@ import { Alert, Button, ListGroup, PasswordField, PopupScreen, SectionLabel, Seg
 import { call } from '../../../lib/api';
 import { useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { EraseWallet } from './EraseWallet';
 import { PASSWORD_RULE, passwordOk, StrengthMeter } from './CreatePassword';
 
 
@@ -157,6 +158,14 @@ export function SecurityScreen() {
         <ListGroup>
           <div className="p-3">
             <ChangePassword />
+          </div>
+        </ListGroup>
+        <div className="mt-4">
+          <SectionLabel>Erase wallet</SectionLabel>
+        </div>
+        <ListGroup>
+          <div className="p-3">
+            <EraseWallet />
           </div>
         </ListGroup>
       </div>

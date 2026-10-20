@@ -7,7 +7,7 @@ import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, usePortfolio, useWallet } from '../../../lib/hooks';
-import { useNav } from '../../../lib/nav';
+import { useNav, useScreenDraft } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
 import { ViewOnlyScreen } from './ViewOnly';
 import { SendStatus } from './SendStatus';
@@ -25,7 +25,11 @@ export const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 export const REFRESH_SECONDS = 15;
 const SLIPPAGES = [10, 50, 100, 300] as const;
 
-type TokenMeta = { mint: string; symbol: string; name: string; decimals: number; logoUri?: string };
+type TokenMeta = { mint: string; symbol: string; name: string; decimals: number; logoUri?: string; verified?: boolean };
+
+/** Price impact (in percent, as the quote gives it) worth a warning, and one worth a danger alert. */
+export const IMPACT_WARN = 1;
+export const IMPACT_DANGER = 5;
 const DEFAULT_META: Record<string, TokenMeta> = {
   SOL: { mint: 'SOL', symbol: 'SOL', name: 'Solana', decimals: 9 },
   [USDC]: { mint: USDC, symbol: 'USDC', name: 'USD Coin', decimals: 6 },
@@ -97,7 +101,9 @@ function Picker({
     };
   }, [q]);
   const local = options.filter((o) => !q || `${o.symbol} ${o.name}`.toLowerCase().includes(q.toLowerCase()));
-  const list: (TokenMeta & { balance?: string })[] = found ? [...local, ...found.filter((f) => !local.some((l) => jupMint(l.mint) === f.mint))] : local;
+  // Search results: verified first, so a look-alike sits below the real token, and every one is marked.
+  const searched = found ? found.filter((f) => !local.some((l) => jupMint(l.mint) === f.mint)).sort((a, b) => Number(!!b.verified) - Number(!!a.verified)) : [];
+  const list: (TokenMeta & { balance?: string })[] = [...local, ...searched];
   return (
     <Sheet title={title} onClose={onClose}>
       {search && (
@@ -117,8 +123,16 @@ function Picker({
             <button type="button" onClick={() => onPick(t)} className="w-full h-14 px-2 flex items-center gap-3 bg-transparent border-0 rounded-[10px] text-left text-ink hover:bg-surface-2">
               <Avatar text={t.symbol.slice(0, 1) || '?'} tone={avatarTone(t.mint)} size={30} src={t.logoUri} />
               <span className="flex flex-col flex-1 min-w-0">
-                <span className="text-[14px] font-medium">{t.symbol}</span>
-                <span className="text-[12px] text-muted truncate">{t.name}</span>
+                <span className="text-[14px] font-medium">
+                  {t.symbol}
+                  {t.verified !== undefined && (
+                    <span className={`ml-1.5 text-[12px] font-normal ${t.verified ? 'text-ok' : 'text-warn'}`}>{t.verified ? '✓ Verified' : 'Unverified'}</span>
+                  )}
+                </span>
+                <span className="text-[12px] text-muted truncate">
+                  {t.name}
+                  {t.verified === false && ` · ${shortAddress(t.mint)}`}
+                </span>
               </span>
               {t.balance !== undefined && <span className="text-[12px] text-muted tabular-nums">{t.balance}</span>}
             </button>
@@ -145,11 +159,12 @@ function SwapForm() {
   const clients = useMemo(() => (settings ? createClients(settings) : null), [settings?.rpcUrl, settings?.network, settings?.jupiterApiKey]);
   const jupiter = clients?.jupiter ?? null;
 
-  const [inMint, setInMint] = useState(route?.inputMint ?? 'SOL');
-  const [outMint, setOutMint] = useState(route?.outputMint ?? (route?.inputMint === USDC ? 'SOL' : USDC));
+  // Kept through an auto-lock: unlocking brings the form back as it was.
+  const [inMint, setInMint] = useScreenDraft('swap.in', route?.inputMint ?? 'SOL');
+  const [outMint, setOutMint] = useScreenDraft('swap.out', route?.outputMint ?? (route?.inputMint === USDC ? 'SOL' : USDC));
   const [extra, setExtra] = useState<Record<string, TokenMeta>>({});
-  const [amountText, setAmountText] = useState('');
-  const [slippageBps, setSlippageBps] = useState(100);
+  const [amountText, setAmountText] = useScreenDraft('swap.amount', '');
+  const [slippageBps, setSlippageBps] = useScreenDraft('swap.slippage', 100);
   const [slippageOpen, setSlippageOpen] = useState(false);
   const [picking, setPicking] = useState<'in' | 'out' | null>(null);
   const [quote, setQuote] = useState<SwapQuote | null>(null);
@@ -159,7 +174,7 @@ function SwapForm() {
   const [nonce, setNonce] = useState(0);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ signature: string; lastValidBlockHeight?: bigint; what: string } | null>(null);
+  const [done, setDone] = useScreenDraft<{ signature: string; lastValidBlockHeight?: bigint; what: string } | null>('swap.done', null);
 
   const holding = (m: string) => data?.holdings.find((h) => h.mint === m);
   const meta = (m: string): TokenMeta | undefined => {
@@ -281,6 +296,7 @@ function SwapForm() {
   const outUsd = outUi !== null && prices[jupMint(outMint)] != null ? outUi * prices[jupMint(outMint)]! : null;
   const rate = quote && inMeta && outMeta ? units(quote.outAmount, outMeta.decimals) / units(quote.inAmount, inMeta.decimals) : null;
   const impact = quote ? (quote.priceImpactPct < 0.01 ? '<0.01%' : `${quote.priceImpactPct.toFixed(2)}%`) : null;
+  const impactLevel = !quote ? null : quote.priceImpactPct >= IMPACT_DANGER ? 'danger' : quote.priceImpactPct >= IMPACT_WARN ? 'warn' : null;
   const err = error ? swapErrorText(error, { rpcUrl: settings?.rpcUrl, slippageBps }) : null;
   const pickerOptions = (data?.holdings.filter((h) => !h.spam) ?? []).map((h) => ({
     mint: h.mint,
@@ -381,10 +397,25 @@ function SwapForm() {
               <TokenButton h={outMeta} label="Choose token to receive" onClick={() => setPicking('out')} />
             </div>
             <span className="text-[12px] text-muted tabular-nums">
-              {quote ? `${outUsd !== null ? `≈ ${formatUsd(outUsd)} · ` : ''}price impact ${impact}` : ' '}
+              {quote ? (
+                <>
+                  {outUsd !== null && `≈ ${formatUsd(outUsd)} · `}
+                  <span className={impactLevel === 'danger' ? 'font-semibold text-danger-text' : impactLevel === 'warn' ? 'font-semibold text-warn' : ''}>price impact {impact}</span>
+                </>
+              ) : (
+                ' '
+              )}
             </span>
           </section>
         </div>
+
+        {impactLevel === 'danger' && quote && (
+          <div className="mt-3.5">
+            <Alert severity="danger" title="High price impact">
+              You’d get about {Math.round(quote.priceImpactPct)}% less than the market price. Try a smaller amount, or wait for more liquidity.
+            </Alert>
+          </div>
+        )}
 
         {tooMuch && (
           <span id="swap-pay-error" role="alert" className="mt-2 text-[12px] text-danger-text">
@@ -447,7 +478,7 @@ function SwapForm() {
           search={
             picking === 'out' && jupiter
               ? async (q) =>
-                  (await jupiter.searchTokens(q)).map((t) => ({ mint: t.mint === WSOL ? 'SOL' : t.mint, symbol: t.symbol, name: t.name, decimals: t.decimals, logoUri: t.icon }))
+                  (await jupiter.searchTokens(q)).map((t) => ({ mint: t.mint === WSOL ? 'SOL' : t.mint, symbol: t.symbol, name: t.name, decimals: t.decimals, logoUri: t.icon, verified: t.verified }))
               : null
           }
           onClose={() => setPicking(null)}

@@ -84,7 +84,7 @@ describe('History transaction detail', () => {
     render(<TxDetail />);
     fireEvent.click(screen.getByRole('radio', { name: /Expert/ }));
     expect(h.levels.at(-1)).toBe('expert');
-    expect(h.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { detailLevel: 'expert' } });
+    expect(h.call).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'settings:update' }));
     expect(screen.getByRole('heading', { name: 'Transaction logs' })).toBeTruthy();
     expect(screen.getByText(/not account data/)).toBeTruthy();
   });

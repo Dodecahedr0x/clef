@@ -3,7 +3,8 @@ import { loadPortfolio } from '@clef/portfolio';
 import { fetchMultisig } from '@clef/squads';
 import type { Address } from '@solana/kit';
 import { useEffect, useState } from 'react';
-import { Button, IconButton, Pubkey } from '../../../components';
+import { Button, IconButton, TextField } from '../../../components';
+import { useCopy } from '../../../lib/a11y';
 import { call } from '../../../lib/api';
 import { formatUsd, shortAddress } from '../../../lib/format';
 import { useClients, useWallet } from '../../../lib/hooks';
@@ -16,6 +17,82 @@ const GROUPS: { title: string; kinds: PublicAccount['kind'][] }[] = [
   { title: 'Multisig', kinds: ['squads'] },
   { title: 'Watch-only', kinds: ['watch'] },
 ];
+
+/** What removing an account costs, said before it happens. */
+const REMOVE_NOTE: Record<PublicAccount['kind'], string> = {
+  hd: 'You can add it back from your recovery phrase at any time.',
+  imported: 'Its private key is deleted from Clef. You lose access to it unless you have the key elsewhere.',
+  ledger: 'You can add it back by connecting the device.',
+  keystone: 'You can add it back by scanning the device again.',
+  squads: 'The multisig itself is not changed; you can add it back.',
+  watch: 'Clef stops showing it. Nothing changes on chain.',
+};
+
+/** Copy, rename and remove for one account, under its row. */
+function AccountOptions({ account, onDone }: { account: PublicAccount; onDone: () => void }) {
+  const { refresh } = useWallet();
+  const { copied, copy } = useCopy();
+  const [label, setLabel] = useState(account.label);
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const act = async (msg: Parameters<typeof call>[0]) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await call(msg);
+      await refresh();
+      onDone();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong');
+      setBusy(false);
+    }
+  };
+  const name = label.trim();
+  return (
+    <div role="group" aria-label={`Options for ${account.label}`} className="flex flex-col gap-2.5 border-t border-line-soft bg-surface-4 px-3 py-3">
+      <Button variant="secondary" size="sm" icon={copied ? 'check' : 'copy'} onClick={() => copy(account.address, 'address')}>
+        {copied ? 'Copied' : 'Copy address'}
+      </Button>
+      <form
+        className="flex items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name && name !== account.label) void act({ type: 'accounts:rename', address: account.address, label: name });
+        }}
+      >
+        <TextField label="Name" value={label} maxLength={32} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1" />
+        <Button type="submit" variant="secondary" size="md" disabled={busy || !name || name === account.label}>
+          Rename
+        </Button>
+      </form>
+      {confirm ? (
+        <div role="alert" className="flex flex-col gap-2 rounded-[10px] border border-danger-line bg-danger-bg p-2.5 text-[12px] text-danger-ink">
+          <span>
+            <strong>Remove {account.label}?</strong> {REMOVE_NOTE[account.kind]}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="danger-outline" size="sm" disabled={busy} onClick={() => void act({ type: 'accounts:remove', address: account.address })}>
+              Remove
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setConfirm(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="danger-outline" size="sm" onClick={() => setConfirm(true)}>
+          Remove account…
+        </Button>
+      )}
+      {error && (
+        <p role="alert" className="m-0 text-[12px] text-danger-text">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const SWATCH: Record<PublicAccount['kind'], string> = {
   hd: 'bg-info-dot',
@@ -33,6 +110,7 @@ export function AccountsScreen() {
   const [usd, setUsd] = useState<Record<string, number | null>>({});
   const [thresholds, setThresholds] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const accounts = state?.accounts ?? [];
   const key = accounts.map((a) => a.address).join(',');
 
@@ -112,7 +190,8 @@ export function AccountsScreen() {
                   const current = a.address === state?.activeAccount;
                   const value = a.address in usd ? formatUsd(usd[a.address] ?? null) : '…';
                   return (
-                    <li key={a.address} className={`flex items-center ${i ? 'border-t border-line-soft' : ''} ${current ? 'bg-primary-bg' : ''}`}>
+                    <li key={a.address} className={i ? 'border-t border-line-soft' : ''}>
+                      <div className={`flex items-center ${current ? 'bg-primary-bg' : ''}`}>
                       <button
                         type="button"
                         aria-current={current ? 'true' : 'false'}
@@ -122,7 +201,7 @@ export function AccountsScreen() {
                         <span className={`size-6 flex-none ${a.kind === 'squads' ? 'rounded-[6px]' : 'rounded-full'} ${SWATCH[a.kind]}`} />
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-[14px] font-medium">{a.label}</span>
-                          <Pubkey value={a.address} className="text-[12px] text-muted" />
+                          <span className="font-mono text-[12px] text-muted">{shortAddress(a.address)}</span>
                         </span>
                         <span className="flex flex-col items-end">
                           <span className="text-[14px] tabular-nums">{value}</span>
@@ -132,6 +211,15 @@ export function AccountsScreen() {
                       {a.kind === 'squads' && a.multisig && (
                         <IconButton label={`Proposals for ${a.label}`} icon="chevron-right" size={40} onClick={() => nav.go({ name: 'proposals', multisig: a.multisig! })} />
                       )}
+                      <IconButton
+                        label={`Options for ${a.label}`}
+                        icon="sliders"
+                        size={40}
+                        aria-expanded={open === a.address}
+                        onClick={() => setOpen((o) => (o === a.address ? null : a.address))}
+                      />
+                      </div>
+                      {open === a.address && <AccountOptions account={a} onDone={() => setOpen(null)} />}
                     </li>
                   );
                 })}

@@ -2,7 +2,7 @@ import type { BatchView, DetailLevel, Warning } from '@clef/explain';
 import { useState } from 'react';
 import { browser } from 'wxt/browser';
 import { ApprovalFrame, Button, DetailLevelSwitch, Spinner, Pubkey, siteName } from '../../../components';
-import { call, type FullState } from '../../../lib/api';
+import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useAddressLookup, useExplainLanded, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -45,10 +45,8 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   const expert = level === 'expert';
   const lookup = useAddressLookup(state.accounts);
 
-  const changeLevel = (v: DetailLevel) => {
-    setLevel(v);
-    void call({ type: 'settings:update', patch: { detailLevel: v } }).catch(() => {});
-  };
+  // Local to this screen: looking at an old transaction in Expert doesn't change how future approvals open.
+  const changeLevel = setLevel;
 
   const ready = result.status === 'ok' && result.view.level === level;
   const view = ready ? (result.view as BatchView) : null;

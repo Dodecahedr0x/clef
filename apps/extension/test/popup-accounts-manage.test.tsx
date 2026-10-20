@@ -98,18 +98,18 @@ describe('Accounts', () => {
     expect(await screen.findByText('Total $2,906.10')).toBeTruthy();
     expect(h.loadPortfolio).toHaveBeenCalledWith(expect.objectContaining({ chain: h.chain }), MAIN, { hideSpam: true });
 
-    const main = screen.getByRole('button', { name: /Main/ });
+    const main = screen.getByRole('button', { name: /^Main/ });
     expect(main.getAttribute('aria-current')).toBe('true');
     expect(within(main).getByText('✓ selected')).toBeTruthy();
     expect(within(main).getByText('$1,284.52')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Trading/ }).textContent).toContain('#1');
+    expect(screen.getByRole('button', { name: /^Trading/ }).textContent).toContain('#1');
     expect(screen.getByRole('button', { name: /^Ledger 1/ }).textContent).toContain('Ledger');
-    expect(screen.getByRole('button', { name: /Cold vault/ }).textContent).toContain('Keystone');
-    expect(screen.getByRole('button', { name: /Grant wallet/ }).textContent).toContain('view only');
+    expect(screen.getByRole('button', { name: /^Cold vault/ }).textContent).toContain('Keystone');
+    expect(screen.getByRole('button', { name: /^Grant wallet/ }).textContent).toContain('view only');
     await waitFor(() => expect(screen.getByRole('button', { name: /^Treasury/ }).textContent).toContain('2 of 3 · via Ledger 1'));
-    expect(screen.getByRole('button', { name: /Imported 1/ }).textContent).toContain('—');
+    expect(screen.getByRole('button', { name: /^Imported 1/ }).textContent).toContain('—');
 
-    await user.click(screen.getByRole('button', { name: /Trading/ }));
+    await user.click(screen.getByRole('button', { name: /^Trading/ }));
     await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:select', address: TRADING }));
     expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' });
 
@@ -119,6 +119,27 @@ describe('Accounts', () => {
     expect(h.nav.go).toHaveBeenCalledWith({ name: 'accounts/add' });
     await user.click(screen.getByRole('button', { name: 'Close' }));
     expect(h.nav.back).toHaveBeenCalled();
+  });
+
+  it('renames and removes an account from its options, saying what removing costs', async () => {
+    const user = userEvent.setup();
+    render(<AccountsScreen />);
+    await user.click(screen.getByRole('button', { name: 'Options for Trading' }));
+    const options = screen.getByRole('group', { name: 'Options for Trading' });
+    expect(within(options).getByRole('button', { name: 'Copy address' })).toBeTruthy();
+    const name = within(options).getByLabelText('Name');
+    await user.clear(name);
+    await user.type(name, 'Daily');
+    await user.click(within(options).getByRole('button', { name: 'Rename' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:rename', address: TRADING, label: 'Daily' }));
+
+    await user.click(screen.getByRole('button', { name: 'Options for Imported 1' }));
+    const imported = screen.getByRole('group', { name: 'Options for Imported 1' });
+    await user.click(within(imported).getByRole('button', { name: 'Remove account…' }));
+    expect(within(imported).getByRole('alert').textContent).toMatch(/private key is deleted from Clef/);
+    expect(h.call).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'accounts:remove' }));
+    await user.click(within(imported).getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith(expect.objectContaining({ type: 'accounts:remove' })));
   });
 });
 
@@ -189,8 +210,8 @@ describe('several recovery phrases', () => {
     render(<AccountsScreen />);
     const one = screen.getByRole('heading', { name: 'Recovery phrase 1' }).closest('section')!;
     const two = screen.getByRole('heading', { name: 'Recovery phrase 2' }).closest('section')!;
-    expect(within(one).getAllByRole('button').filter((b) => !b.getAttribute('aria-label')?.startsWith('Copy ')).map((b) => b.textContent)).toEqual([expect.stringContaining('Main'), expect.stringContaining('Trading')]);
-    expect(within(two).getByRole('button', { name: /Savings/ })).toBeTruthy();
+    expect(within(one).getAllByRole('button').filter((b) => !b.getAttribute('aria-label')).map((b) => b.textContent)).toEqual([expect.stringContaining('Main'), expect.stringContaining('Trading')]);
+    expect(within(two).getByRole('button', { name: /^Savings/ })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Recovery phrase' })).toBeNull();
   });
 
@@ -294,7 +315,7 @@ describe('SquadsAdd', () => {
     expect(ledger.checked).toBe(true);
     expect((screen.getByRole('radio', { name: /Main/ }) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getAllByText('not a member')).toHaveLength(4);
-    expect(screen.queryByRole('radio', { name: /Grant wallet/ })).toBeNull();
+    expect(screen.queryByRole('radio', { name: /^Grant wallet/ })).toBeNull();
 
     await user.type(screen.getByLabelText('Name'), 'Treasury');
     await user.click(screen.getByRole('button', { name: 'Add multisig' }));

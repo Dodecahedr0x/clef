@@ -22,7 +22,8 @@ export type HistoryItem = {
   kind: 'send' | 'receive' | 'swap' | 'other';
   title: string;
   subtitle: string;
-  deltas: { symbol: string; amount: string; direction: 'in' | 'out' }[];
+  /** `mint` is 'SOL' for native SOL: match on it, never on the symbol a token names itself. */
+  deltas: { mint: string; symbol: string; amount: string; direction: 'in' | 'out' }[];
   fee: string;
 };
 
@@ -99,6 +100,7 @@ async function historyItem(deps: HistoryDeps, owner: Address, sig: SignatureInfo
   return {
     ...base, status: 'success', kind, title, subtitle, fee,
     deltas: mine.map((c) => ({
+      mint: c.mint,
       symbol: symbolOf(c),
       amount: formatUnits(c.delta < 0n ? -c.delta : c.delta, c.decimals),
       direction: c.delta < 0n ? 'out' : 'in',

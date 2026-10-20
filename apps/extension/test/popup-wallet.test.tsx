@@ -6,6 +6,7 @@ import type { RequestLogEntry } from '@clef/wallet-core';
 
 const m = vi.hoisted(() => ({
   state: null as any,
+  showSpam: vi.fn(),
   portfolio: null as any,
   history: { items: [] as any[], loading: false, error: null as string | null, loadMore: () => {}, retry: () => {}, hasMore: false },
   health: { slot: null as bigint | null, latencyMs: null as number | null },
@@ -31,10 +32,12 @@ vi.mock('../lib/hooks', () => ({
   usePortfolio: () => ({ data: m.portfolio, loading: false, error: m.portfolioError ?? null, refresh: m.refresh }),
   useHistory: () => m.history,
   useHealth: () => m.health,
+  showSpamForSession: () => m.showSpam(),
 }));
 vi.mock('../lib/api', () => ({ call: (c: unknown) => m.call(c) }));
 
-vi.mock('../lib/nav', () => ({
+vi.mock('../lib/nav', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   useNav: () => ({ route: m.route, go: m.go, back: m.back, replace: vi.fn(), reset: m.reset }),
 }));
 vi.mock('../lib/clients', () => ({
@@ -55,7 +58,7 @@ import { SwapScreen, REFRESH_SECONDS, USDC, WSOL } from '../entrypoints/popup/sc
 
 /** Matches an element whose whole text is `t` (keys are their own copy buttons, so text spans elements). */
 const fullText = (t: string) => (_: string, el: Element | null) => el?.textContent === t && ![...(el?.children ?? [])].some((c) => c.textContent === t);
-import { HistoryScreen } from '../entrypoints/popup/screens/History';
+import { compareSnapshot, HistoryScreen } from '../entrypoints/popup/screens/History';
 
 const ME = '7xKpWm2QdL9vHc4TrB8nYeX5uJ3kPs6AGf1zNq7R3fQa';
 const LEDGER = 'Ct4mVq1nZr8sYw3kXe6hJp2dLb9gTf5cMa7uNo4iQ8xe';
@@ -213,8 +216,9 @@ describe('Portfolio', () => {
     expect(screen.getByText('4 spam tokens hidden')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Show'));
-    await waitFor(() => expect(m.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { hideSpam: false } }));
-    expect(m.refresh).toHaveBeenCalled();
+    // For this session only: the spam filter setting stays on.
+    expect(m.showSpam).toHaveBeenCalled();
+    expect(m.call).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'settings:update' }));
   });
 
   it.each(['intermediate', 'expert'] as const)('at %s, says when Jupiter rejected the API key and links to Settings', (detailLevel) => {
@@ -325,7 +329,7 @@ describe('TokenDetail', () => {
     const ata = await associatedTokenAddress(ME as any, USDC as any, 'token');
     m.portfolio = portfolio({ holdings: [SOL, { ...USDC_H, tokenAccount: ata }] });
     m.history.items = [
-      { signature: 's1', slot: 1n, blockTime: Math.floor(Date.now() / 1000), status: 'success', kind: 'swap', title: 'Swap from SOL', subtitle: 'jup.ag', deltas: [{ symbol: 'USDC', amount: '211.80', direction: 'in' }], fee: '0.000005' },
+      { signature: 's1', slot: 1n, blockTime: Math.floor(Date.now() / 1000), status: 'success', kind: 'swap', title: 'Swap from SOL', subtitle: 'jup.ag', deltas: [{ mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '211.80', direction: 'in' }], fee: '0.000005' },
     ] satisfies HistoryItem[];
     render(<TokenDetailScreen />);
     expect(screen.getByText('USD Coin')).toBeTruthy();
@@ -623,7 +627,7 @@ describe('Swap', () => {
     expect(screen.getByText('Orca → Raydium')).toBeTruthy();
     expect(screen.getByText('via Jupiter')).toBeTruthy();
     expect(screen.getByText('None')).toBeTruthy();
-    expect(screen.getByText(/≈ \$212\.40 · price impact <0\.01%/)).toBeTruthy();
+    expect(screen.getByText('price impact <0.01%').parentElement!.textContent).toMatch(/≈ \$212\.40 · price impact <0\.01%/);
     expect(screen.getByText(`Quote refreshes in ${REFRESH_SECONDS} s`)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Review swap' }));
@@ -675,6 +679,35 @@ describe('Swap', () => {
     const dialog = screen.getByRole('dialog', { name: 'You receive' });
     fireEvent.click(await within(dialog).findByText('JUP'));
     expect(within(screen.getByRole('button', { name: 'Choose token to receive' })).getByText('JUP')).toBeTruthy();
+  });
+
+  it('marks search results verified or not, verified first', async () => {
+    m.route = { name: 'swap' };
+    m.jupiter = jupiter();
+    const FAKE = 'JUPfake1111111111111111111111111111111111111';
+    m.jupiter.searchTokens = vi.fn(async () => [
+      { mint: FAKE, symbol: 'JUP', name: 'Jupiter', decimals: 6, verified: false },
+      { mint: JUP_MINT, symbol: 'JUP', name: 'Jupiter', decimals: 6, verified: true },
+    ]);
+    m.portfolio = portfolio({ holdings: [SOL, USDC_H] });
+    render(<SwapScreen />);
+    fireEvent.click(screen.getByRole('button', { name: 'Choose token to receive' }));
+    fireEvent.change(screen.getByLabelText('Search tokens'), { target: { value: 'jup' } });
+    const dialog = screen.getByRole('dialog', { name: 'You receive' });
+    const marks = (await within(dialog).findAllByText(/^(✓ Verified|Unverified)$/)).map((e) => e.textContent);
+    expect(marks).toEqual(['✓ Verified', 'Unverified']);
+    expect(within(dialog).getByText(/Jupiter · JUPf…1111/)).toBeTruthy();
+  });
+
+  it('warns on price impact from 1%, and alerts from 5%', async () => {
+    m.route = { name: 'swap' };
+    m.jupiter = jupiter();
+    m.jupiter.quoteAndBuild = vi.fn(async () => ({ quote: { ...quote(212_400_000n), priceImpactPct: 6.2 }, wire: new Uint8Array([9]), lastValidBlockHeight: 1n }));
+    render(<SwapScreen />);
+    fireEvent.change(screen.getByLabelText('You pay'), { target: { value: '1.5' } });
+    expect(await screen.findByText('High price impact')).toBeTruthy();
+    expect(screen.getByText(/about 6% less than the market price/)).toBeTruthy();
+    expect(screen.getByText('price impact 6.20%').className).toMatch(/text-danger-text/);
   });
 
   it('explains Jupiter errors; rate limits suggest an API key', async () => {
@@ -730,9 +763,9 @@ describe('History', () => {
   const now = Date.now();
   const sec = (ms: number) => Math.floor(ms / 1000);
   const items: HistoryItem[] = [
-    { signature: 'swapSig', slot: 3n, blockTime: sec(now - 60_000), status: 'success', kind: 'swap', title: 'Swap SOL → USDC', subtitle: 'External', deltas: [{ symbol: 'SOL', amount: '1.5000', direction: 'out' }, { symbol: 'USDC', amount: '211.80', direction: 'in' }], fee: '0.000105' },
-    { signature: 'sendSig', slot: 2n, blockTime: sec(now - 120_000), status: 'success', kind: 'send', title: 'Sent to Alice', subtitle: 'External', deltas: [{ symbol: 'SOL', amount: '0.5000', direction: 'out' }], fee: '0.000005' },
-    { signature: 'recvSig', slot: 1n, blockTime: sec(now - 86_400_000 - 1000), status: 'success', kind: 'receive', title: 'Received from 9vRt…k2Lm', subtitle: 'External', deltas: [{ symbol: 'USDC', amount: '25.00', direction: 'in' }], fee: '0' },
+    { signature: 'swapSig', slot: 3n, blockTime: sec(now - 60_000), status: 'success', kind: 'swap', title: 'Swap SOL → USDC', subtitle: 'External', deltas: [{ mint: 'SOL', symbol: 'SOL', amount: '1.5000', direction: 'out' }, { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '211.80', direction: 'in' }], fee: '0.000105' },
+    { signature: 'sendSig', slot: 2n, blockTime: sec(now - 120_000), status: 'success', kind: 'send', title: 'Sent to Alice', subtitle: 'External', deltas: [{ mint: 'SOL', symbol: 'SOL', amount: '0.5000', direction: 'out' }], fee: '0.000005' },
+    { signature: 'recvSig', slot: 1n, blockTime: sec(now - 86_400_000 - 1000), status: 'success', kind: 'receive', title: 'Received from 9vRt…k2Lm', subtitle: 'External', deltas: [{ mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', amount: '25.00', direction: 'in' }], fee: '0' },
     { signature: 'failSig', slot: 0n, blockTime: sec(now - 86_400_000 - 2000), status: 'failed', kind: 'swap', title: 'Swap failed · slippage', subtitle: 'jup.ag', deltas: [], fee: '0.000105' },
   ];
   const log: RequestLogEntry[] = [
@@ -772,15 +805,13 @@ describe('History', () => {
 
   it('opens a transaction in the same view, with the dApp that asked for it when Clef knows', () => {
     render(<HistoryScreen />);
-    // Each row is titled by its signature (click copies it, without opening the row); the summary is a subtitle.
-    const row = screen.getByRole('button', { name: 'Details of Swap SOL → USDC' });
-    expect(within(row).getByRole('button', { name: 'Copy swapSig' })).toBeTruthy();
+    // Each row is titled by its signature, with the summary as a subtitle; its name is all it shows, amounts included.
+    const row = screen.getByRole('button', { name: /^swapSig\s*Swap SOL → USDC.*−1\.5000 SOL\s*\+211\.80 USDC.*Matches what you approved/ });
+    expect(within(row).queryByRole('button')).toBeNull();
     expect(within(row).getByText('Swap SOL → USDC').className).toMatch(/text-muted/);
-    fireEvent.click(within(row).getByRole('button', { name: 'Copy swapSig' }));
-    expect(m.go).not.toHaveBeenCalledWith(expect.objectContaining({ signature: 'swapSig' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Details of Swap SOL → USDC' }));
+    fireEvent.click(row);
     expect(m.go).toHaveBeenLastCalledWith({ name: 'history/tx', signature: 'swapSig', origin: 'https://jup.ag' });
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Details of Received from 9vRt…k2Lm' }), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /Received from 9vRt…k2Lm/ }), { key: 'Enter' });
     expect(m.go).toHaveBeenLastCalledWith({ name: 'history/tx', signature: 'recvSig' });
   });
 
@@ -801,5 +832,15 @@ describe('History', () => {
     fireEvent.click(screen.getByText(label, { selector: 'button, [role=radio], [role=tab], button *' }));
     for (const t of present) expect(screen.getByText(t)).toBeTruthy();
     for (const t of absent) expect(screen.queryByText(t)).toBeNull();
+  });
+});
+
+describe('compareSnapshot', () => {
+  it('matches by mint when recorded, so a token named USDC is not real USDC', () => {
+    const entry = { snapshot: { level: 'basic', summary: 'x', balanceChanges: [{ owner: 'me', asset: 'USDC', amount: '+5', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' }] } } as never;
+    const item = { deltas: [{ mint: 'FakeUsdc111111111111111111111111111111111111', symbol: 'USDC', amount: '5', direction: 'in' }] } as never;
+    const cmp = compareSnapshot(entry, item, () => true)!;
+    expect(cmp.matches).toBe(false);
+    expect(cmp.lines[0]!.got).toBe('no change');
   });
 });

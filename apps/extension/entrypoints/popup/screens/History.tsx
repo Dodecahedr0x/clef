@@ -37,7 +37,9 @@ export function compareSnapshot(entry: RequestLogEntry, item: HistoryItem, mine:
   if (!seen || seen.length === 0) return null;
   let matches = true;
   const lines = seen.map((c) => {
-    const d = item.deltas.find((x) => x.symbol === c.asset);
+    // By mint when the entry recorded it: a spam token can call itself USDC.
+    const same = (x: HistoryItem['deltas'][number]) => (c.mint ? x.mint === c.mint : x.symbol === c.asset);
+    const d = item.deltas.find(same);
     const saw = `${c.amount.replace(/^[+\-−]/, '')} ${c.asset}`;
     if (!d) {
       matches = false;
@@ -48,7 +50,7 @@ export function compareSnapshot(entry: RequestLogEntry, item: HistoryItem, mine:
     if (Math.abs(a - b) > Math.max(a, b) * MATCH_TOLERANCE) matches = false;
     return { asset: c.asset, saw, got: `${d.amount} ${d.symbol}` };
   });
-  const extra = item.deltas.filter((d) => !seen.some((c) => c.asset === d.symbol)).length;
+  const extra = item.deltas.filter((d) => !seen.some((c) => (c.mint ? c.mint === d.mint : c.asset === d.symbol))).length;
   return { lines, matches: matches && extra === 0, extra };
 }
 
@@ -57,12 +59,12 @@ function Shell({ tone, icon, children }: { tone: 'neutral' | 'danger' | 'ok' | '
     tone === 'danger' ? 'bg-danger-bg border-danger-line' : tone === 'emph' ? 'bg-surface border-line-strong' : 'bg-surface border-line';
   const dot = tone === 'danger' ? 'bg-danger-bg-2' : tone === 'ok' ? 'bg-ok-bg' : tone === 'warn' ? 'bg-warn-bg' : 'bg-surface-2';
   return (
-    <article className={`border rounded-[12px] overflow-hidden ${box}`}>
+    <div className={`border rounded-[12px] overflow-hidden ${box}`}>
       <div className="min-h-14 px-3 py-2.5 flex items-center gap-2.5">
         <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dot}`}>{icon}</span>
         {children}
       </div>
-    </article>
+    </div>
   );
 }
 
@@ -79,7 +81,7 @@ function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; 
     <>
       {/* The signature names the transaction; Clef's summary of it is a hint, cut to one line (full on hover). */}
       <div className="flex flex-col flex-1 min-w-0">
-        <span className="text-[14px] font-medium truncate"><Pubkey value={item.signature} /></span>
+        <span className="text-[14px] font-medium font-mono truncate">{shortAddress(item.signature)}</span>
         <span className="text-[12px] text-muted truncate" title={item.title}>{item.title}</span>
         <span className="text-[11px] text-muted truncate">
           {source}
@@ -103,19 +105,19 @@ function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; 
   );
   const icon = <Icon name={failed ? 'warn' : KIND_ICON[item.kind]} size={16} />;
   return (
-    <Openable label={`Details of ${item.title}`} onOpen={() => nav.go({ name: 'history/tx', signature: item.signature, ...(log && { origin: log.origin }) })}>
+    <Openable onOpen={() => nav.go({ name: 'history/tx', signature: item.signature, ...(log && { origin: log.origin }) })}>
       {!cmp ? <Shell tone={tone} icon={icon}>{body}</Shell> : <Compared icon={icon} body={body} cmp={cmp} />}
     </Openable>
   );
 }
 
 /** A History row opens its transaction detail (click, Enter or Space). */
-function Openable({ label, onOpen, children }: { label: string; onOpen: () => void; children: ReactNode }) {
+// Its name is its contents (amounts, status, what you saw against what happened), so nothing inside is interactive.
+function Openable({ onOpen, children }: { onOpen: () => void; children: ReactNode }) {
   return (
     <div
       role="button"
       tabIndex={0}
-      aria-label={label}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -132,7 +134,7 @@ function Openable({ label, onOpen, children }: { label: string; onOpen: () => vo
 
 function Compared({ icon, body, cmp }: { icon: ReactNode; body: ReactNode; cmp: NonNullable<ReturnType<typeof compareSnapshot>> }) {
   return (
-    <article className="bg-surface border border-line-strong rounded-[12px] overflow-hidden" data-testid="saw-vs-happened">
+    <div className="bg-surface border border-line-strong rounded-[12px] overflow-hidden" data-testid="saw-vs-happened">
       <div className="px-3 py-2.5 flex items-center gap-2.5">
         <span className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center shrink-0">{icon}</span>
         {body}
@@ -154,7 +156,7 @@ function Compared({ icon, body, cmp }: { icon: ReactNode; body: ReactNode; cmp: 
           </span>
         )}
       </div>
-    </article>
+    </div>
   );
 }
 

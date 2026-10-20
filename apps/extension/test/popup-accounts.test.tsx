@@ -389,7 +389,23 @@ describe('Unlock', () => {
     await user.type(screen.getByLabelText('Password'), 'correct-horse');
     await user.click(screen.getByRole('button', { name: 'Unlock' }));
     await waitFor(() => expect(h.call).toHaveBeenLastCalledWith({ type: 'vault:unlock', password: 'correct-horse' }));
-    await waitFor(() => expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' }));
-    expect(h.refresh).toHaveBeenCalled();
+    // Leaving the lock screen is the guard's job (App), once the refreshed state says unlocked.
+    await waitFor(() => expect(h.refresh).toHaveBeenCalled());
+  });
+
+  it('Forgot password says what erasing loses, and erases only once "erase" is typed', async () => {
+    setState({ hasVault: true, unlocked: false });
+    const user = userEvent.setup();
+    render(<UnlockScreen />);
+    await user.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    expect(screen.getByText(/Private keys you imported separately are lost/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Erase wallet…' }));
+    const erase = screen.getByRole('button', { name: 'Erase this wallet' }) as HTMLButtonElement;
+    expect(erase.disabled).toBe(true);
+    await user.type(screen.getByLabelText(/Type “erase” to confirm/), 'erase');
+    expect(erase.disabled).toBe(false);
+    await user.click(erase);
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'wallet:erase', confirm: 'erase' }));
+    await waitFor(() => expect(h.nav.reset).toHaveBeenCalledWith({ name: 'welcome' }));
   });
 });

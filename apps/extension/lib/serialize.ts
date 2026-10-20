@@ -99,7 +99,7 @@ function parseSnapshot(raw: unknown): DecisionLog['snapshot'] {
   if (!isRecord(raw) || typeof raw.level !== 'string' || !LEVELS.includes(raw.level)) return undefined;
   const summary = text(raw.summary, LOG_TEXT);
   if (summary === undefined) return undefined;
-  let balanceChanges: { owner: string; asset: string; amount: string }[] | null = null;
+  let balanceChanges: { owner: string; asset: string; amount: string; mint?: string }[] | null = null;
   if (raw.balanceChanges !== null) {
     if (!Array.isArray(raw.balanceChanges) || raw.balanceChanges.length > MAX_CHANGES) return undefined;
     balanceChanges = [];
@@ -107,7 +107,8 @@ function parseSnapshot(raw: unknown): DecisionLog['snapshot'] {
       if (!isRecord(c)) return undefined;
       const [owner, asset, amount] = [text(c.owner, CHANGE_TEXT), text(c.asset, CHANGE_TEXT), text(c.amount, CHANGE_TEXT)];
       if (owner === undefined || asset === undefined || amount === undefined) return undefined;
-      balanceChanges.push({ owner, asset, amount });
+      const mint = c.mint === undefined ? undefined : text(c.mint, CHANGE_TEXT);
+      balanceChanges.push({ owner, asset, amount, ...(mint && { mint }) });
     }
   }
   return { level: raw.level as 'basic' | 'intermediate' | 'expert', summary, balanceChanges };

@@ -173,7 +173,7 @@ export function TxApproval({
     summary,
     dangerRules,
     ...(view && {
-      snapshot: { level: view.level, summary, balanceChanges: view.combined.balanceChanges && view.combined.balanceChanges.slice(0, 64).map((c) => ({ owner: c.owner, asset: c.asset, amount: c.amount })) },
+      snapshot: { level: view.level, summary, balanceChanges: view.combined.balanceChanges && view.combined.balanceChanges.slice(0, 64).map((c) => ({ owner: c.owner, asset: c.asset, amount: c.amount, ...(c.mint && { mint: c.mint }) })) },
     }),
   };
 

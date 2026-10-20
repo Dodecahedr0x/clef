@@ -6,7 +6,7 @@ import { A, ABANDON, FAST } from './fixture';
 
 const OTHER = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
-function api() {
+function api(extra: Partial<ConstructorParameters<typeof InternalApi>[0]> = {}) {
   const local = new MemoryStore();
   const vault = new Vault(local, new MemoryStore(), FAST);
   const permissions = new PermissionStore(local);
@@ -21,12 +21,13 @@ function api() {
     onLock,
     onUnlock,
     emit: (origin, accounts) => emitted.push({ origin, accounts }),
+    ...extra,
   });
   return { internal, vault, permissions, onLock, onUnlock, emitted, state: () => internal.call({ type: 'state' }) as Promise<WalletState> };
 }
 
-async function onboarded() {
-  const ctx = api();
+async function onboarded(extra: Parameters<typeof api>[0] = {}) {
+  const ctx = api(extra);
   await ctx.internal.call({ type: 'vault:create', password: 'a long password', mnemonic: ABANDON });
   return ctx;
 }
@@ -74,12 +75,39 @@ describe('InternalApi', () => {
 
   it('renames and removes accounts; removal also drops their site permissions', async () => {
     const { internal, state, permissions } = await onboarded();
+    await internal.call({ type: 'accounts:derive' });
     await internal.call({ type: 'accounts:rename', address: A, label: 'Main' });
     expect((await state()).accounts[0]!.label).toBe('Main');
     await permissions.grant('https://dapp.example', [A]);
     await internal.call({ type: 'accounts:remove', address: A });
-    expect((await state()).accounts).toEqual([]);
+    expect((await state()).accounts.map((a) => a.label)).toEqual(['Account 2']);
     expect(await permissions.get('https://dapp.example')).toBeNull();
+    await expect(internal.call({ type: 'accounts:remove', address: (await state()).accounts[0]!.address })).rejects.toThrow('Keep at least one account');
+  });
+
+  it('removing an imported account deletes its key; a recovery phrase stays', async () => {
+    const { internal, state, vault } = await onboarded();
+    const seed = new Uint8Array(32).fill(7);
+    const signer = await createKeyPairSignerFromPrivateKeyBytes(seed, true);
+    const pub = new Uint8Array(await crypto.subtle.exportKey('raw', signer.keyPair.publicKey));
+    await internal.call({ type: 'accounts:import', secretKey: getBase58Decoder().decode(new Uint8Array([...seed, ...pub])) });
+    expect((await vault.list()).map((s) => s.kind)).toEqual(['mnemonic', 'keypair']);
+    await internal.call({ type: 'accounts:remove', address: signer.address });
+    expect((await vault.list()).map((s) => s.kind)).toEqual(['mnemonic']);
+    expect((await state()).accounts).toHaveLength(1);
+  });
+
+  it('erases everything only when the confirmation is typed, and disconnects every site', async () => {
+    const erase = vi.fn(async () => {});
+    const ctx = await onboarded({ erase });
+    const { internal } = ctx;
+    await ctx.permissions.grant('https://dapp.example', [A]);
+    await expect(internal.call({ type: 'wallet:erase', confirm: 'yes' })).rejects.toThrow(/Type "erase"/);
+    expect(erase).not.toHaveBeenCalled();
+    await internal.call({ type: 'wallet:erase', confirm: ' Erase ' });
+    expect(erase).toHaveBeenCalledOnce();
+    expect(ctx.onLock).toHaveBeenCalled();
+    expect(ctx.emitted).toContainEqual({ origin: 'https://dapp.example', accounts: [] });
   });
 
   it('revokes sites and updates settings', async () => {

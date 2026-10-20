@@ -66,7 +66,12 @@ export type InternalApiDeps = {
   reporter?: Pick<ErrorReporter, 'available' | 'report'>;
   /** The WalletService: popup screens sign through the same approval window as dApps. */
   service?: { submit(p: SubmitParams): Promise<SubmitResult> };
+  /** Deletes everything Clef stored (vault, accounts, sites, contacts, IDLs, settings): `wallet:erase`. */
+  erase?: () => Promise<void>;
 };
+
+/** What the user types to erase the wallet; the call refuses anything else. */
+export const ERASE_CONFIRMATION = 'erase';
 
 const SQUADS_PROGRAM_ID = toAddress('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf');
 const PURPOSES = ['send', 'swap', 'squads-vote', 'squads-execute'];
@@ -322,10 +327,27 @@ export class InternalApi {
         return {};
       case 'accounts:remove': {
         const address = addressField(raw, 'address');
+        const all = await accounts.list();
+        const a = all.find((x) => x.address === address);
+        if (!a) throw new Error('Unknown account');
+        if (all.length === 1) throw new Error('Keep at least one account');
+        if (all.some((x) => x.kind === 'squads' && x.member === address)) throw new Error('Remove the multisig accounts it signs for first');
+        // An imported key goes with its account; a recovery phrase stays (its other accounts can be added back).
+        if (a.kind === 'imported') await this.requireUnlocked();
         const affected = (await permissions.list()).filter((p) => p.accounts.includes(address));
         await accounts.remove(address);
+        if (a.kind === 'imported' && !(await accounts.list()).some((x) => 'secretId' in x && x.secretId === a.secretId)) await vault.removeSecret(a.secretId);
         await permissions.removeAccount(address);
         for (const p of affected) this.deps.emit(p.origin, (await permissions.get(p.origin))?.accounts ?? []);
+        return {};
+      }
+      case 'wallet:erase': {
+        if (field(raw, 'confirm', 16).trim().toLowerCase() !== ERASE_CONFIRMATION) throw new Error(`Type "${ERASE_CONFIRMATION}" to confirm`);
+        const erase = need(this.deps.erase);
+        const sites = await permissions.list();
+        await erase();
+        this.deps.onLock();
+        for (const p of sites) this.deps.emit(p.origin, []);
         return {};
       }
       case 'permissions:revoke': {

@@ -8,7 +8,7 @@ import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, usePortfolio, useWallet } from '../../../lib/hooks';
-import { useNav } from '../../../lib/nav';
+import { useNav, useScreenDraft } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
 import { ViewOnlyScreen } from './ViewOnly';
 import { SendStatus } from './SendStatus';
@@ -161,14 +161,15 @@ function SendForm() {
   const contacts = useCall<Contact[]>('contacts:list');
   const clients = useMemo(() => (settings ? createClients(settings) : null), [settings?.rpcUrl, settings?.network, settings?.jupiterApiKey]);
 
-  const [mint, setMint] = useState<string>(route?.mint ?? 'SOL');
-  const [amountText, setAmountText] = useState('');
-  const [toText, setToText] = useState(route?.to ?? '');
+  // Kept through an auto-lock: unlocking brings the form back as it was.
+  const [mint, setMint] = useScreenDraft<string>('send.mint', route?.mint ?? 'SOL');
+  const [amountText, setAmountText] = useScreenDraft('send.amount', '');
+  const [toText, setToText] = useScreenDraft('send.to', route?.to ?? '');
   const [picked, setPicked] = useState<Suggestion | null>(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorText | null>(null);
-  const [sent, setSent] = useState<{ signature: string; lastValidBlockHeight?: bigint } | null>(null);
+  const [sent, setSent] = useScreenDraft<{ signature: string; lastValidBlockHeight?: bigint } | null>('send.sent', null);
 
   const holdings = data?.holdings.filter((h) => !h.spam || h.mint === mint) ?? [];
   const h = data?.holdings.find((x) => x.mint === mint);
@@ -355,7 +356,8 @@ function SendForm() {
             {note.body}
           </Alert>
         ) : (
-          !to && <Alert severity="warn">Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</Alert>
+          // Plain help, not a warning: a warning that is always there teaches people to skip warnings.
+          !to && <p className="m-0 text-[12px] leading-[1.45] text-muted">Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</p>
         )}
         {costs && h && (
           <div className="flex flex-col gap-1 text-[12px] tabular-nums">

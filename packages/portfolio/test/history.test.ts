@@ -102,7 +102,7 @@ describe('loadHistory', () => {
     const wire = buildWire([solTransfer(ME, OTHER, SOL)], ME);
     const item = await one({ wire, meta: metaFor(wire, { [ME]: -SOL - FEE, [OTHER]: SOL }) });
     expect(item).toMatchObject({ signature: 's1', slot: 100n, blockTime: 1_700_000_000, status: 'success', kind: 'send', title: `Sent to ${short(OTHER)}`, fee: '0.000005' });
-    expect(item.deltas).toEqual([{ symbol: 'SOL', amount: '1', direction: 'out' }]);
+    expect(item.deltas).toEqual([{ mint: 'SOL', symbol: 'SOL', amount: '1', direction: 'out' }]);
     expect(item.subtitle).toBe('System Program');
   });
 
@@ -110,7 +110,7 @@ describe('loadHistory', () => {
     const wire = buildWire([solTransfer(OTHER, ME, 2n * SOL)], OTHER);
     const item = await one({ wire, meta: metaFor(wire, { [OTHER]: -2n * SOL - FEE, [ME]: 2n * SOL }) });
     expect(item).toMatchObject({ kind: 'receive', title: `Received from ${short(OTHER)}` });
-    expect(item.deltas).toEqual([{ symbol: 'SOL', amount: '2', direction: 'in' }]);
+    expect(item.deltas).toEqual([{ mint: 'SOL', symbol: 'SOL', amount: '2', direction: 'in' }]);
   });
 
   it('USDC receive: counterparty is the token owner, address book label used', async () => {
@@ -122,7 +122,7 @@ describe('loadHistory', () => {
     const { deps } = setup({ s1: { wire, meta } });
     const { items } = await loadHistory({ ...deps, explainCtx: { ...deps.explainCtx, addressBook: { [OTHER]: 'Alice' } } }, ME, { limit: 10 });
     expect(items[0]).toMatchObject({ kind: 'receive', title: 'Received from Alice' });
-    expect(items[0]!.deltas).toEqual([{ symbol: 'USDC', amount: '1.5', direction: 'in' }]);
+    expect(items[0]!.deltas).toEqual([{ mint: USDC, symbol: 'USDC', amount: '1.5', direction: 'in' }]);
   });
 
   it('SOL out + USDC in: swap', async () => {
@@ -131,8 +131,8 @@ describe('loadHistory', () => {
     const item = await one({ wire, meta });
     expect(item).toMatchObject({ status: 'success', kind: 'swap', title: 'Swap SOL → USDC' });
     expect(item.deltas).toEqual([
-      { symbol: 'SOL', amount: '1', direction: 'out' },
-      { symbol: 'USDC', amount: '150', direction: 'in' },
+      { mint: 'SOL', symbol: 'SOL', amount: '1', direction: 'out' },
+      { mint: USDC, symbol: 'USDC', amount: '150', direction: 'in' },
     ]);
   });
 

@@ -115,7 +115,7 @@ beforeEach(() => {
       return {};
     },
   };
-  nav = { route: { name: 'settings' }, go: vi.fn(), back: vi.fn(), replace: vi.fn(), reset: vi.fn() } as typeof nav;
+  nav = { route: { name: 'settings' }, go: vi.fn(), back: vi.fn(), replace: vi.fn(), reset: vi.fn(), suspend: vi.fn(), resume: vi.fn() } as typeof nav;
 });
 
 const factory = () =>

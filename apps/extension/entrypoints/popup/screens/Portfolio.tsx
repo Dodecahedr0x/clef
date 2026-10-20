@@ -5,7 +5,7 @@ import { Avatar, ErrorNote, Icon, Logo, NetworkSwitch, Spinner, Tabs, tabPanelPr
 import { call } from '../../../lib/api';
 import { loadErrorText } from '../../../lib/error-text';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
-import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
+import { showSpamForSession, useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { clusterOf, networkLabel } from '../../../lib/network';
 import { PanelButton, TabButton } from './PanelButton';
@@ -46,18 +46,15 @@ function changeLine(p: Portfolio): { text: string; tone: 'ok' | 'danger' | 'mute
   };
 }
 
-function useSpam(portfolio: Portfolio | null, refresh: () => void) {
+function useSpam(portfolio: Portfolio | null) {
   const [show, setShow] = useState(false);
   const spamHere = portfolio?.holdings.filter((h) => h.spam).length ?? 0;
   const hidden = show ? 0 : Math.max(portfolio?.hiddenSpam ?? 0, spamHere);
   const visible = portfolio?.holdings.filter((h) => show || !h.spam) ?? [];
-  const reveal = async () => {
+  const reveal = () => {
     setShow(true);
-    // The loader dropped them entirely: ask for them again with the filter off.
-    if (spamHere === 0) {
-      await call({ type: 'settings:update', patch: { hideSpam: false } });
-      refresh();
-    }
+    // The loader dropped them entirely: load them again for this session only (the filter setting stays on).
+    if (spamHere === 0) showSpamForSession();
   };
   return { hidden, visible, reveal };
 }
@@ -237,7 +234,7 @@ function BasicPortfolio() {
   const viewOnly = account?.kind === 'watch';
   const { data, loading, error, refresh } = usePortfolio(account?.address ?? null);
   const [tab, setTab] = useState<'tokens' | 'activity' | 'sites'>('tokens');
-  const spam = useSpam(data, refresh);
+  const spam = useSpam(data);
   const settings = state?.settings;
   const change = data ? changeLine(data) : null;
   const sol = data?.holdings.find((h) => h.mint === 'SOL');
@@ -321,7 +318,7 @@ function BasicPortfolio() {
             {spam.visible.map((h) => (
               <TokenRow key={h.mint} h={h} onOpen={() => nav.go({ name: 'token', mint: h.mint })} />
             ))}
-            <SpamRow count={spam.hidden} onShow={() => void spam.reveal()} />
+            <SpamRow count={spam.hidden} onShow={spam.reveal} />
           </>
         )}
         {tab === 'activity' && <ActivityTab owner={account?.address ?? null} />}
@@ -341,7 +338,7 @@ function ExpertPortfolio() {
   const viewOnly = account?.kind === 'watch';
   const health = useHealth();
   const { data, error, refresh } = usePortfolio(account?.address ?? null);
-  const spam = useSpam(data, refresh);
+  const spam = useSpam(data);
   const settings = state!.settings;
   const sw = switchValue(settings);
   const sol = data?.holdings.find((h) => h.mint === 'SOL');
@@ -429,7 +426,7 @@ function ExpertPortfolio() {
           ))}
         </ul>
         <ul className="list-none m-0 px-2">
-          <SpamRow count={spam.hidden} onShow={() => void spam.reveal()} />
+          <SpamRow count={spam.hidden} onShow={spam.reveal} />
         </ul>
       </div>
 

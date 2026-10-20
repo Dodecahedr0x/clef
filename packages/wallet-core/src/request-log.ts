@@ -14,7 +14,7 @@ export type RequestLogEntry = {
   summary: string;
   dangerRules: string[];
   signatures?: string[];
-  snapshot?: { level: DetailLevel; summary: string; balanceChanges: { owner: string; asset: string; amount: string }[] | null };
+  snapshot?: { level: DetailLevel; summary: string; balanceChanges: { owner: string; asset: string; amount: string; /** 'SOL' or the token's mint; older entries lack it. */ mint?: string }[] | null };
 };
 
 export const REQUEST_LOG_MAX = 500;

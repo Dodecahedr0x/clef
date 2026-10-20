@@ -108,9 +108,22 @@ export function useCall<T>(
   return { data, error, loading, reload: useCallback(() => setTick((t) => t + 1), []) };
 }
 
+// "Show" on hidden spam lasts while this page is open; the spam filter setting itself stays on.
+let spamShown = false;
+const spamListeners = new Set<() => void>();
+export function showSpamForSession(): void {
+  spamShown = true;
+  for (const l of spamListeners) l();
+}
+const useSpamShown = () =>
+  useSyncExternalStore(
+    (l) => (spamListeners.add(l), () => spamListeners.delete(l)),
+    () => spamShown,
+  );
+
 export function usePortfolio(owner: Address | null): { data: Portfolio | null; loading: boolean; error: string | null; refresh(): void } {
   const clients = useClients();
-  const hideSpam = useWallet().state?.settings.hideSpam ?? true;
+  const hideSpam = (useWallet().state?.settings.hideSpam ?? true) && !useSpamShown();
   const [data, setData] = useState<Portfolio | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

@@ -78,8 +78,10 @@ function Guard({ state }: { state: FullState }) {
   const name = nav.route.name;
   useEffect(() => {
     if (!state.hasVault && !ONBOARDING.has(name)) nav.reset({ name: 'welcome' });
-    else if (state.hasVault && !state.unlocked && name !== 'unlock') nav.reset({ name: 'unlock' });
-    else if (state.hasVault && state.unlocked && (CREATE_ONLY.has(name) || name === 'unlock')) nav.reset({ name: 'home' });
+    // Locked while in use (auto-lock): unlocking comes back here, with what was typed.
+    else if (state.hasVault && !state.unlocked && name !== 'unlock') nav.suspend({ name: 'unlock' });
+    else if (state.hasVault && state.unlocked && name === 'unlock') nav.resume({ name: 'home' });
+    else if (state.hasVault && state.unlocked && CREATE_ONLY.has(name)) nav.reset({ name: 'home' });
   }, [state.hasVault, state.unlocked, name, nav]);
   return null;
 }
