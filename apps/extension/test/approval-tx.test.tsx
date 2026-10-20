@@ -364,6 +364,54 @@ describe('Danger', () => {
     });
   }
 
+  it('a new danger after re-explaining needs a new acknowledgement', async () => {
+    const dangerA = { rule: 'owner-change', severity: 'danger', message: 'Makes 5Qz8…uN4d the owner of your USDC account.' };
+    const dangerB = { rule: 'sweep', severity: 'danger', message: 'Sends everything in your wallet to 5Qz8…uN4d.' };
+    explainWith((level) => batchView(level, 1, { warnings: [dangerA] }));
+    const user = userEvent.setup();
+    const props = { request: makeRequest({ transactions: [wires[0]] }), state: makeState('basic'), onDecide: vi.fn() };
+    const { rerender } = render(<TxApproval {...props} />);
+    await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
+    expect((screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement).disabled).toBe(false);
+    explainWith((level) => batchView(level, 1, { warnings: [dangerA, dangerB] }));
+    rerender(<TxApproval {...props} />);
+    expect((screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement).disabled).toBe(true);
+    // The same dangers again (e.g. Re-simulate with nothing new) keep the tick.
+    await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
+    rerender(<TxApproval {...props} />);
+    expect((screen.getByRole('button', { name: 'Sign anyway' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('Add IDL on a warning: hidden at Basic, asks for confirmation before the file picker elsewhere', async () => {
+    const unknown = { rule: 'unknown-program', severity: 'warn', message: "Can't decode instruction #1 (program 675k…Mp8).", programId: RAY_PROG };
+    // One transaction: the step carries the warning, the combined view repeats it.
+    explainWith((level) => {
+      const v = batchView(level, 1, { warnings: [unknown] });
+      (v.steps[0]!.view as any).warnings = [unknown];
+      return v;
+    });
+    setup('basic', { transactions: [wires[0]] });
+    expect(screen.getByText(/Can't decode instruction #1/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add IDL' })).toBeNull();
+    cleanup();
+
+    const { user } = setup('intermediate', { transactions: [wires[0]] });
+    const picker = screen.getByLabelText('IDL file') as HTMLInputElement;
+    const click = vi.spyOn(picker, 'click');
+    await user.click(screen.getByRole('button', { name: 'Add IDL' }));
+    const ask = screen.getByRole('alertdialog', { name: 'Add an IDL' });
+    expect(ask.textContent).toMatch(/never one the site asking you to sign gave you/);
+    expect(click).not.toHaveBeenCalled();
+    await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Add IDL' }));
+    await user.click(screen.getByRole('button', { name: 'Choose IDL file' }));
+    expect(click).toHaveBeenCalledTimes(1);
+    await user.upload(picker, new File(['{"address":"x"}'], 'ray.json', { type: 'application/json' }));
+    await waitFor(() => expect(api.call).toHaveBeenCalledWith({ type: 'idls:add', programId: RAY_PROG, network: 'mainnet', json: '{"address":"x"}' }));
+  });
+
   it('nothing can be signed while the explanation loads', () => {
     hooks.useExplainBatch.mockImplementation(() => ({ status: 'loading' }));
     setup('basic');

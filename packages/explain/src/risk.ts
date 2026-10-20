@@ -347,6 +347,12 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       const name = PROGRAM_NAMES[programId] ?? shortAddress(programId);
       warn('self-described-outflow', 'warn', `${name} describes itself with its own IDL; Clef can't independently verify what it does with your funds.`);
     }
+    // An IDL the user added names instructions without vouching for them: a site can hand one over to clear a danger.
+    const userDescribed = input.instructions.filter((ix) => ix.idl?.trust === 'user' && !TRUSTED_PROGRAMS.has(ix.programId));
+    for (const programId of new Set(userDescribed.map((ix) => ix.programId))) {
+      const name = PROGRAM_NAMES[programId] ?? shortAddress(programId);
+      warn('user-idl-outflow', 'warn', `${name} is decoded with an IDL you added; Clef can't verify what it does with your funds.`);
+    }
   }
 
   for (const [rule, severity, message] of sweepWarnings(input, me)) warn(rule, severity, message);

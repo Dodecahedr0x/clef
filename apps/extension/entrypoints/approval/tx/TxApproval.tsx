@@ -41,7 +41,8 @@ export function TxApproval({
   const [level, setLevel] = useState<DetailLevel>(state.settings.detailLevel);
   const [tab, setTab] = useState<Tab>('all');
   const [nonce, setNonce] = useState(0);
-  const [ack, setAck] = useState(false);
+  // The dangers the checkbox was ticked for: a new or changed danger (Re-simulate, an added IDL) needs a new tick.
+  const [acked, setAcked] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // A fresh array re-runs the explanation (Re-simulate).
@@ -49,11 +50,14 @@ export function TxApproval({
   const result = useExplainBatch(wires, level);
   const n = request.transactions.length;
   const host = useApprovalHost();
-  // "Add IDL" on an undecodable instruction: pick the JSON file here, then explain the request again.
+  // "Add IDL" on an undecodable instruction: confirm first (a site can hand over a file that hides a danger),
+  // then pick the JSON file here and explain the request again.
   const idlFile = useRef<HTMLInputElement>(null);
   const idlFor = useRef<string | null>(null);
-  const addIdl = (programId: string) => {
-    idlFor.current = programId;
+  const [idlAsk, setIdlAsk] = useState<string | null>(null);
+  const chooseIdl = () => {
+    idlFor.current = idlAsk;
+    setIdlAsk(null);
     idlFile.current?.click();
   };
   const onIdlFile = async (file: File | undefined) => {
@@ -85,6 +89,12 @@ export function TxApproval({
   const view = ready ? (result.view as BatchView) : null;
   const warnings: Warning[] = view ? batchWarnings(view) : [];
   const danger = request.phishing !== null || result.status === 'failed' || hasDanger(warnings);
+  const dangerKeys = [
+    ...(request.phishing ? ['phishing'] : []),
+    ...(result.status === 'failed' ? [`could-not-explain\u0000${result.error}`] : []),
+    ...warnings.filter((w) => w.severity === 'danger').map((w) => `${w.rule}\u0000${w.message}`),
+  ];
+  const ack = acked !== null && dangerKeys.every((k) => acked.includes(k));
   const canSign = (ready || result.status === 'failed') && (!danger || ack) && !busy;
 
   // What the user saw, for the local request log (validated again by the background).
@@ -178,7 +188,7 @@ export function TxApproval({
   }
 
   return (
-    <IdlAdder.Provider value={addIdl}>
+    <IdlAdder.Provider value={level === 'basic' ? null : setIdlAsk}>
     <input ref={idlFile} type="file" accept=".json,application/json" className="sr-only" aria-label="IDL file" onChange={(e) => {
       void onIdlFile(e.target.files?.[0]);
       e.target.value = '';
@@ -209,6 +219,23 @@ export function TxApproval({
           </div>
         )}
         {body}
+        {idlAsk && (
+          <div className={`flex flex-col gap-2 pt-3 ${expert ? 'px-5' : 'px-4'}`}>
+            <section role="alertdialog" aria-label="Add an IDL" className="flex flex-col gap-2.5 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-sm text-warn-ink">
+              <p className="m-0">
+                Only add an IDL from a source you trust, never one the site asking you to sign gave you. An IDL names what a program does; it can make a harmful request look ordinary.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="md" onClick={chooseIdl}>
+                  Choose IDL file
+                </Button>
+                <Button variant="secondary" size="md" onClick={() => setIdlAsk(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </section>
+          </div>
+        )}
         {(error || danger) && (
           <div className={`mt-auto flex flex-col gap-2 pt-3 ${expert ? 'px-5' : 'px-4'}`}>
             {error && (
@@ -216,7 +243,7 @@ export function TxApproval({
                 {error}
               </p>
             )}
-            {danger && <Acknowledge checked={ack} onChange={setAck} />}
+            {danger && <Acknowledge checked={ack} onChange={(v) => setAcked(v ? dangerKeys : null)} />}
           </div>
         )}
       </div>

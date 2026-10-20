@@ -224,11 +224,13 @@ export async function explainBatch(inputs: { wire: Uint8Array }[], ctx: ExplainC
 
   const dependentSteps = dependents(txs);
   const steps = await Promise.all(
-    txs.map((tx, i): Promise<Step> | Step =>
-      tx
-        ? runStep(i, inputs[i]!.wire, tx, ctx, dependentSteps.includes(i) ? 'dependent' : 'independent')
-        : { index: i, explained: null, status: 'failed', run: null },
-    ),
+    txs.map(async (tx, i): Promise<Step> => {
+      if (!tx) return { index: i, explained: null, status: 'failed', run: null };
+      if (dependentSteps.includes(i)) return runStep(i, inputs[i]!.wire, tx, ctx, 'dependent');
+      const step = await runStep(i, inputs[i]!.wire, tx, ctx, 'independent');
+      // Nothing earlier in the request feeds this step: a failed simulation alone is a failure, as in sequential mode.
+      return step.run?.states ? step : { ...step, status: 'failed' };
+    }),
   );
   const included = steps.filter((s) => s.status === 'independent');
   const incomplete = included.length !== steps.length || included.some((s) => !s.run?.states);

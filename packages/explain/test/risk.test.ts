@@ -527,6 +527,15 @@ describe('evaluateRisks', () => {
       expect(rules(input([core], { balanceChanges }))).toEqual([['unknown-program', 'warn'], ['unexplained-outflow', 'danger']]);
     });
 
+    it('warns when funds leave through a program decoded only by an IDL you added', () => {
+      const user = { source: 'user' as const, trust: 'user' as const, hash: 'h' };
+      const claim = ix({ programId: DRAINER, name: 'claimAirdrop', idl: user });
+      const warnings = evaluateRisks(input([claim], { balanceChanges: [change(ME, USDC, -5n)] }));
+      expect(warnings.map((w) => [w.rule, w.severity])).toEqual([['user-idl-outflow', 'warn']]);
+      expect(warnings[0]!.message).toBe(`${shortAddress(DRAINER)} is decoded with an IDL you added; Clef can't verify what it does with your funds.`);
+      expect(rules(input([claim], { balanceChanges: [change(ME, USDC, 5n)] }))).toEqual([]);
+    });
+
     it('flags an all-curated sweep of SOL and USDC to a wallet', () => {
       const transferSol = ix({ programId: address(SYSTEM_PROGRAM), name: 'transferSol', idl: curated });
       const transfer = ix({ index: 1, name: 'transfer', idl: curated });

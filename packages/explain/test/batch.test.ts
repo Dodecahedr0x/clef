@@ -151,6 +151,26 @@ describe('explainBatch independent fallback', () => {
     expect(batch.issues[0]).toMatchObject({ stage: 'simulate' });
   });
 
+  it('fails a step whose simulation fails alone when no earlier step feeds it', async () => {
+    const reader = plain();
+    Object.assign(reader, { simulateSequence: undefined });
+    reader.simulateImpl = async (_wire, addresses) => ({ err: { InstructionError: [0, { Custom: 1 }] }, logs: [], unitsConsumed: 100n, postAccounts: addresses.map(() => null) });
+    const batch = await explainBatch([{ wire: buildWire([transfer(TEMP)]) }], ctxFor(reader));
+    expect(batch.mode).toBe('independent');
+    expect(batch.steps[0]!.status).toBe('failed');
+    expect(batch.combined.summary).toMatch(/^Transaction 1 failed/);
+    const view = viewForBatch(batch, 'basic');
+    expect(view.steps[0]!.status).toBe('failed');
+  });
+
+  it('fails an independent step when the RPC cannot simulate it', async () => {
+    const reader = plain();
+    Object.assign(reader, { simulateSequence: undefined });
+    reader.simulateImpl = async () => { throw new Error('403 Forbidden'); };
+    const batch = await explainBatch([{ wire: buildWire([transfer(TEMP)]) }], ctxFor(reader));
+    expect(batch.steps[0]!.status).toBe('failed');
+  });
+
   it('fails a step whose wire does not decode', async () => {
     const batch = await explainBatch([{ wire: new Uint8Array([1, 2, 3]) }, { wire: buildWire([transfer(TEMP)]) }], ctxFor(plain()));
     expect(batch.steps[0]).toMatchObject({ status: 'failed', explained: null });
