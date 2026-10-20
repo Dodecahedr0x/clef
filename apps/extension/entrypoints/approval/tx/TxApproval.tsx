@@ -20,6 +20,42 @@ type Request = Extract<ApprovalRequest, { kind: 'signTransactions' }>;
 
 const SIGNER_KIND = { software: 'hot wallet', ledger: 'Ledger', keystone: 'Keystone' } as const;
 
+/** After this long without an answer the approval says the RPC is slow; after the second, it gives up. */
+export const SLOW_MS = 10_000;
+export const TIMEOUT_MS = 30_000;
+
+/** 'slow' then 'timeout' while `waiting` stays true; back to 'ok' whenever `key` changes (a retry). */
+function useWaitState(waiting: boolean, key: unknown): 'ok' | 'slow' | 'timeout' {
+  const [stage, setStage] = useState<'ok' | 'slow' | 'timeout'>('ok');
+  useEffect(() => {
+    setStage('ok');
+    if (!waiting) return;
+    const slow = setTimeout(() => setStage('slow'), SLOW_MS);
+    const out = setTimeout(() => setStage('timeout'), TIMEOUT_MS);
+    return () => {
+      clearTimeout(slow);
+      clearTimeout(out);
+    };
+  }, [waiting, key]);
+  return waiting ? stage : 'ok';
+}
+
+/** Network settings in a Clef tab: the approval window has no settings of its own. */
+const openNetworkSettings = () => void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#network' as '/popup.html') });
+
+function RetryRow({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex gap-2">
+      <Button variant="secondary" size="md" onClick={onRetry}>
+        Try again
+      </Button>
+      <Button variant="secondary" size="md" onClick={openNetworkSettings}>
+        Change RPC
+      </Button>
+    </div>
+  );
+}
+
 async function resizeWindow(width: number) {
   try {
     const w = await browser.windows.getCurrent();
@@ -88,18 +124,24 @@ export function TxApproval({
 
   const ready = result.status === 'ok' && result.view.level === level;
   const view = ready ? (result.view as BatchView) : null;
+  const wait = useWaitState(!view && result.status !== 'failed', `${nonce}:${level}`);
+  // A request the RPC never answered is treated as one Clef could not explain.
+  const failure = result.status === 'failed' ? result.error : wait === 'timeout' ? 'timeout' : null;
+  const retry = () => setNonce((x) => x + 1);
   const warnings: Warning[] = view ? batchWarnings(view) : [];
-  const danger = request.phishing !== null || result.status === 'failed' || hasDanger(warnings);
+  const danger = request.phishing !== null || failure !== null || hasDanger(warnings);
   const dangerKeys = [
     ...(request.phishing ? ['phishing'] : []),
-    ...(result.status === 'failed' ? [`could-not-explain\u0000${result.error}`] : []),
+    ...(failure !== null ? [`could-not-explain\u0000${failure}`] : []),
     ...warnings.filter((w) => w.severity === 'danger').map((w) => `${w.rule}\u0000${w.message}`),
   ];
   const ack = acked !== null && dangerKeys.every((k) => acked.includes(k));
 
   // The spinner is replaced silently: say what came of the simulation (once per explanation).
   useEffect(() => {
+    if (failure === 'timeout') return announce("Your RPC didn't answer, so Clef could not explain this request.");
     if (result.status === 'failed') return announce('Clef could not explain this request. Signing what you cannot see can lose funds.');
+    if (wait === 'slow') return announce('Your RPC is slow to answer.');
     if (!view) return;
     const dangers = dangerKeys.length;
     const others = warnings.filter((w) => w.severity !== 'danger').length;
@@ -108,18 +150,25 @@ export function TxApproval({
         ? `Simulation complete: ${dangers} ${dangers === 1 ? 'danger' : 'dangers'}. Read them before signing.`
         : `Simulation complete${others ? `: ${others} ${others === 1 ? 'warning' : 'warnings'}` : ', no warnings'}.`,
     );
-  }, [result.status, view]);
-  const canSign = (ready || result.status === 'failed') && (!danger || ack) && !busy;
+  }, [result.status, view, wait]);
+  // Start reading at the summary once it is there (once: switching level or tab keeps the user's place).
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!view || focused.current) return;
+    focused.current = true;
+    document.querySelector<HTMLElement>('[data-approval-summary]')?.focus({ preventScroll: true });
+  }, [view]);
+  const canSign = (ready || failure !== null) && (!danger || ack) && !busy;
 
   // What the user saw, for the local request log (validated again by the background).
   const dangerRules = [
     ...new Set([
       ...(request.phishing ? ['phishing'] : []),
-      ...(result.status === 'failed' ? ['could-not-explain'] : []),
+      ...(failure !== null ? ['could-not-explain'] : []),
       ...warnings.filter((w) => w.severity === 'danger').map((w) => w.rule.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 64)),
     ]),
   ].slice(0, 32);
-  const summary = (view?.combined.summary ?? (result.status === 'failed' ? 'Clef could not explain this request' : 'Not explained yet')).slice(0, 280);
+  const summary = (view?.combined.summary ?? (failure !== null ? 'Clef could not explain this request' : 'Not explained yet')).slice(0, 280);
   const log: DecisionLog = {
     summary,
     dangerRules,
@@ -157,28 +206,41 @@ export function TxApproval({
 
   const approveLabel = `${n > 1 ? `Sign all ${n}` : 'Sign'}${danger ? ' anyway' : ''}`;
   const extra = expert ? (
-    <div className="flex gap-2.5">
+    <div className="flex flex-wrap gap-2.5">
       <Button variant="secondary" size="md" onClick={() => raw.copy(request.transactions.map(toBase64).join('\n'), 'raw transactions')}>
         {raw.copied ? 'Copied' : 'Copy raw'}
       </Button>
-      <Button variant="secondary" size="md" disabled={busy} onClick={() => setNonce((x) => x + 1)}>
+      <Button variant="secondary" size="md" disabled={busy} onClick={retry}>
         Re-simulate
       </Button>
     </div>
   ) : undefined;
 
   let body;
-  if (result.status === 'failed') {
+  if (failure !== null) {
+    const message =
+      failure === 'timeout'
+        ? `Your RPC didn't answer in ${TIMEOUT_MS / 1000} seconds, so Clef can't show what this request does. Try again, or switch to another RPC.`
+        : 'Clef could not work out what this request does. Signing what you cannot see can lose funds.';
     body = (
       <div className="flex flex-col gap-3.5 px-4 pt-5">
-        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message: 'Clef could not work out what this request does. Signing what you cannot see can lose funds.', details: [`Clef's error: ${result.error}`] }]} />
+        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message, details: failure === 'timeout' ? [] : [`Clef's error: ${failure}`] }]} />
+        <RetryRow onRetry={retry} />
       </div>
     );
   } else if (!view) {
     body = (
-      <div className="flex flex-1 items-center justify-center gap-2 py-16 text-sm text-muted">
-        <Spinner size={18} />
-        <span>Simulating{n > 1 ? ` ${n} transactions` : ''}…</span>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-sm text-muted">
+        <span className="flex items-center gap-2">
+          <Spinner size={18} />
+          <span>Simulating{n > 1 ? ` ${n} transactions` : ''}…</span>
+        </span>
+        {wait === 'slow' && (
+          <div className="flex flex-col items-center gap-2.5 px-6 text-center">
+            <p className="m-0 text-ink">Your RPC is slow to answer.</p>
+            <RetryRow onRetry={retry} />
+          </div>
+        )}
       </div>
     );
   } else if (view.level === 'basic') {
@@ -195,7 +257,7 @@ export function TxApproval({
         state={state}
         chain={request.chain}
         warnings={warnings}
-        onResimulate={() => setNonce((x) => x + 1)}
+        onResimulate={retry}
       />
     );
   }

@@ -1,6 +1,6 @@
 import type { ChangeView, Warning } from '@clef/explain';
 import type { PhishingHit } from '@clef/wallet-core';
-import { Icon, Pubkey } from '../../../components';
+import { Icon, Pubkey, tabIdOf, useRovingKeys } from '../../../components';
 import { depositNote, direction, displayAmount, groupNumbers, listSteps, ruleTitle, type Tab } from './model';
 import { useState } from 'react';
 import { useAddressBook, useIdlAdder, useOnChain } from './source';
@@ -26,7 +26,9 @@ export function Summary({ text, className, plain = false }: { text: string; clas
   if (useOnChain()) return <p className="m-0 text-xs leading-normal text-muted [overflow-wrap:anywhere]">{[head, ...rest].join('. ')}</p>;
   return (
     <div className="flex flex-col gap-1">
-      <h1 className={`${className} [overflow-wrap:anywhere]`}>{head}</h1>
+      <h1 tabIndex={-1} data-approval-summary className={`${className} [overflow-wrap:anywhere]`}>
+        {head}
+      </h1>
       {rest.map((line, i) => (
         <p key={i} className="m-0 text-sm leading-snug font-medium text-danger-ink-2 [overflow-wrap:anywhere]">
           {line}
@@ -90,7 +92,7 @@ export function WarningsTable({ warnings }: { warnings: Warning[] }) {
                   {w.message}
                   {w.details && w.details.length > 0 && (
                     <details className="inline [&[open]]:block">
-                      <summary className="ml-1 inline cursor-pointer font-semibold text-muted underline">Why?</summary>
+                      <summary className="ml-1 inline-flex min-h-6 cursor-pointer items-center px-1 font-semibold text-muted underline">Why?</summary>
                       <ul className="m-0 mt-1 flex list-disc flex-col gap-0.5 pl-4 text-muted [overflow-wrap:anywhere]">
                         {w.details.map((d, j) => (
                           <li key={j}>{d}</li>
@@ -101,7 +103,7 @@ export function WarningsTable({ warnings }: { warnings: Warning[] }) {
                 </td>
                 {w.programId && addIdl ? (
                   <td className="w-px py-1.5 pr-2.5 align-top whitespace-nowrap">
-                    <button type="button" onClick={() => addIdl(w.programId!)} className="border-0 bg-transparent p-0 text-xs font-semibold text-info underline">
+                    <button type="button" onClick={() => addIdl(w.programId!)} className="inline-flex min-h-6 items-center border-0 bg-transparent px-1 text-xs font-semibold text-info underline">
                       Add IDL
                     </button>
                   </td>
@@ -187,18 +189,29 @@ export function IncompleteNotice({ dependentSteps }: { dependentSteps: number[] 
   );
 }
 
+/** The tabpanel the approval bodies put the selected transaction's content in. */
+export const TX_PANEL = 'tx-panel';
+
 export function TxTabs({ titles, value, onChange }: { titles: string[]; value: Tab; onChange: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string }[] = [{ id: 'all', label: `All ${titles.length} · combined` }, ...titles.map((t, i) => ({ id: i, label: `${i + 1} · ${t}` }))];
+  const { refs, onKeyDown } = useRovingKeys(tabs.map((t) => t.id), value, onChange);
   return (
     <div role="tablist" aria-label="Transactions in this request" className="flex flex-wrap items-center gap-1.5">
-      {tabs.map((t) => {
+      {tabs.map((t, i) => {
         const on = t.id === value;
         return (
           <button
             key={String(t.id)}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
             type="button"
             role="tab"
+            id={tabIdOf(TX_PANEL, t.id)}
+            aria-controls={TX_PANEL}
             aria-selected={on}
+            tabIndex={on ? 0 : -1}
+            onKeyDown={onKeyDown}
             onClick={() => onChange(t.id)}
             className={`flex h-[34px] items-center gap-1.5 rounded-[9px] px-3 text-xs font-semibold ${on ? 'bg-ink text-white' : 'border border-line-strong bg-surface text-ink'}`}
           >

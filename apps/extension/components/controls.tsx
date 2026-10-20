@@ -4,7 +4,8 @@ import { IconButton } from './buttons';
 const THUMB_SHADOW = 'shadow-[0_1px_2px_rgba(20,23,31,0.14)]';
 
 // Arrow/Home/End move selection and focus among a group of options (WAI-ARIA radiogroup and tablist patterns).
-function useRovingKeys<T extends string>(values: T[], value: T, onChange: (v: T) => void) {
+/** Arrow keys, Home and End move the selection and focus along a row of tabs or segments (one tab stop for the row). */
+export function useRovingKeys<T extends string | number>(values: T[], value: T, onChange: (v: T) => void) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     const i = values.indexOf(value);
@@ -71,7 +72,13 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Tabs<T extends string>({ tabs, value, onChange, ariaLabel }: { tabs: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; ariaLabel: string }) {
+/** The id of a tab in a tablist whose content is the tabpanel `panelId`. */
+export const tabIdOf = (panelId: string, id: string | number) => `${panelId}-tab-${id}`;
+
+/** Props for the element holding the selected tab's content. */
+export const tabPanelProps = (panelId: string, value: string | number) => ({ role: 'tabpanel' as const, id: panelId, 'aria-labelledby': tabIdOf(panelId, value) });
+
+export function Tabs<T extends string>({ tabs, value, onChange, ariaLabel, panelId }: { tabs: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; ariaLabel: string; panelId: string }) {
   const { refs, onKeyDown } = useRovingKeys(tabs.map((t) => t.id), value, onChange);
   return (
     <div role="tablist" aria-label={ariaLabel} className="flex gap-1 border-b border-line-soft">
@@ -83,6 +90,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, ariaLabel }: { t
             ref={(el) => { refs.current[i] = el; }}
             type="button"
             role="tab"
+            id={tabIdOf(panelId, t.id)}
+            aria-controls={panelId}
             aria-selected={on}
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(t.id)}

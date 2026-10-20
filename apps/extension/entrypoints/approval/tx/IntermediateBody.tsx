@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Icon, Pill, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
 import { depositNote, displayAmount, stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
-import { AllClear, Deltas, Recipient, Summary, TxTabs, UNKNOWN_CHANGES, WarningsTable } from './parts';
+import { tabPanelProps } from '../../../components';
+import { AllClear, Deltas, Recipient, Summary, TX_PANEL, TxTabs, UNKNOWN_CHANGES, WarningsTable } from './parts';
 
 const SHOWN_ACCOUNTS = 5;
 
@@ -45,7 +46,7 @@ function InstructionCard({ ix }: { ix: InstructionView }) {
         <span className="ml-auto">{ix.trust ? <Pill tone="primary">{TRUST_LABEL[ix.trust] ?? ix.trust}</Pill> : <Pill tone="warn">{ix.idlOutdated ? 'IDL out of date' : 'No IDL'}</Pill>}</span>
       </div>
       {args.length > 0 && (
-        <dl className={`m-0 grid grid-cols-[136px_minmax(0,1fr)] gap-x-2 gap-y-2 px-3 py-2.5 text-xs ${ix.accounts.length ? 'border-b border-line-soft' : ''}`}>
+        <dl className={`m-0 grid grid-cols-[minmax(0,136px)_minmax(0,1fr)] gap-x-2 gap-y-2 px-3 py-2.5 text-xs ${ix.accounts.length ? 'border-b border-line-soft' : ''}`}>
           {args.map(([k, v]) => (
             <div key={k} className="contents">
               <dt className="font-mono break-all text-muted">{k}</dt>
@@ -180,6 +181,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
   return (
     <div className="flex flex-col gap-3.5 px-4 pt-[18px]">
       {!single && <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={onTab} />}
+      <div {...(!single && tabPanelProps(TX_PANEL, tab))} className="flex flex-col gap-3.5">
       <section className="flex flex-col gap-1 px-1">
         <Summary text={summary} className="m-0 text-xl font-semibold tracking-[-0.02em]" />
         {(tab === 'all' || single) && view.combined.recipient && <Recipient address={view.combined.recipient} />}
@@ -188,6 +190,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
       {dangers.length || others.length ? <WarningsTable warnings={[...dangers, ...others]} /> : <AllClear compact />}
       {step && !sv && <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">Clef could not explain this transaction.</p>}
       {sv ? <StepDetail view={sv} /> : !step && <StepList view={view} onPick={onTab} />}
+      </div>
     </div>
   );
 }

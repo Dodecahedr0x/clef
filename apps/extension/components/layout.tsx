@@ -199,8 +199,20 @@ export function Tooltip({ tip, children, side = 'right' }: { tip: string; childr
     top: 'bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2',
     bottom: 'top-[calc(100%+8px)] left-1/2 -translate-x-1/2',
   }[side];
+  const [dismissed, setDismissed] = useState(false);
   return (
-    <span className="clef-tip relative inline-flex">
+    <span
+      className="clef-tip relative inline-flex"
+      data-dismissed={dismissed || undefined}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !dismissed) {
+          setDismissed(true);
+          e.stopPropagation();
+        }
+      }}
+      onPointerLeave={() => setDismissed(false)}
+      onBlur={() => setDismissed(false)}
+    >
       {cloneElement(children, { 'aria-describedby': id })}
       <span role="tooltip" id={id} className={`absolute z-10 whitespace-nowrap rounded-[7px] bg-ink px-[9px] py-[5px] text-[12px] font-medium text-white transition-opacity ${pos}`}>
         {tip}

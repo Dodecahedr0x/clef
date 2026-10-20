@@ -111,6 +111,31 @@ test('batch of 3: sequential combined view, per-tx tabs at Intermediate/Expert, 
   for (const b64 of out.signedTransactions!) await verifySigned(b64);
 });
 
+test('a narrowed approval window reflows: no sideways scroll, Sign stays reachable, Expert sections in a select', async ({ context, popup, dapp, base, validator }) => {
+  await setup({ context, popup, dapp, base, validator }, 'basic');
+  const signed = run(dapp, 'signBatch');
+  const approval = await nextApproval(context);
+  const overflow = () => approval.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const level = approval.getByRole('radiogroup', { name: 'Detail level' });
+
+  await approval.setViewportSize({ width: 200, height: 680 });
+  await expect(approval.getByText('3 transactions, signed together')).toBeVisible({ timeout: 30_000 });
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  await expect(approval.getByRole('button', { name: /^Sign all 3/ })).toBeInViewport();
+
+  await level.getByRole('radio', { name: 'Expert' }).click();
+  await approval.setViewportSize({ width: 380, height: 960 });
+  await expect(approval.getByRole('heading', { name: 'Request details' })).toBeAttached({ timeout: 30_000 });
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  await expect(approval.getByRole('navigation', { name: 'Transaction sections' })).toBeHidden();
+  await expect(approval.getByLabel('Jump to')).toBeVisible();
+  await expect(approval.getByRole('button', { name: /^Sign all 3/ })).toBeInViewport();
+  await expect(level).toBeInViewport();
+
+  await decideAndClose(approval, 'Reject all');
+  expect(await signed).toMatchObject({ code: 4001 });
+});
+
 test('signMessage shows the text and verifies; a tx look-alike is blocked', async ({ context, popup, dapp, base, validator }) => {
   await setup({ context, popup, dapp, base, validator });
 

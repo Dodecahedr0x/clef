@@ -84,6 +84,21 @@ button:not(:disabled) {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+/* Inside a clipping card or list the offset ring would be cut off: draw it inside the control instead. */
+.overflow-hidden :focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Tooltip bubble: hidden until its wrapper is hovered or holds keyboard focus. */
 .clef-tip > [role='tooltip'] {
@@ -93,6 +108,10 @@ button:not(:disabled) {
 .clef-tip:hover > [role='tooltip'],
 .clef-tip:has(:focus-visible) > [role='tooltip'] {
   opacity: 1;
+}
+/* Escape put it away; it comes back on the next hover or focus. */
+.clef-tip[data-dismissed] > [role='tooltip'] {
+  opacity: 0;
 }
 
 /* Popup screens are 360x600; in the side panel they fill the panel. */

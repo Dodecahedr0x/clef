@@ -1,7 +1,7 @@
 import type { Contact } from '@clef/wallet-core';
 import { isAddress } from '@solana/kit';
 import { useState } from 'react';
-import { Alert, Avatar, Button, EmptyState, IconButton, PopupScreen, Tabs, TextField, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, IconButton, PopupScreen, Tabs, tabPanelProps, TextField, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useCall } from '../../../lib/hooks';
@@ -100,8 +100,10 @@ export function AddressBookScreen() {
             setTab(t);
             setDraft(null);
           }}
+          panelId="address-book-panel"
         />
       </div>
+      <div {...tabPanelProps('address-book-panel', tab)}>
       {draft && (
         <ContactForm
           key={draft.address || 'new'}
@@ -137,6 +139,7 @@ export function AddressBookScreen() {
           ))}
         </ul>
       )}
+      </div>
       <p className="mx-5 mb-3 text-xs leading-[1.45] text-muted">Names here show up in every transaction Clef explains, so you can spot a familiar recipient at a glance.</p>
     </PopupScreen>
   );

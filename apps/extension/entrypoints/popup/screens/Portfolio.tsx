@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_RPC, type Settings } from '@clef/wallet-core';
 import type { Holding, Portfolio } from '@clef/portfolio';
-import { Avatar, ErrorNote, Icon, Logo, NetworkSwitch, Spinner, Tabs, type IconName, Pubkey } from '../../../components';
+import { Avatar, ErrorNote, Icon, Logo, NetworkSwitch, Spinner, Tabs, tabPanelProps, type IconName, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { loadErrorText } from '../../../lib/error-text';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
@@ -310,9 +310,11 @@ function BasicPortfolio() {
           tabs={[{ id: 'tokens', label: 'Tokens' }, { id: 'activity', label: 'Activity' }, { id: 'sites', label: 'Sites' }]}
           value={tab}
           onChange={setTab}
+          panelId="portfolio-panel"
         />
       </div>
 
+      <div {...tabPanelProps('portfolio-panel', tab)} className="flex min-h-0 flex-1 flex-col">
       <ul className="list-none m-0 px-2 py-1.5 flex flex-col flex-1 overflow-y-auto">
         {tab === 'tokens' && (
           <>
@@ -325,6 +327,7 @@ function BasicPortfolio() {
         {tab === 'activity' && <ActivityTab owner={account?.address ?? null} />}
         {tab === 'sites' && <SitesTab />}
       </ul>
+      </div>
 
       {settings && <SigningFooter level={settings.detailLevel} expert={false} onOpen={() => nav.go({ name: 'settings' })} />}
     </div>

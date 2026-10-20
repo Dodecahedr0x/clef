@@ -112,7 +112,7 @@ describe('Tabs and Chips', () => {
   it('Tabs expose tablist/tab/aria-selected and arrow navigation', () => {
     function H() {
       const [v, setV] = useState<'tokens' | 'activity' | 'sites'>('tokens');
-      return <Tabs ariaLabel="Portfolio sections" value={v} onChange={setV} tabs={[{ id: 'tokens', label: 'Tokens' }, { id: 'activity', label: 'Activity' }, { id: 'sites', label: 'Sites' }]} />;
+      return <Tabs ariaLabel="Portfolio sections" panelId="p" value={v} onChange={setV} tabs={[{ id: 'tokens', label: 'Tokens' }, { id: 'activity', label: 'Activity' }, { id: 'sites', label: 'Sites' }]} />;
     }
     render(<H />);
     expect(screen.getByRole('tablist', { name: 'Portfolio sections' })).toBeTruthy();
@@ -203,6 +203,15 @@ describe('display components', () => {
     const tip = screen.getByRole('tooltip');
     expect(tip.textContent).toBe('Account relationships');
     expect(screen.getByRole('link').getAttribute('aria-describedby')).toBe(tip.id);
+  });
+
+  it('Escape puts a Tooltip away until the pointer or focus leaves', () => {
+    render(<Tooltip tip="Summary"><a href="#s" aria-label="Summary">s</a></Tooltip>);
+    const wrap = screen.getByRole('tooltip').parentElement!;
+    fireEvent.keyDown(screen.getByRole('link'), { key: 'Escape' });
+    expect(wrap.hasAttribute('data-dismissed')).toBe(true);
+    fireEvent.blur(screen.getByRole('link'));
+    expect(wrap.hasAttribute('data-dismissed')).toBe(false);
   });
 
   it('AddressText renders short, full and grouped forms', () => {

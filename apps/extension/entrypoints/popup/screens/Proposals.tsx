@@ -1,7 +1,7 @@
 import { buildExecuteTransaction, buildVoteTransaction, fetchMultisig, listProposals, type MultisigInfo, type ProposalInfo } from '@clef/squads';
 import type { Address } from '@solana/kit';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, EmptyState, IconButton, Spinner, Tabs } from '../../../components';
+import { Button, EmptyState, IconButton, Spinner, Tabs, tabPanelProps } from '../../../components';
 import { call } from '../../../lib/api';
 import { useClients, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -85,9 +85,10 @@ export function ProposalsScreen() {
             { id: 'active', label: proposals ? `Active · ${active.length}` : 'Active' },
             { id: 'executed', label: 'Executed' },
           ]}
+          panelId="proposals-panel"
         />
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div {...tabPanelProps('proposals-panel', tab)} className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
         {error && <p className="text-[12px] text-danger-text">{error}</p>}
         {!account && <EmptyState title="Multisig not found" body="Add it from Accounts first." />}
         {account && proposals === null && <div className="flex justify-center py-8"><Spinner /></div>}

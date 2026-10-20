@@ -67,7 +67,7 @@ export function KitchenSink() {
       </Section>
 
       <Section title="Tabs / Chips">
-        <div className="w-[328px]"><Tabs ariaLabel="Portfolio sections" value={tab} onChange={setTab} tabs={[{ id: 'tokens', label: 'Tokens' }, { id: 'activity', label: 'Activity' }, { id: 'sites', label: 'Sites' }]} /></div>
+        <div className="w-[328px]"><Tabs ariaLabel="Portfolio sections" panelId="ks-panel" value={tab} onChange={setTab} tabs={[{ id: 'tokens', label: 'Tokens' }, { id: 'activity', label: 'Activity' }, { id: 'sites', label: 'Sites' }]} /></div>
         <Chips ariaLabel="Filter" value={chip} onChange={setChip} chips={[{ id: 'all', label: 'All' }, { id: 'sent', label: 'Sent' }, { id: 'received', label: 'Received' }, { id: 'swaps', label: 'Swaps' }, { id: 'blocked', label: 'Blocked' }]} />
       </Section>
 

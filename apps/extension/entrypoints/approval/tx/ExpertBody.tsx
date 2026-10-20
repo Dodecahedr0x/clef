@@ -1,11 +1,11 @@
 import type { AccountFactView, BatchView, ExplainedBatch, ExpertView, RelationEdge, TransferView, Warning } from '@clef/explain';
 import { useMemo, useState, type MouseEvent } from 'react';
-import { Icon, Tooltip, type IconName } from '../../../components';
+import { Icon, tabPanelProps, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { useCopy } from '../../../lib/a11y';
 import { shortAddress } from '../../../lib/format';
 import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
-import { Summary, TxTabs, WarningsTable } from './parts';
+import { Summary, TX_PANEL, TxTabs, WarningsTable } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
 import { SimulationLogs } from './SimulationLogs';
@@ -178,19 +178,20 @@ export function ExpertBody(p: {
   const go = (id: Section) => (e: MouseEvent) => {
     e.preventDefault();
     setActive(id);
-    document.getElementById(`exp-${id}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(`exp-${id}`)?.scrollIntoView?.({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2 border-b border-line-soft bg-surface px-4 py-2 min-[600px]:px-5">
         {n > 1 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={p.onTab} />
             <span className="ml-auto text-xs text-muted">Signed together · sent in order</span>
           </div>
         )}
-        <div className="flex items-baseline gap-3.5 tabular-nums">
+        <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 tabular-nums">
           <Summary text={title} className="m-0 min-w-0 text-base font-semibold tracking-[-0.01em] [overflow-wrap:anywhere]" />
           <span className={`ml-auto flex-none text-xs ${dangers.length ? 'text-danger-text' : others.length ? 'text-warn' : 'text-ok'}`}>
             {shownWarnings.length ? `${shownWarnings.length} warning${shownWarnings.length === 1 ? '' : 's'}` : 'No warnings'}
@@ -198,8 +199,28 @@ export function ExpertBody(p: {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        <nav aria-label="Transaction sections" className="relative z-[2] box-border flex w-14 flex-none flex-col items-center gap-1.5 border-r border-line-soft bg-surface px-2 py-3">
+      {/* A narrow window has no room for the rail: the same sections, as a select above the content. */}
+      <label className="flex items-center gap-2 border-b border-line-soft bg-surface px-4 py-2 text-xs text-muted min-[720px]:hidden">
+        <span>Jump to</span>
+        <select
+          value={active}
+          onChange={(e) => {
+            const id = e.target.value as Section;
+            setActive(id);
+            document.getElementById(`exp-${id}`)?.scrollIntoView?.({ block: 'start' });
+          }}
+          className="min-h-9 min-w-0 flex-1 rounded-lg border border-field-line bg-surface px-2 text-sm text-ink"
+        >
+          {RAIL.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.id === 'logs' && onChain ? 'Transaction logs' : r.tip}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div {...(n > 1 && tabPanelProps(TX_PANEL, tab))} className="flex min-h-0 flex-1">
+        <nav aria-label="Transaction sections" className="relative z-[2] box-border flex w-14 flex-none flex-col max-[719px]:hidden items-center gap-1.5 border-r border-line-soft bg-surface px-2 py-3">
           {RAIL.map((r) => {
             const tip = r.id === 'changes' ? (diffs === null ? 'State changes' : `State changes · ${changeCount}`) : r.id === 'logs' && onChain ? 'Transaction logs' : r.tip;
             const on = active === r.id;
@@ -224,7 +245,7 @@ export function ExpertBody(p: {
           })}
         </nav>
 
-        <main className="box-border flex min-w-0 flex-1 flex-col gap-8 overflow-y-auto px-5 pt-4 pb-6">
+        <main className="box-border flex min-w-0 flex-1 flex-col gap-8 overflow-y-auto px-4 pt-4 pb-6 min-[720px]:px-5">
           {(dangers.length > 0 || others.length > 0) && <WarningsTable warnings={[...dangers, ...others]} />}
           <SummarySection
             changes={changes}
@@ -245,10 +266,10 @@ export function ExpertBody(p: {
           />
           <section id="exp-details" aria-label="Transaction details" className="flex scroll-mt-4 flex-col gap-3">
             <h2 className="m-0 text-lg font-semibold">{isAll && n > 1 ? 'Request details' : n > 1 ? `Transaction ${(tab as number) + 1} details` : 'Transaction details'}</h2>
-            <dl className="m-0 grid grid-cols-[150px_minmax(0,1fr)] rounded-xl border border-line bg-surface px-3.5 py-1.5 font-mono text-xs">
+            <dl className="m-0 grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] rounded-xl border border-line bg-surface px-3.5 py-1.5 font-mono text-xs">
               {detailRows(view, isAll ? 'all' : tab, state).map((r, i) => (
                 <div key={r.k} className="contents">
-                  <dt className={`py-[9px] font-sans text-muted ${i ? 'border-t border-line-soft' : ''}`}>{r.k}</dt>
+                  <dt className={`py-[9px] pr-2 font-sans text-muted [overflow-wrap:anywhere] ${i ? 'border-t border-line-soft' : ''}`}>{r.k}</dt>
                   <dd className={`m-0 py-[9px] break-all ${i ? 'border-t border-line-soft' : ''}`}>{r.copy ? <CopyValue text={r.v} value={r.copy} label={r.k} /> : r.v}</dd>
                 </div>
               ))}

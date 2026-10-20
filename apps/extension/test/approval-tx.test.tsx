@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +20,7 @@ vi.mock('../lib/hooks', async (importOriginal) => ({
 vi.mock('../lib/api', async (importOriginal) => ({ ...(await importOriginal<object>()), call: api.call }));
 vi.mock('wxt/browser', () => ({ browser: { windows, runtime: { getURL: (p: string) => p, sendMessage: vi.fn() }, storage: { onChanged: { addListener() {}, removeListener() {} } } } }));
 
-import { TxApproval } from '../entrypoints/approval/tx/TxApproval';
+import { SLOW_MS, TIMEOUT_MS, TxApproval } from '../entrypoints/approval/tx/TxApproval';
 
 const ME = '7xKpWm5c9tZ3EGr2cTyhLh8kq4sUXcMcz1p4UhRf3fQa';
 const WSOL_ATA = '4fYNw3dojWmQ4dXtSGE9epjRGy9pFSx62YypT7avPYvA';
@@ -182,6 +182,29 @@ describe('Basic', () => {
     expect(api.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { detailLevel: 'expert' } });
     await waitFor(() => expect(windows.update).toHaveBeenLastCalledWith(7, { width: 760 }));
     expect(hooks.useExplainBatch).toHaveBeenLastCalledWith(expect.any(Array), 'expert');
+  });
+});
+
+describe('Keyboard', () => {
+  it('starts at the summary, and Escape rejects', async () => {
+    const { onDecide, user } = setup('basic');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: combined.summary })));
+    await user.keyboard('{Escape}');
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: false }));
+  });
+
+  it('transaction tabs are one tab stop; arrows move between them and name the panel they control', async () => {
+    const { user } = setup('intermediate');
+    const tabs = within(screen.getByRole('tablist', { name: 'Transactions in this request' })).getAllByRole('tab');
+    expect(tabs.map((t) => t.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(tabs[0]!.id);
+    tabs[0]!.focus();
+    await user.keyboard('{ArrowRight}');
+    const second = screen.getByRole('tab', { name: '1 · Wrap 1.5 SOL' });
+    expect(second.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(second);
+    await user.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: '3 · Close wSOL account' }).getAttribute('aria-selected')).toBe('true');
   });
 });
 
@@ -443,6 +466,29 @@ describe('Danger', () => {
     hooks.useExplainBatch.mockImplementation(() => ({ status: 'loading' }));
     setup('basic');
     expect((screen.getByRole('button', { name: 'Sign all 3' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('a slow RPC is named after 10 s with Try again at every level; after 30 s it is a request Clef could not explain', () => {
+    vi.useFakeTimers();
+    try {
+      hooks.useExplainBatch.mockImplementation(() => ({ status: 'loading' }));
+      setup('basic');
+      expect(screen.queryByText('Your RPC is slow to answer.')).toBeNull();
+      act(() => vi.advanceTimersByTime(SLOW_MS));
+      expect(screen.getByText('Your RPC is slow to answer.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Change RPC' })).toBeTruthy();
+      act(() => vi.advanceTimersByTime(TIMEOUT_MS - SLOW_MS));
+      expect(screen.getByText(/didn't answer in 30 seconds/)).toBeTruthy();
+      expect(screen.getByLabelText("I understand Clef can't show what this does")).toBeTruthy();
+      // Try again starts over: a fresh explanation and a fresh clock.
+      const calls = hooks.useExplainBatch.mock.calls.length;
+      act(() => screen.getByRole('button', { name: 'Try again' }).click());
+      expect(hooks.useExplainBatch.mock.calls.length).toBeGreaterThan(calls);
+      expect(screen.queryByText(/didn't answer/)).toBeNull();
+      expect(screen.getByText(/Simulating/)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

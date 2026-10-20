@@ -1,5 +1,5 @@
 import type { DetailLevel } from '@clef/explain';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Button, IconButton } from './buttons';
 import { Segmented } from './controls';
 import { Icon, Logo } from './icons';
@@ -80,18 +80,19 @@ export function ApprovalFrame({
   const name = siteName(site.origin);
   const internal = site.origin.startsWith(INTERNAL_SITE_PREFIX);
   return (
-    <div className={`flex ${width === 'fill' ? 'h-full w-full' : 'h-screen'} flex-col overflow-hidden bg-bg font-sans text-ink`} style={width === 'fill' ? undefined : { width }}>
+    // A window narrower than its design width (resized, or opened small) reflows instead of hiding Sign off-screen.
+    <div className={`flex ${width === 'fill' ? 'h-full' : 'h-screen'} w-full min-w-0 flex-col overflow-hidden bg-bg font-sans text-ink`} style={width === 'fill' ? undefined : { maxWidth: width }}>
       {banner}
-      <header className={`flex flex-none items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
+      <header className={`flex flex-none flex-wrap items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
         {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
         <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-[7px] border border-line bg-surface-2 text-[13px] font-semibold text-primary">
           {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
         </span>
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 basis-28 flex-col">
           <span className="truncate text-[13px] leading-tight font-semibold">{title ?? name}</span>
           <span className="truncate text-[11px] leading-tight text-muted">{subtitle}</span>
         </div>
-        {headerRight && <div className="flex flex-none items-center gap-2">{headerRight}</div>}
+        {headerRight && <div className="ml-auto flex flex-none items-center gap-2">{headerRight}</div>}
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       <footer className="flex-none border-t border-line-soft">{footer}</footer>
@@ -178,14 +179,27 @@ export function DecisionFooter({
   extra?: ReactNode;
   dangerPrimary?: boolean;
 }) {
+  // Escape rejects, the safe answer; not while signing, nor when it closes something open on top (a dialog, a select).
+  const reject = useRef<(() => void) | null>(onReject);
+  reject.current = busy ? null : onReject;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || !reject.current) return;
+      const t = e.target instanceof Element ? e.target : null;
+      if (t?.closest('dialog[open], [role="alertdialog"], select')) return;
+      reject.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   return (
     <div className="flex flex-col gap-3 p-4">
       {extra}
-      <div className="grid grid-cols-2 gap-2.5">
-        <Button variant={dangerPrimary ? 'primary' : 'secondary'} onClick={onReject} disabled={busy}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-2.5">
+        <Button variant={dangerPrimary ? 'primary' : 'secondary'} onClick={onReject} disabled={busy} className="min-w-0">
           {rejectLabel}
         </Button>
-        <Button variant={dangerPrimary ? 'secondary' : 'primary'} onClick={onApprove} disabled={approveDisabled || busy} aria-busy={busy || undefined}>
+        <Button variant={dangerPrimary ? 'secondary' : 'primary'} onClick={onApprove} disabled={approveDisabled || busy} aria-busy={busy || undefined} className="min-w-0">
           {busy && <Icon name="spinner" size={16} />}
           {approveLabel}
         </Button>

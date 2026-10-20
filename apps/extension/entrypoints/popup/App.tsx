@@ -68,6 +68,7 @@ function entryRoute(state: FullState): Route {
   if (!state.hasVault) return { name: 'welcome' };
   if (!state.unlocked) return { name: 'unlock' };
   if (location.hash === '#import-key') return { name: 'import' };
+  if (location.hash === '#network') return { name: 'settings/network' };
   return { name: 'home' };
 }
 
