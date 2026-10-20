@@ -112,7 +112,7 @@ function Picker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name or symbol"
-            className="w-full h-11 px-3 bg-surface border border-line rounded-[12px] text-[14px] outline-none"
+            className="w-full h-11 px-3 bg-surface border border-field-line rounded-[12px] text-[14px] outline-none"
           />
         </div>
       )}
@@ -334,7 +334,7 @@ export function SwapScreen() {
         {!supported && settings && <Alert severity="info">Swaps use Jupiter and are only available on Mainnet.</Alert>}
 
         <div className="relative flex flex-col gap-1.5">
-          <section className="p-3.5 bg-surface border border-line rounded-[14px] flex flex-col gap-2">
+          <section className="p-3.5 bg-surface border border-field-line rounded-[14px] flex flex-col gap-2">
             <div className="flex items-center text-[12px] text-muted">
               <label htmlFor="swap-pay">You pay</label>
               <span className="ml-auto tabular-nums">Balance {inHolding ? formatToken(inHolding.amount, inHolding.decimals) : '0'}</span>

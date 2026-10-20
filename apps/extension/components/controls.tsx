@@ -141,7 +141,7 @@ export function TextField({ label, error, trailing, mono = false, id, className 
     <div className={`flex flex-col gap-2 ${className}`}>
       <label htmlFor={inputId} className="text-[12px] text-muted">{label}</label>
       <div
-        className={`flex h-12 items-center rounded-[12px] border bg-surface pl-3.5 ${trailing ? 'pr-1' : 'pr-3.5'} ${error ? 'border-danger' : 'border-line-strong focus-within:border-primary'}`}
+        className={`flex h-12 items-center rounded-[12px] border bg-surface pl-3.5 ${trailing ? 'pr-1' : 'pr-3.5'} ${error ? 'border-danger' : 'border-field-line focus-within:border-primary'}`}
       >
         <input
           id={inputId}

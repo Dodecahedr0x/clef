@@ -192,7 +192,7 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
           onChange={(e) => setText(e.target.value)}
           autoComplete="off"
           spellCheck={false}
-          className={`resize-none rounded-[12px] border bg-surface p-3 font-mono text-[14px] leading-normal text-ink outline-none ${valid ? 'border-primary' : 'border-line-strong focus:border-primary'} ${shown ? '' : 'blur-[3px] focus:blur-none'}`}
+          className={`resize-none rounded-[12px] border bg-surface p-3 font-mono text-[14px] leading-normal text-ink outline-none ${valid ? 'border-primary' : 'border-field-line focus:border-primary'} ${shown ? '' : 'blur-[3px] focus:blur-none'}`}
         />
         <div className="flex items-center text-[12px]">
           {status && <span className={status.tone}>{status.text}</span>}

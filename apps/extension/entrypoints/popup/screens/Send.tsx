@@ -260,7 +260,7 @@ export function SendScreen() {
       <div className="relative px-4 pt-5 flex flex-col gap-[18px]">
         <div className="flex flex-col gap-2">
           <label htmlFor="send-amount" className="text-[12px] text-muted">Amount</label>
-          <div className="p-3.5 bg-surface border border-line rounded-[14px] flex flex-col gap-2.5">
+          <div className="p-3.5 bg-surface border border-field-line rounded-[14px] flex flex-col gap-2.5">
             <div className="flex items-center gap-2.5">
               <input
                 id="send-amount"
@@ -287,7 +287,7 @@ export function SendScreen() {
 
         <div className="flex flex-col gap-2">
           <label htmlFor="send-to" className="text-[12px] text-muted">To</label>
-          <div className={`h-12 px-3.5 bg-surface border rounded-[12px] flex items-center ${toText ? 'border-primary' : 'border-line'}`}>
+          <div className={`h-12 px-3.5 bg-surface border rounded-[12px] flex items-center ${toText ? 'border-primary' : 'border-field-line'}`}>
             <input
               id="send-to"
               value={picked ? picked.name : toText}

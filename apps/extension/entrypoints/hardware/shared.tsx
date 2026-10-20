@@ -50,7 +50,7 @@ export function useBalances(addresses: string[]) {
 
 function balanceText(b: bigint | null | undefined) {
   if (b === undefined) return <span className="text-faint">…</span>;
-  if (b === null) return <span className="text-faint">unavailable</span>;
+  if (b === null) return <span className="text-muted">unavailable</span>;
   if (b === 0n) return <span className="text-muted">empty</span>;
   return <span>{formatToken(b, 9)} SOL</span>;
 }

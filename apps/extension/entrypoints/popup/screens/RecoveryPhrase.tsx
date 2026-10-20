@@ -41,7 +41,7 @@ export function RecoveryPhraseScreen() {
         <ol className="m-0 mt-[18px] grid list-none grid-cols-2 gap-x-3 gap-y-2 rounded-[14px] border border-line bg-surface p-3 font-mono text-[14px]">
           {words.map((w, i) => (
             <li key={i} className="flex h-8 items-center gap-2.5 rounded-[8px] bg-surface-3 px-2.5">
-              <span className="w-[18px] text-right text-[12px] text-faint">{i + 1}</span>
+              <span className="w-[18px] text-right text-[12px] text-muted">{i + 1}</span>
               {w}
             </li>
           ))}

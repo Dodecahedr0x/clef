@@ -24,7 +24,7 @@ function RevealPhrase() {
         <ol aria-label={phrases > 1 ? `Recovery phrase ${phrase}` : 'Recovery phrase'} className="grid grid-cols-3 gap-1.5 rounded-xl border border-line bg-surface p-2.5">
           {words.map((w, i) => (
             <li key={i} className="flex gap-1.5 rounded-lg bg-surface-3 px-2 py-1.5 font-mono text-xs">
-              <span className="text-faint">{i + 1}</span>
+              <span className="text-muted">{i + 1}</span>
               <span className="text-ink">{w}</span>
             </li>
           ))}

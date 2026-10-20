@@ -88,7 +88,7 @@ function Derivation({ edge, account, label }: { edge: RelationEdge; account: str
               spellCheck={false}
               aria-invalid={'error' in p}
               onChange={(e) => setTexts(texts.map((t, j) => (j === i ? e.target.value : t)))}
-              className={`h-8 w-full rounded-lg border bg-surface-2 px-2 font-mono text-xs text-ink outline-none focus:border-primary ${'error' in p ? 'border-danger-line' : 'border-line'}`}
+              className={`h-8 w-full rounded-lg border bg-surface-2 px-2 font-mono text-xs text-ink outline-none focus:border-primary ${'error' in p ? 'border-danger-line' : 'border-field-line'}`}
             />
             {'error' in p && <span className="text-xs text-danger-text">{p.error}</span>}
           </div>

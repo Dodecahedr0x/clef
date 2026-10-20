@@ -118,7 +118,7 @@ function AddIdlForm({
       <label className="flex flex-col gap-1 text-xs font-medium text-muted">
         IDL JSON
         <textarea
-          className={`${editing ? 'h-56' : 'h-24'} resize-y rounded-[10px] border border-line-strong bg-surface p-2 font-mono text-xs text-ink`}
+          className={`${editing ? 'h-56' : 'h-24'} resize-y rounded-[10px] border border-field-line bg-surface p-2 font-mono text-xs text-ink`}
           spellCheck={false}
           value={json}
           onChange={(e) => setJson(e.target.value)}
@@ -220,7 +220,7 @@ export function IdlManagerScreen() {
         <input
           id="idl-q"
           placeholder="Search by name or program ID"
-          className="h-10 rounded-[10px] border border-line-strong bg-surface px-3 text-sm text-ink outline-none"
+          className="h-10 rounded-[10px] border border-field-line bg-surface px-3 text-sm text-ink outline-none"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

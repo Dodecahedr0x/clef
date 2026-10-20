@@ -15,9 +15,11 @@
   --color-line: #E1E4EA;
   --color-line-soft: #E6E8EE;
   --color-line-strong: #CBD0DA;
+  /* Input borders only: 3:1 on every surface (WCAG 1.4.11). Dividers and cards keep the lighter lines. */
+  --color-field-line: #838A99;
   --color-ink: #14171F;
   --color-muted: #5C6475;
-  --color-faint: #8A91A0;
+  --color-faint: #8A91A0; /* 3.2:1: placeholders and disabled text only, never content */
   --color-ink-2: #3A4152;
   --color-primary: #4A6B12;
   --color-primary-bg: #EEF5DD;
@@ -29,7 +31,7 @@
   --color-ok-bg: #E8F6F1;
   --color-ok-line: #B5E0D3;
   --color-ok-tint: #DFF3EE;
-  --color-warn: #A86400;
+  --color-warn: #986000; /* 4.6:1 or more on every surface, its own tint included */
   --color-warn-ink: #6B4A0A;
   --color-warn-bg: #FDF4E3;
   --color-warn-line: #F0D9A8;

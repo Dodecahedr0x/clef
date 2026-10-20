@@ -84,18 +84,18 @@ export function ConfirmPhraseScreen() {
         {quiz.map((q, i) =>
           i < done ? (
             <div key={q.pos} className="flex h-12 items-center gap-3 rounded-[12px] border border-ok-line bg-surface px-3.5">
-              <span className="text-[12px] text-faint">#{q.pos + 1}</span>
+              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
               <span className="flex-1">{q.word}</span>
               <span className="font-sans text-ok">✓</span>
             </div>
           ) : i === done ? (
             <div key={q.pos} className={`flex h-12 items-center gap-3 rounded-[12px] border-2 bg-surface px-3.5 ${wrong ? 'border-danger' : 'border-primary'}`}>
-              <span className="text-[12px] text-faint">#{q.pos + 1}</span>
-              <span className={`flex-1 font-sans ${wrong ? 'text-danger-text' : 'text-faint'}`}>{wrong ? `That's not word #${q.pos + 1}` : 'Choose below'}</span>
+              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
+              <span className={`flex-1 font-sans ${wrong ? 'text-danger-text' : 'text-muted'}`}>{wrong ? `That's not word #${q.pos + 1}` : 'Choose below'}</span>
             </div>
           ) : (
             <div key={q.pos} className="flex h-12 items-center gap-3 rounded-[12px] border border-dashed border-line-strong bg-surface-2 px-3.5">
-              <span className="text-[12px] text-faint">#{q.pos + 1}</span>
+              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
             </div>
           ),
         )}

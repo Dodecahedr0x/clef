@@ -97,7 +97,7 @@ export function MessageApproval({
         )}
         {!blocked && (
           <section className="flex gap-[10px] rounded-[12px] border border-dashed border-line-strong bg-surface px-[14px] py-3 text-[12px] leading-[1.45] text-muted">
-            <svg className="mt-px flex-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A86400" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <svg className="mt-px flex-none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-warn)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v5M12 16.5v.01" />
             </svg>
