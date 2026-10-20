@@ -97,6 +97,18 @@ describe('InternalApi', () => {
     expect((await state()).accounts).toHaveLength(1);
   });
 
+  it('keeps a multisig member until the multisig accounts it signs for are removed', async () => {
+    const { internal, state } = await onboarded();
+    await internal.call({ type: 'accounts:derive' });
+    await internal.call({ type: 'accounts:addSquads', multisig: OTHER, vaultIndex: 0, member: A, label: 'Team' });
+    const vault = (await state()).accounts.find((a) => a.kind === 'squads')!.address;
+    await expect(internal.call({ type: 'accounts:remove', address: A })).rejects.toThrow('Remove the multisig accounts it signs for first');
+    expect((await state()).accounts.map((a) => a.address)).toContain(A);
+    await internal.call({ type: 'accounts:remove', address: vault });
+    await internal.call({ type: 'accounts:remove', address: A });
+    expect((await state()).accounts.map((a) => a.label)).toEqual(['Account 2']);
+  });
+
   it('erases everything only when the confirmation is typed, and disconnects every site', async () => {
     const erase = vi.fn(async () => {});
     const ctx = await onboarded({ erase });
