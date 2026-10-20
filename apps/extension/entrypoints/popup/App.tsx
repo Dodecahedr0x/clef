@@ -1,8 +1,9 @@
 import { useEffect, type JSX } from 'react';
-import { Alert, Spinner } from '../../components';
+import { Alert, NetworkEdge, Spinner } from '../../components';
 import type { FullState } from '../../lib/api';
 import { useWallet } from '../../lib/hooks';
 import { NavProvider, useNav } from '../../lib/nav';
+import { clusterOf } from '../../lib/network';
 import { StaleBackgroundBanner } from '../../lib/stale-banner';
 import type { Route, RouteName } from './routes';
 import { AccountsScreen } from './screens/Accounts';
@@ -110,6 +111,7 @@ export function App() {
     <NavProvider initial={entryRoute(state)}>
       <Guard state={state} />
       <div className="flex h-full flex-col">
+        <NetworkEdge cluster={clusterOf(state.settings)} tint={state.settings.devnetTint} />
         <StaleBackgroundBanner />
         <div className="min-h-0 flex-1">
           <Router />

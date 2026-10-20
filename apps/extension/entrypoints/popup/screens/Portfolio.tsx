@@ -6,10 +6,10 @@ import { call } from '../../../lib/api';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { clusterOf, networkLabel } from '../../../lib/network';
 import { PanelButton, TabButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
 
-const NETWORK_LABEL: Record<Settings['network'], string> = { mainnet: 'Mainnet', devnet: 'Devnet', localnet: 'Localnet', custom: 'Custom RPC' };
 const LEVEL_LABEL = { basic: 'Basic', intermediate: 'Intermediate', expert: 'Expert' } as const;
 const AVATAR_TONES = ['violet', 'info', 'primary', 'ok', 'warn'] as const;
 
@@ -265,8 +265,8 @@ function BasicPortfolio() {
           <span>Total balance</span>
           {settings && (
             <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full bg-surface border border-line text-[12px]">
-              <span className={`w-1.5 h-1.5 rounded-full ${settings.network === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
-              {NETWORK_LABEL[settings.network]}
+              <span className={`w-1.5 h-1.5 rounded-full ${clusterOf(settings) === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
+              {networkLabel(settings)}
             </span>
           )}
         </div>

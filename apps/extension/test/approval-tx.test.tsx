@@ -197,6 +197,17 @@ describe('Intermediate', () => {
     expect(screen.getByText('1 instruction')).toBeTruthy();
   });
 
+  it('never switches networks inside an approval; Expert names the request network read-only', () => {
+    for (const level of ['basic', 'intermediate', 'expert'] as const) {
+      setup(level, { chain: 'solana:devnet' });
+      expect(screen.queryByRole('radiogroup', { name: 'Network' })).toBeNull();
+      expect(screen.queryByLabelText('Network: Devnet') !== null).toBe(level === 'expert');
+      cleanup();
+    }
+    setup('expert');
+    expect(screen.getByLabelText('Network: Mainnet')).toBeTruthy();
+  });
+
   it('a single transaction has no switcher', () => {
     explainWith((level) => batchView(level, 1));
     setup('intermediate', { transactions: [wires[0]] });

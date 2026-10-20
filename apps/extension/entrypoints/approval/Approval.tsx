@@ -1,9 +1,10 @@
 import type { ApprovalDecision, ApprovalRequest, SignerInfo } from '@clef/wallet-core';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Alert, Button, Spinner } from '../../components';
+import { Alert, Button, NetworkEdge, Spinner } from '../../components';
 import { decide, getApproval, pingApproval, type FullState } from '../../lib/api';
 import { useWallet } from '../../lib/hooks';
 import { NavProvider, useNav } from '../../lib/nav';
+import { clusterOf, clusterOfChain } from '../../lib/network';
 import { deserializeApproval } from '../../lib/serialize';
 import { UnlockScreen } from '../popup/screens/Unlock';
 import { ConnectApproval, HardwareSignStep, MessageApproval, SignInApproval, SquadsApproval } from './requests';
@@ -135,6 +136,7 @@ function Dispatch({ request, state, requestId, onClose }: { request: ApprovalReq
   // cancelled signing survive, and it cannot be approved twice.
   return (
     <>
+      <NetworkEdge cluster={'chain' in request ? clusterOfChain(request.chain) : clusterOf(state.settings)} tint={state.settings.devnetTint} />
       <div hidden={signing !== null}>{view}</div>
       {signing && (
         <HardwareSignStep

@@ -125,6 +125,34 @@ export function NetworkSwitch({ value, onChange, compact = false }: { value: 'ma
   );
 }
 
+/**
+ * Marks a test network on every screen, so test funds never look real: its name hangs from the top edge, and the
+ * edge itself turns amber unless the user turned the tint off. Nothing on mainnet.
+ */
+export function NetworkEdge({ cluster, tint }: { cluster: 'mainnet' | 'devnet' | 'localnet'; tint: boolean }) {
+  if (cluster === 'mainnet') return null;
+  const name = cluster === 'devnet' ? 'Devnet' : 'Localnet';
+  return (
+    <div data-testid="network-edge" className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center">
+      {tint && <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-warn" />}
+      <span role="note" aria-label={`Test network: ${name}`} className="relative rounded-b-[6px] bg-warn px-1.5 text-[10px] leading-[12px] font-semibold tracking-[0.06em] text-white uppercase">
+        {name}
+      </span>
+    </div>
+  );
+}
+
+/** The network a request is for, read-only: an approval never changes networks under the user. */
+export function NetworkChip({ cluster }: { cluster: 'mainnet' | 'devnet' | 'localnet' }) {
+  const name = cluster === 'mainnet' ? 'Mainnet' : cluster === 'devnet' ? 'Devnet' : 'Localnet';
+  return (
+    <span role="img" aria-label={`Network: ${name}`} className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-line bg-surface px-2 text-[12px] text-ink">
+      <span aria-hidden="true" className={`size-1.5 rounded-full ${cluster === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
+      <span aria-hidden="true">{name}</span>
+    </span>
+  );
+}
+
 // dangerPrimary: the safe choice (Reject) takes the primary style and approval is the secondary one.
 export function DecisionFooter({
   onReject,

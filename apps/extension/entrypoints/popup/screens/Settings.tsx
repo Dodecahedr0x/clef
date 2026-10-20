@@ -5,6 +5,7 @@ import { call } from '../../../lib/api';
 import { sidePanelApi } from '../../../lib/side-panel';
 import { useCall, useClients, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { clusterOf, networkLabel } from '../../../lib/network';
 
 type DetailLevel = Settings['detailLevel'];
 
@@ -183,8 +184,8 @@ export function SettingsScreen() {
             label="Network"
             value={
               <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                <span className={`h-1.5 w-1.5 rounded-full ${s.network === 'mainnet' || (s.network === 'custom' && s.customCluster === 'mainnet') ? 'bg-ok' : 'bg-warn'}`} />
-                {NETWORK_LABEL[s.network]}
+                <span className={`h-1.5 w-1.5 rounded-full ${clusterOf(s) === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
+                {networkLabel(s)}
               </span>
             }
             onClick={() => nav.go({ name: 'settings/network' })}

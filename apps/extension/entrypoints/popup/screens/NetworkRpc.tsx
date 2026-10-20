@@ -162,8 +162,8 @@ export function NetworkRpcScreen() {
             onChange={(networkSwitchInHeader) => void save({ networkSwitchInHeader })}
           />
           <Toggle
-            label="Tint the wallet on devnet"
-            description="Amber edge so test funds never look real"
+            label="Tint the wallet on test networks"
+            description="Amber edge on devnet and localnet, so test funds never look real"
             checked={s.devnetTint}
             onChange={(devnetTint) => void save({ devnetTint })}
           />

@@ -1,11 +1,12 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
-import { DEFAULT_RPC, type ApprovalDecision, type ApprovalRequest, type DecisionLog } from '@clef/wallet-core';
+import type { ApprovalDecision, ApprovalRequest, DecisionLog } from '@clef/wallet-core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkSwitch, Spinner, Pubkey } from '../../../components';
+import { ApprovalFrame, Button, DecisionFooter, DetailLevelSwitch, NetworkChip, Spinner, Pubkey } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useApprovalHost } from '../../../lib/approval-host';
+import { clusterOfChain } from '../../../lib/network';
 import { useExplainBatch } from '../../../lib/hooks';
 import { BasicBody } from './BasicBody';
 import { ExpertBody } from './ExpertBody';
@@ -81,9 +82,6 @@ export function TxApproval({
     setLevel(v);
     void call({ type: 'settings:update', patch: { detailLevel: v } }).catch(() => {});
   };
-  const changeNetwork = (v: 'mainnet' | 'devnet') => {
-    void call({ type: 'settings:update', patch: { network: v, rpcUrl: DEFAULT_RPC[v] } }).catch(() => {});
-  };
 
   const ready = result.status === 'ok' && result.view.level === level;
   const view = ready ? (result.view as BatchView) : null;
@@ -132,12 +130,11 @@ export function TxApproval({
   const subtitle = expert
     ? <>{label} · <Pubkey value={request.account} /> · {SIGNER_KIND[request.signer.kind]}</>
     : `Requests ${n > 1 ? `${n} signatures` : 'signature'} · ${label}`;
-  const network = state.settings.network;
-  const showNetwork = expert && state.settings.networkSwitchInHeader && (network === 'mainnet' || network === 'devnet');
-
+  // A test network is marked at every level by the edge (NetworkEdge, in Approval). Expert also names the network here,
+  // read-only: switching inside an approval would explain the request against another cluster.
   const headerRight = (
     <div className="flex items-center gap-2">
-      {showNetwork && <NetworkSwitch value={network} onChange={changeNetwork} />}
+      {expert && <NetworkChip cluster={clusterOfChain(request.chain)} />}
       <DetailLevelSwitch value={level} onChange={changeLevel} compact={!expert} />
     </div>
   );

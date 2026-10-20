@@ -152,7 +152,10 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   const to = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
   const before = (await rpcCall<{ value: number }>(validator, 'getBalance', [to])).value;
 
+  // A test network is marked on every screen and in the approval, which names the network read-only.
+  await expect(popup.getByRole('note', { name: 'Test network: Localnet' })).toBeVisible();
   await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'Send' }).click();
+  await expect(popup.getByRole('note', { name: 'Test network: Localnet' })).toBeVisible();
   await expect(popup.getByText(/Balance 10/)).toBeVisible({ timeout: 30_000 });
   await popup.getByRole('textbox', { name: 'Amount' }).fill('0.5');
   await popup.getByRole('textbox', { name: 'To' }).fill(to);
@@ -163,6 +166,11 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   const approval = await approvalP;
   await expect(approval.getByRole('button', { name: /^Sign/ })).toBeVisible();
   await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
+  await expect(approval.getByRole('note', { name: 'Test network: Localnet' })).toBeVisible();
+  await approval.getByRole('radio', { name: 'Expert' }).click();
+  await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
+  await expect(approval.getByRole('img', { name: 'Network: Localnet' })).toBeVisible();
+  await expect(approval.getByRole('radiogroup', { name: 'Network' })).toHaveCount(0);
   const ack = approval.getByLabel('I understand I may lose these funds');
   if (await ack.count()) await ack.check();
   await decideAndClose(approval, /^Sign( anyway)?$/);

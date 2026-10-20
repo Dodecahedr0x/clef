@@ -521,7 +521,7 @@ describe('NetworkRpcScreen', () => {
     const user = userEvent.setup();
     renderScreen(<NetworkRpcScreen />);
     await user.click(await screen.findByRole('switch', { name: /Network switch in header/ }));
-    await user.click(screen.getByRole('switch', { name: /Tint the wallet on devnet/ }));
+    await user.click(screen.getByRole('switch', { name: /Tint the wallet on test networks/ }));
     expect(patches()).toEqual([{ networkSwitchInHeader: false }, { devnetTint: false }]);
   });
 });
