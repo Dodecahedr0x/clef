@@ -152,8 +152,8 @@ describe('viewFor', () => {
     const t = await explain({ wire }, { reader, idls: new IdlResolver([createBundledSource()]), me: [ME] });
     const v = viewFor(t, 'intermediate');
     expect(v.instructions[0]!.args.amount).toBe('2500000 (raw units)');
-    expect(v.balanceChanges).toEqual([{ owner: ME, asset: shortAddress(MINT), amount: '-2500000 (raw units)' }]);
-    expect(viewFor(t, 'expert').balanceChanges).toContainEqual({ owner: OTHER, asset: shortAddress(MINT), amount: '+2500000 (raw units)' });
+    expect(v.balanceChanges).toEqual([{ owner: ME, asset: shortAddress(MINT), mint: MINT, amount: '-2500000 (raw units)' }]);
+    expect(viewFor(t, 'expert').balanceChanges).toContainEqual({ owner: OTHER, asset: shortAddress(MINT), mint: MINT, amount: '+2500000 (raw units)' });
   });
 
   it('never lets an IDL name pass for a known program', async () => {

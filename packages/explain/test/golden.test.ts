@@ -76,7 +76,8 @@ describe('basic view golden summaries for hostile transactions', () => {
       programAddress: DRAINER, data: new Uint8Array([7]),
       accounts: [{ address: ME, role: AccountRole.WRITABLE_SIGNER }, { address: MY_USDC, role: AccountRole.WRITABLE }, { address: address(TOKEN_PROGRAM), role: AccountRole.READONLY }],
     }]);
-    expect(v.summary).toBe(`Interact with ${shortAddress(DRAINER)} -- lets a delegate spend ALL of the tokens in your token account`);
+    // Who gains control and what is at stake, named; the headline keeps the first sentence.
+    expect(v.summary).toMatch(new RegExp(`^Interact with ${shortAddress(DRAINER)} -- lets \\S+…\\S+ spend ALL of the tokens in your USDC account \\(100 USDC\\)$`));
   });
 
   it('absurd priority fee', async () => {

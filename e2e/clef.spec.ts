@@ -107,7 +107,7 @@ test('create, lock and unlock, connect, send at every detail level, reject', asy
     for (const other of Object.keys(LEVEL_MARK) as (keyof typeof LEVEL_MARK)[]) {
       if (other !== level) await expect(LEVEL_MARK[other](approval)).toHaveCount(0);
     }
-    const ack = approval.getByLabel('I understand I may lose these funds');
+    const ack = approval.getByLabel(/^I understand/);
     if (await ack.count()) await ack.check();
     const sign = approval.getByRole('button', { name: /^Sign( anyway)?$/ });
     await expect(sign).toBeEnabled();

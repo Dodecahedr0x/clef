@@ -4,7 +4,7 @@ import { browser } from 'wxt/browser';
 import { ApprovalFrame, Button, DetailLevelSwitch, Spinner, Pubkey, siteName } from '../../../components';
 import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
-import { useExplainLanded, useWallet } from '../../../lib/hooks';
+import { useAddressLookup, useExplainLanded, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { explorerUrl } from '../../../lib/network';
 import { useCopy } from '../../../lib/a11y';
@@ -13,7 +13,7 @@ import { ExpertBody } from '../../approval/tx/ExpertBody';
 import { IntermediateBody } from '../../approval/tx/IntermediateBody';
 import { batchWarnings, hasDanger, type Tab } from '../../approval/tx/model';
 import { DangerCards } from '../../approval/tx/parts';
-import { ExplainSource, IdlAdder } from '../../approval/tx/source';
+import { AddressBook, ExplainSource, IdlAdder } from '../../approval/tx/source';
 
 const when = (t: number | null | undefined) =>
   t ? new Date(t * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'time unknown';
@@ -43,6 +43,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   const { copied, copy: copyText } = useCopy();
   const result = useExplainLanded(signature, level);
   const expert = level === 'expert';
+  const lookup = useAddressLookup(state.accounts);
 
   const changeLevel = (v: DetailLevel) => {
     setLevel(v);
@@ -61,7 +62,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   if (result.status === 'failed') {
     body = (
       <div className="flex flex-col gap-3.5 px-4 pt-5">
-        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message: `Clef could not explain this transaction (${result.error}).` }]} />
+        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message: 'Clef could not work out what this transaction did.', details: [`Clef's error: ${result.error}`] }]} />
       </div>
     );
   } else if (!view) {
@@ -95,6 +96,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   return (
     <ExplainSource.Provider value="chain">
       <IdlAdder.Provider value={(programId) => nav.go({ name: 'settings/idls', addFor: programId })}>
+      <AddressBook.Provider value={lookup}>
       <ApprovalFrame
         site={{ origin: origin ?? 'Transaction' }}
         title={<Pubkey value={signature} />}
@@ -117,6 +119,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
       >
         <div className={`flex flex-col ${expert ? 'min-h-0 flex-1' : 'min-h-full pb-4'}`}>{body}</div>
       </ApprovalFrame>
+      </AddressBook.Provider>
       </IdlAdder.Provider>
     </ExplainSource.Provider>
   );

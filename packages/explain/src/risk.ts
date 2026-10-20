@@ -173,6 +173,18 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   // (for "someone else's" rules): ambiguous names must never silence a danger.
   const mineOrUnknown = (a: NamedAccount | undefined) => !a || a.mine || me.has(a.address);
   const notMineOrUnknown = (a: NamedAccount | undefined) => !a || (!a.mine && !me.has(a.address));
+  // Danger messages name who gains control and what is at stake (when the token is one Clef knows).
+  const party = (a: string | null | undefined) => (a ? shortAddress(a) : 'someone else');
+  const symbolIn = (tokenAccount: string | undefined) => {
+    const h = tokenAccount === undefined ? undefined : input.tokenBalances?.[tokenAccount];
+    return h ? KNOWN_MINTS[h.mint]?.symbol : undefined;
+  };
+  const heldIn = (tokenAccount: string | undefined) => {
+    const h = tokenAccount === undefined ? undefined : input.tokenBalances?.[tokenAccount];
+    const k = h && KNOWN_MINTS[h.mint];
+    return h && k && h.amount > 0n ? ` (${formatUnits(h.amount, k.decimals)} ${k.symbol})` : '';
+  };
+  const tokenAccountOf = (a: string | undefined, whose: string) => `${whose} ${symbolIn(a) ?? 'token'} account${heldIn(a)}`;
   /**
    * Someone else's business: a single signing key that is not yours (`authorityName`) acts on an account
    * (`subjectName`), and nothing the instruction touches is yours (nor held by you before the transaction).
@@ -231,7 +243,14 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
         source !== undefined &&
         (input.stateChanges ?? []).some((c) => c.kind === 'token-delegate' && c.address === source.address && c.after !== null && c.amount === 0n);
       if (usedUp) warn('delegation', 'info', `Approves a delegate for ${whose} tokens, which it uses within this transaction; no allowance remains afterwards.`, i, source.address);
-      else warn('delegation', danger ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in ${whose} token account.`, i, source?.address);
+      else
+        warn(
+          'delegation',
+          danger ? 'danger' : 'warn',
+          `Lets ${party(account(ix, 'delegate')?.address)} spend ${what} of the tokens in ${tokenAccountOf(source?.address, whose)}.${all ? ' They could move them at any time.' : ''}`,
+          i,
+          source?.address,
+        );
     }
     if (isToken(ix.programId) && ix.name === 'setAuthority') {
       const next = authorityArg(ix.args?.newAuthority);
@@ -239,13 +258,13 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
       if (next === null) warn('authority-change', 'warn', 'Revokes an authority of a token account or mint.', i, owned);
       else if (next !== undefined && me.has(next)) {
         warn('authority-change', 'warn', 'Changes an authority of a token account or mint to your wallet.', i, owned);
-      } else warn('authority-change', 'danger', 'Hands an authority of a token account or mint to someone else.', i, owned);
+      } else warn('authority-change', 'danger', `Hands an authority of a token account or mint to ${party(next)}.`, i, owned);
     }
     if (ix.programId === SYSTEM_PROGRAM && (ix.name === 'assign' || ix.name === 'assignWithSeed')) {
       // assignWithSeed reassigns an account derived from (and controlled by) `baseAccount`.
       const target = account(ix, 'account');
       const yours = mineOrUnknown(target) || (ix.name === 'assignWithSeed' && mineOrUnknown(account(ix, 'baseAccount')));
-      if (yours) warn('authority-change', 'danger', 'Reassigns ownership of your account to another program.', i, target?.address);
+      if (yours) warn('authority-change', 'danger', 'Hands your account to another program, which could then move everything in it.', i, target?.address);
     }
     if (isToken(ix.programId) && ix.name === 'closeAccount' && notMineOrUnknown(account(ix, 'destination')) && !othersBusiness(ix, 'account', 'owner')) {
       // A wrapped SOL account holds its whole balance as lamports: closing it hands over all of them.
@@ -277,18 +296,18 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
     const yours = me.has(c.address) || (c.kind !== 'program-owner' && c.holder !== undefined && me.has(c.holder));
     if (!yours || (c.after !== null && me.has(c.after))) continue;
     if (c.kind === 'program-owner') {
-      warn('authority-change', 'danger', 'Reassigns ownership of your account to another program.', undefined, c.address);
+      warn('authority-change', 'danger', `Hands your account ${shortAddress(c.address)} to program ${party(c.after)}, which could then move everything in it.`, undefined, c.address);
     } else if (c.kind === 'token-owner') {
-      warn('authority-change', 'danger', 'Hands one of your token accounts to another owner.', undefined, c.address);
+      warn('authority-change', 'danger', `Makes ${party(c.after)} the owner of ${tokenAccountOf(c.address, 'your')}. They could move it at any time.`, undefined, c.address);
     } else if (c.kind === 'token-close-authority') {
-      warn('authority-change', 'danger', 'Lets someone else close one of your token accounts.', undefined, c.address);
+      warn('authority-change', 'danger', `Lets ${party(c.after)} close ${tokenAccountOf(c.address, 'your')} and keep its deposit.`, undefined, c.address);
     } else {
       const amount = c.amount ?? 0n;
       // A delegate left with nothing to spend (allowance used up, or revoked) is not a lasting delegation.
       if (c.after === null || amount === 0n) continue;
       const all = amount >= HALF_U64 || (c.balance !== undefined && amount >= c.balance);
       const what = amount >= HALF_U64 ? 'an UNLIMITED amount' : all ? 'ALL' : 'some';
-      warn('delegation', all ? 'danger' : 'warn', `Lets a delegate spend ${what} of the tokens in your token account.`, undefined, c.address);
+      warn('delegation', all ? 'danger' : 'warn', `Lets ${party(c.after)} spend ${what} of the tokens in ${tokenAccountOf(c.address, 'your')}.${all ? ' They could move them at any time.' : ''}`, undefined, c.address);
     }
   }
 
@@ -360,6 +379,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
   }
 
   for (const [rule, severity, message] of sweepWarnings(input, me)) warn(rule, severity, message);
+  for (const [rule, severity, message] of recipientWarnings(input, me)) warn(rule, severity, message);
 
   // A signature that never expires can be replayed once state has changed: anything else wrong becomes worse.
   if (nonce && (nonce.foreignAuthority || warnings.some((w) => w !== nonce!.warning && RANK[w.severity] >= RANK.warn))) {
@@ -638,3 +658,33 @@ function outflows(input: RiskInput, me: ReadonlySet<string>): BalanceChange[] {
 /** Unknown balance changes (no meta, no successful simulation) count as a possible outflow. */
 const possibleOutflow = (input: RiskInput, me: ReadonlySet<string>) =>
   input.balanceChanges === null || outflows(input, me).length > 0;
+
+/** The one wallet a plain send pays (you lose, nothing comes back, a single other owner gains): null otherwise. */
+export function sendRecipient(changes: readonly BalanceChange[] | null | undefined, me: ReadonlySet<string>): string | null {
+  if (!changes) return null;
+  const mine = changes.filter((c) => me.has(c.owner));
+  const out = new Set(mine.filter((c) => c.delta < 0n).map((c) => c.mint));
+  // Anything coming back (beyond rent-sized SOL) makes it a trade, not a send.
+  if (!out.size || mine.some((c) => c.delta > (c.mint === 'SOL' ? RENT_SLACK : 0n))) return null;
+  const gainers = new Set(changes.filter((c) => c.delta > 0n && !me.has(c.owner) && out.has(c.mint)).map((c) => c.owner));
+  const [to] = gainers;
+  // A pool or router gains one asset and pays out another: that is the other side of a trade.
+  return gainers.size === 1 && !changes.some((c) => c.owner === to && c.delta < 0n) ? to! : null;
+}
+
+/** Same first and last four characters, different middle: what an address-poisoning lookalike is made to match. */
+const lookalike = (a: string, b: string) => a !== b && a.slice(0, 4) === b.slice(0, 4) && a.slice(-4) === b.slice(-4);
+
+/**
+ * A plain send to a wallet that mimics a saved address or one of yours: address poisoning copies the ends a
+ * shortened address shows. (A recipient that is simply new is shown next to the address, not as a warning.)
+ */
+function recipientWarnings(input: RiskInput, me: ReadonlySet<string>): [string, Warning['severity'], string][] {
+  const to = sendRecipient(input.balanceChanges, me);
+  if (!to) return [];
+  const info = input.accountInfo?.[to];
+  if (info && info.owner !== SYSTEM_PROGRAM) return [];
+  const known = [...me, ...(input.addressBook ?? [])];
+  const twin = known.find((k) => lookalike(k, to));
+  return twin ? [['lookalike-recipient', 'danger', `Sends to ${to}, which looks like ${input.labels?.[twin] ?? 'a saved address'} (${shortAddress(twin)}) but is a different address.`]] : [];
+}

@@ -1,9 +1,9 @@
 import type { ChangeView, Warning } from '@clef/explain';
 import type { PhishingHit } from '@clef/wallet-core';
-import { Icon } from '../../../components';
-import { direction, displayAmount, listSteps, ruleTitle, type Tab } from './model';
+import { Icon, Pubkey } from '../../../components';
+import { depositNote, direction, displayAmount, groupNumbers, listSteps, ruleTitle, type Tab } from './model';
 import { useState } from 'react';
-import { useIdlAdder, useOnChain } from './source';
+import { useAddressBook, useIdlAdder, useOnChain } from './source';
 
 export function PhishingBanner({ hit }: { hit: PhishingHit }) {
   return (
@@ -21,9 +21,36 @@ export function PhishingBanner({ hit }: { hit: PhishingHit }) {
  * Clef's one-line description of the transaction: the heading of a request to sign; for a past transaction
  * (whose title is its signature) a small grey line.
  */
-export function Summary({ text, className }: { text: string; className: string }) {
-  if (useOnChain()) return <p className="m-0 text-xs leading-normal text-muted [overflow-wrap:anywhere]">{text}</p>;
-  return <h1 className={className}>{text}</h1>;
+export function Summary({ text, className, plain = false }: { text: string; className: string; plain?: boolean }) {
+  const [head, ...rest] = splitSummary(groupNumbers(plain ? plainNames(text) : text));
+  if (useOnChain()) return <p className="m-0 text-xs leading-normal text-muted [overflow-wrap:anywhere]">{[head, ...rest].join('. ')}</p>;
+  return (
+    <div className="flex flex-col gap-1">
+      <h1 className={`${className} [overflow-wrap:anywhere]`}>{head}</h1>
+      {rest.map((line, i) => (
+        <p key={i} className="m-0 text-sm leading-snug font-medium text-danger-ink-2 [overflow-wrap:anywhere]">
+          {line}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** The engine's one-line summary ("Send 1 SOL -- lets X spend ...") as a headline and the lines under it. */
+export function splitSummary(text: string): string[] {
+  return text.split(' -- ').map((part, i) => (i ? part.charAt(0).toUpperCase() + part.slice(1) : part));
+}
+
+/**
+ * Basic: names without the IDL trust tier and address ("Foo (authority IDL, 9Wfh…Kz2r)"). A name a program gave
+ * itself stays marked as unverified, so a self-described "System Program" can't pass for the real one.
+ */
+export function plainNames(text: string): string {
+  return text
+    .replace(/ \(curated IDL, [^)]*\)/g, '')
+    .replace(/ \(user IDL, [^)]*\)/g, ' (your IDL)')
+    .replace(/ \((?:authority|unknown) IDL, [^)]*\)/g, ' (unverified name)')
+    .replace(/ \(address book, [^)]*\)/g, ' (your contact)');
 }
 
 /** Warnings and infos beyond this many are behind "Show N more" (dangers never are). */
@@ -124,11 +151,24 @@ export function AllClear({ compact }: { compact?: boolean }) {
   );
 }
 
-export function Acknowledge({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+const UNREADABLE = new Set(['could-not-explain', 'unexplained-step', 'internal-error']);
+
+/** What the checkbox makes the user acknowledge, from the dangers on screen (`rule` or `rule\u0000message` keys). */
+export function acknowledgeLabel(dangers: readonly string[]): string {
+  const rules = new Set(dangers.map((k) => k.split('\u0000')[0]!));
+  const phishing = rules.delete('phishing');
+  const unreadable = [...rules].every((r) => UNREADABLE.has(r)) && rules.size > 0;
+  if (phishing && rules.size === 0) return 'I understand this site is on a phishing list';
+  if (phishing) return 'I understand this site is on a phishing list and I may lose funds';
+  if (unreadable) return "I understand Clef can't show what this does";
+  return 'I understand I may lose these funds';
+}
+
+export function Acknowledge({ checked, onChange, dangers = [] }: { checked: boolean; onChange: (v: boolean) => void; dangers?: readonly string[] }) {
   return (
     <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-ink">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="m-0 size-5 flex-none accent-danger" />
-      <span>I understand I may lose these funds</span>
+      <span>{acknowledgeLabel(dangers)}</span>
     </label>
   );
 }
@@ -170,7 +210,7 @@ export function TxTabs({ titles, value, onChange }: { titles: string[]; value: T
   );
 }
 
-export function Deltas({ changes, fee }: { changes: ChangeView[] | null; fee?: string | null }) {
+export function Deltas({ changes, fee, deposits }: { changes: ChangeView[] | null; fee?: string | null; deposits?: { amount: string; count: number } | null }) {
   return (
     <div className="flex flex-wrap gap-x-3.5 gap-y-1 text-sm tabular-nums">
       {changes === null ? (
@@ -183,7 +223,34 @@ export function Deltas({ changes, fee }: { changes: ChangeView[] | null; fee?: s
         ))
       )}
       {fee && <span className="text-muted">fee {fee}</span>}
+      {deposits && (
+        <span className="text-muted" title={depositNote(deposits.count)}>
+          account deposit {deposits.amount}
+        </span>
+      )}
     </div>
+  );
+}
+
+/** Who a plain send pays, so the address can be checked against the one the user was given. */
+export function Recipient({ address }: { address: string }) {
+  const known = useAddressBook()(address);
+  const onChain = useOnChain();
+  return (
+    <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted">
+      <span>To</span>
+      {known && <span className="font-medium text-ink">{known.name}</span>}
+      <Pubkey value={address} className={known ? 'text-xs' : 'text-ink'} />
+      <span className="text-xs">
+        {known
+          ? known.kind === 'account'
+            ? '· one of your accounts'
+            : '· in your address book'
+          : onChain
+            ? '· not in your address book'
+            : '· not in your address book. Check it matches the address you were given.'}
+      </span>
+    </p>
   );
 }
 

@@ -165,6 +165,7 @@ export function ExpertBody(p: {
   const title = sv?.summary ?? view.combined.summary;
   const changes = sv ? sv.balanceChanges : view.combined.balanceChanges;
   const fee = sv ? sv.fee : view.combined.fee;
+  const deposits = sv ? (sv.deposits ?? null) : (view.combined.deposits ?? null);
   // Every step's transfers in the "all" tab, else the selected step's; null when none is known.
   const known = steps.filter((s) => s.view.transfers);
   const transfers = known.length ? known.flatMap((s) => s.view.transfers!) : null;
@@ -228,6 +229,7 @@ export function ExpertBody(p: {
           <SummarySection
             changes={changes}
             fee={fee}
+            deposits={deposits}
             transfers={transfers}
             transfersPartial={steps.some((s) => s.view.transfersPartial)}
             label={(a) => graph.labels.get(a) ?? graph.idlNames?.get(a)}

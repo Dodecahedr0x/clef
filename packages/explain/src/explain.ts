@@ -12,10 +12,11 @@ import { identifyInstruction, type IdentifiedInstruction } from './identify';
 import { Labeler, tokenRelations, shortAddress } from './labels';
 import { verifyCodamaPdas } from './pda';
 import { CLOCK_SYSVAR, COMPUTE_BUDGET_PROGRAM, PROGRAM_NAMES, RENT_SYSVAR, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS } from './registry';
-import { estimateFee, evaluateRisks, type AccountInfo, type RiskInput, type TokenHolding } from './risk';
+import { estimateFee, evaluateRisks, sendRecipient, type AccountInfo, type RiskInput, type TokenHolding } from './risk';
 import { errorDetail } from './seeds';
 import { computeStateChanges, type StateChange } from './state-changes';
 import { summarize } from './summary';
+import { depositsOf } from './deposits';
 import { factsFromMeta, factsFromStates, flowInstructions, metaInner, transfersOf } from './transfers';
 import { sanitizeText } from './text';
 import { programDisplay } from './format';
@@ -541,10 +542,23 @@ export async function explainWith(
     warnings = [{ ...INTERNAL_ERROR }];
   }
   const balanceChanges = simulated.balanceChanges;
+  const deposits = depositsOf(simulated.states);
+  // The wallet a plain send pays. Not an account the transaction opens for a program (a stake account, a
+  // proposal): that SOL is a deposit, and the account is no recipient to check.
+  const recipient = (() => {
+    const to = sendRecipient(balanceChanges, new Set<string>(me));
+    if (!to) return null;
+    const i = writable.indexOf(to as Address);
+    const after = i >= 0 ? simulated.states?.post[i] : undefined;
+    if (after && (after.owner !== SYSTEM_PROGRAM || after.data.length > 0)) return null;
+    const before = accountInfo[to];
+    return before && before.owner !== SYSTEM_PROGRAM ? null : (to as Address);
+  })();
   let summary: string;
   try {
     summary = summarize({
       instructions, balanceChanges, me, warnings, ...(fee !== null && { fee }), baseFee, feePayer: tx.feePayer, labels, tokenOwners, tokenBalances, accountLamports,
+      ...(deposits && { deposits: deposits.lamports }),
     });
   } catch {
     const danger = warnings.find((w) => w.severity === 'danger');
@@ -591,6 +605,8 @@ export async function explainWith(
     tx, instructions, relations, balanceChanges, stateChanges, fee, issues, me, warnings, summary,
     accountDiffs, logs, computeUnits, externalRelations: external, accountFacts, transfers,
     ...(transfersPartial && transfers && { transfersPartial: true as const }),
+    ...(deposits && { deposits }),
+    ...(recipient && { recipient }),
   };
   return { explained, writable, states: simulated.states ?? null, labeler };
 }

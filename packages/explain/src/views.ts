@@ -8,7 +8,8 @@ import type { StateChange } from './state-changes';
 import { COMPUTE_BUDGET_PROGRAM, PLUMBING_PROGRAMS, PROGRAM_NAMES, TOKEN_PROGRAMS } from './registry';
 import type { AccountDiff, AccountFact, BalanceChange, DetailLevel, ExplainedInstruction, ExplainedTransaction, Issue, LogKind, LogLine, RelationEdge, Transfer, Warning } from './types';
 
-export type ChangeView = { owner: string; asset: string; amount: string };
+/** `asset`: a known symbol, else the short mint; `mint` lets the UI add a name and a price it looked up. */
+export type ChangeView = { owner: string; mint?: string; asset: string; amount: string };
 export type AccountView = { name: string; address: string; label?: string; badges: string[] };
 export type InstructionView = {
   index: number;
@@ -38,6 +39,10 @@ export type BasicView = {
   warnings: Warning[];
   /** Only when the `high-fee` warning fires. */
   fee?: string;
+  /** SOL locked in new accounts, e.g. '0.00203928 SOL'; refundable to whoever closes them. */
+  deposits?: { amount: string; count: number };
+  /** A plain send: the full address of the one wallet it pays, to show in full under the headline. */
+  recipient?: string;
 };
 export type IntermediateView = Omit<BasicView, 'level'> & { level: 'intermediate'; instructions: InstructionView[] };
 /** A `StateChange` with every value as a string. */
@@ -122,6 +127,8 @@ export type CombinedView = {
   balanceChanges: ChangeView[] | null;
   warnings: Warning[];
   fee: string | null;
+  deposits?: { amount: string; count: number } | null;
+  recipient?: string;
   computeUnits: string | null;
   accountDiffs: AccountDiffView[] | null;
   incomplete: boolean;
@@ -192,7 +199,7 @@ function instructionView(ex: ExplainedTransaction, ix: ExplainedInstruction): In
 
 function changeView(c: BalanceChange): ChangeView {
   const amount = formatUnits(c.delta, c.decimals);
-  return { owner: c.owner, asset: c.symbol ?? shortAddress(c.mint), amount: c.delta > 0n ? `+${amount}` : amount };
+  return { owner: c.owner, mint: c.mint, asset: c.symbol ?? shortAddress(c.mint), amount: c.delta > 0n ? `+${amount}` : amount };
 }
 
 function stateChangeView(c: StateChange): StateChangeView {
@@ -291,6 +298,8 @@ export function viewFor(ex: ExplainedTransaction, level: DetailLevel): BasicView
     summary: ex.summary,
     warnings: ex.warnings.map((w) => ({ ...w })),
     balanceChanges: changes && (level === 'expert' ? changes : changes.filter((c) => me.has(c.owner))).map(changeView),
+    ...(ex.deposits && { deposits: { amount: `${formatUnits(ex.deposits.lamports, 9)} SOL`, count: ex.deposits.count } }),
+    ...(ex.recipient && { recipient: ex.recipient }),
   };
   const fee = ex.fee === null ? null : `${formatUnits(ex.fee, 9)} SOL`;
   const highFee = fee !== null && ex.warnings.some((w) => w.rule === 'high-fee') ? { fee } : {};
@@ -406,6 +415,8 @@ export function viewForBatch<L extends DetailLevel>(batch: ExplainedBatch, level
       balanceChanges: c.balanceChanges && (level === 'expert' ? c.balanceChanges : c.balanceChanges.filter((b) => me.has(b.owner))).map(changeView),
       warnings: c.warnings.map((w) => ({ ...w })),
       fee: c.fee === null ? null : sol(c.fee),
+      deposits: c.deposits ? { amount: sol(c.deposits.lamports), count: c.deposits.count } : null,
+      ...(batch.steps.length === 1 && batch.steps[0]!.explained?.recipient && { recipient: batch.steps[0]!.explained.recipient }),
       computeUnits: c.computeUnits === null ? null : cu(c.computeUnits),
       accountDiffs: c.accountDiffs && c.accountDiffs.map(accountDiffView),
       incomplete: c.incomplete,

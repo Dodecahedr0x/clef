@@ -5,6 +5,7 @@ import { computeAccountDiffs, groupDigits } from './diffs';
 import { explainWith, type ExplainRun, type PresetSimulation } from './explain';
 import type { Labeler } from './labels';
 import { errorDetail } from './seeds';
+import { sumDeposits, type Deposits } from './deposits';
 import type { AccountDiff, BalanceChange, DecodedTransaction, ExplainContext, ExplainedTransaction, Issue, Warning } from './types';
 
 export type BatchStep = { index: number; explained: ExplainedTransaction | null; status: 'simulated' | 'independent' | 'dependent' | 'not-simulated' | 'failed' };
@@ -17,6 +18,8 @@ export type ExplainedBatch = {
     warnings: Warning[];
     summary: string;
     fee: bigint | null;
+    /** Summed over the steps in the combined view. */
+    deposits?: Deposits | null;
     computeUnits: bigint | null;
     incomplete: boolean;
   };
@@ -170,6 +173,7 @@ async function combine(all: readonly Step[], included: readonly Step[], mode: Ex
     warnings,
     summary,
     fee: !explained.length || fees.some((f) => f === null) ? null : (fees as bigint[]).reduce((a, b) => a + b, 0n),
+    deposits: sumDeposits(explained.map((e) => e.deposits)),
     computeUnits: units.length ? units.reduce((a, b) => a + b, 0n) : null,
     incomplete,
   };

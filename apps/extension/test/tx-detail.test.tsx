@@ -17,6 +17,8 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock('../lib/hooks', () => ({
+  useAddressLookup: () => () => null,
+  useTokenFacts: () => new Map(),
   useWallet: () => ({ state: h.state, error: null, refresh: async () => {} }),
   useExplainLanded: (_sig: string, level: string) => {
     h.levels.push(level);
@@ -106,6 +108,8 @@ describe('History transaction detail', () => {
     h.state = state('intermediate');
     h.result = { status: 'failed', error: 'Transaction not found on this network' };
     render(<TxDetail />);
-    expect(screen.getByText(/Clef could not explain this transaction \(Transaction not found on this network\)/)).toBeTruthy();
+    expect(screen.getByText(/Clef could not work out what this transaction did/)).toBeTruthy();
+    // The raw error waits under Why?.
+    expect(screen.getByText("Clef's error: Transaction not found on this network")).toBeTruthy();
   });
 });

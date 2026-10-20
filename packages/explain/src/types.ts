@@ -205,6 +205,10 @@ export type ExplainedTransaction = {
   stateChanges: StateChange[] | null;
   /** Network fee in lamports: from tx meta, else estimated; null when it can't be estimated. */
   fee: bigint | null;
+  /** SOL locked in accounts this transaction opens (refundable to whoever closes them); absent when none or unknown. */
+  deposits?: { count: number; lamports: bigint };
+  /** A plain send: the one wallet it pays (see `sendRecipient`). */
+  recipient?: Address;
   me: Address[];
   summary: string;
   warnings: Warning[];

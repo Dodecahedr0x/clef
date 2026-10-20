@@ -19,6 +19,8 @@ export type SummaryInput = Pick<ExplainedTransaction, 'instructions' | 'balanceC
     tokenBalances?: Readonly<Record<string, { amount: bigint; mint?: string }>>;
     /** Pre-transaction lamports by account (see `RiskInput.accountLamports`). */
     accountLamports?: Readonly<Record<string, bigint>>;
+    /** Rent locked in accounts the transaction opens: like the fee, not part of what the payer "sends". */
+    deposits?: bigint;
   };
 
 /** Warnings under which a one-instruction template would mislead: the summary states the balance changes instead. */
@@ -170,7 +172,8 @@ function template(ix: ExplainedInstruction, ctx: Context): { text: string; expre
 
 /** A warning message as a summary suffix: lowercase start, no final period, bounded. */
 function shorten(message: string): string {
-  const trimmed = message.replace(/\.$/, '');
+  // The first sentence: the rest ("They could move them at any time.") is for the warning itself.
+  const trimmed = message.split(/(?<=[^.]{3})\. (?=[A-Z])/)[0]!.replace(/\.$/, '');
   // Lowercase a sentence start, but not a name ("Clef ...").
   const lowered = /^[A-Z][a-z]/.test(trimmed) && !/^Clef\b/.test(trimmed) ? `${trimmed[0]!.toLowerCase()}${trimmed.slice(1)}` : trimmed;
   const chars = Array.from(lowered);
@@ -211,7 +214,7 @@ function describe(input: SummaryInput, meaningful: readonly ExplainedInstruction
   const highFee = (input.warnings ?? []).some((w) => w.rule === 'high-fee');
   const fee = input.fee === undefined ? 0n : highFee ? input.fee : feeAllowanceFor(input, input.feePayer);
   const mine = (input.balanceChanges ?? [])
-    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && input.fee ? withoutFee(c, fee) : c))
+    .map((c) => (c.mint === 'SOL' && c.owner === input.feePayer && (input.fee || input.deposits) ? withoutFee(c, fee + (input.deposits ?? 0n)) : c))
     .filter((c) => me.has(c.owner) && c.delta !== 0n);
   const outflows = mine.filter((c) => c.delta < 0n);
   const sent = outflows.map(asset);

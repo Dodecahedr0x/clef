@@ -22,3 +22,4 @@ export * from './batch';
 export * from './views';
 export * from './context';
 export * from './transfers';
+export * from './deposits';

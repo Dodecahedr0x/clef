@@ -8,13 +8,13 @@ import { shortAddress } from '../../../lib/format';
 import { useApprovalHost } from '../../../lib/approval-host';
 import { clusterOfChain } from '../../../lib/network';
 import { announce, useCopy } from '../../../lib/a11y';
-import { useExplainBatch } from '../../../lib/hooks';
+import { useAddressLookup, useExplainBatch } from '../../../lib/hooks';
 import { BasicBody } from './BasicBody';
 import { ExpertBody } from './ExpertBody';
 import { IntermediateBody } from './IntermediateBody';
 import { accountLabel, batchWarnings, hasDanger, toBase64, type Tab } from './model';
 import { Acknowledge, DangerCards, IncompleteNotice, PhishingBanner } from './parts';
-import { IdlAdder } from './source';
+import { AddressBook, IdlAdder } from './source';
 
 type Request = Extract<ApprovalRequest, { kind: 'signTransactions' }>;
 
@@ -53,6 +53,7 @@ export function TxApproval({
   const raw = useCopy();
   const n = request.transactions.length;
   const host = useApprovalHost();
+  const lookup = useAddressLookup(state.accounts);
   // "Add IDL" on an undecodable instruction: confirm first (a site can hand over a file that hides a danger),
   // then pick the JSON file here and explain the request again.
   const idlFile = useRef<HTMLInputElement>(null);
@@ -170,7 +171,7 @@ export function TxApproval({
   if (result.status === 'failed') {
     body = (
       <div className="flex flex-col gap-3.5 px-4 pt-5">
-        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message: `Clef could not explain this request (${result.error}). Signing what you cannot see can lose funds.` }]} />
+        <DangerCards warnings={[{ rule: 'could-not-explain', severity: 'danger', message: 'Clef could not work out what this request does. Signing what you cannot see can lose funds.', details: [`Clef's error: ${result.error}`] }]} />
       </div>
     );
   } else if (!view) {
@@ -201,6 +202,7 @@ export function TxApproval({
 
   return (
     <IdlAdder.Provider value={level === 'basic' ? null : setIdlAsk}>
+    <AddressBook.Provider value={lookup}>
     <input ref={idlFile} type="file" accept=".json,application/json" className="sr-only" aria-label="IDL file" onChange={(e) => {
       void onIdlFile(e.target.files?.[0]);
       e.target.value = '';
@@ -255,11 +257,12 @@ export function TxApproval({
                 {error}
               </p>
             )}
-            {danger && <Acknowledge checked={ack} onChange={(v) => setAcked(v ? dangerKeys : null)} />}
+            {danger && <Acknowledge checked={ack} onChange={(v) => setAcked(v ? dangerKeys : null)} dangers={dangerKeys} />}
           </div>
         )}
       </div>
     </ApprovalFrame>
+    </AddressBook.Provider>
     </IdlAdder.Provider>
   );
 }

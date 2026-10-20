@@ -103,7 +103,7 @@ test('batch of 3: sequential combined view, per-tx tabs at Intermediate/Expert, 
   await expect(approval.getByText('3 transactions, signed together')).toBeVisible({ timeout: 30_000 });
   await expect(tabs).toHaveCount(0);
 
-  const ack = approval.getByLabel('I understand I may lose these funds');
+  const ack = approval.getByLabel(/^I understand/);
   if (await ack.count()) await ack.check();
   await decideAndClose(approval, /^Sign all 3/);
   const out = (await signed) as { signedTransactions?: string[] };
@@ -171,7 +171,7 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
   await expect(approval.getByRole('img', { name: 'Network: Localnet' })).toBeVisible();
   await expect(approval.getByRole('radiogroup', { name: 'Network' })).toHaveCount(0);
-  const ack = approval.getByLabel('I understand I may lose these funds');
+  const ack = approval.getByLabel(/^I understand/);
   if (await ack.count()) await ack.check();
   await decideAndClose(approval, /^Sign( anyway)?$/);
 
@@ -226,7 +226,7 @@ test('MAX on SOL sends everything but the fee and empties the account', async ({
   await review.click();
   const approval = await approvalP;
   await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
-  const ack = approval.getByLabel('I understand I may lose these funds');
+  const ack = approval.getByLabel(/^I understand/);
   if (await ack.count()) await ack.check();
   await decideAndClose(approval, /^Sign( anyway)?$/);
 

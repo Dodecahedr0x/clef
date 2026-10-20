@@ -186,8 +186,8 @@ describe('viewForBatch', () => {
     expect(v.combined.accountDiffs![0]).toMatchObject({ tag: 'temp', lastChangedBy: 2 });
     expect(v.combined.balanceChanges).toEqual(
       level === 'expert'
-        ? [{ owner: ME, asset: 'SOL', amount: '-1.5' }, { owner: OTHER, asset: 'SOL', amount: '+0.000000001' }]
-        : [{ owner: ME, asset: 'SOL', amount: '-1.5' }],
+        ? [{ owner: ME, asset: 'SOL', mint: 'SOL', amount: '-1.5' }, { owner: OTHER, asset: 'SOL', mint: 'SOL', amount: '+0.000000001' }]
+        : [{ owner: ME, asset: 'SOL', mint: 'SOL', amount: '-1.5' }],
     );
     expect(v.steps[0]).toMatchObject({ index: 0, status: 'simulated', title: 'Wrap 1.5 SOL into your wrapped SOL acco…' });
     expect(v.steps[0]!.title.length).toBeLessThanOrEqual(40);

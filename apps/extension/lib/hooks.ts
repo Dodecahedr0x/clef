@@ -1,5 +1,6 @@
 import { explainBatch, explainLanded, viewForBatch, type BatchView, type DetailLevel, type ExplainedBatch } from '@clef/explain';
-import { loadHistory, loadPortfolio, type HistoryItem, type Portfolio } from '@clef/portfolio';
+import { loadHistory, loadPortfolio, VERIFIED_MINTS, type HistoryItem, type Portfolio } from '@clef/portfolio';
+import { WSOL_MINT } from '@clef/market';
 import type { Contact, PublicAccount, UserIdl } from '@clef/wallet-core';
 import { isSolanaError, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, type Address } from '@solana/kit';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -150,6 +151,58 @@ function useExplainExtras(): ExplainExtras | null {
   const loading = contacts.loading || idls.loading;
   // Labels and user IDLs are optional: explain without them rather than not at all.
   return useMemo(() => (loading ? null : { contacts: contacts.data ?? [], userIdls: idls.data ?? [] }), [loading, contacts.data, idls.data]);
+}
+
+/** A token as an approval names it: Clef's own name when the mint is curated, else the market's, marked unverified. */
+export type TokenFacts = { symbol?: string; verified: boolean; usdPrice?: number };
+
+/** Names and prices for the mints a request moves. Best effort: a missing key or a failed lookup leaves the mint as is. */
+export function useTokenFacts(mints: readonly string[]): ReadonlyMap<string, TokenFacts> {
+  const clients = useClients();
+  const key = [...new Set(mints)].sort().join(',');
+  const [facts, setFacts] = useState<ReadonlyMap<string, TokenFacts>>(new Map());
+  useEffect(() => {
+    const list = key ? key.split(',') : [];
+    const base = new Map<string, TokenFacts>(list.map((m) => [m, m === 'SOL' || VERIFIED_MINTS.has(m) ? { verified: true } : { verified: false }]));
+    setFacts(base);
+    if (!clients || !list.length) return;
+    let live = true;
+    const jup = clients.jupiter;
+    const priced = list.map((m) => (m === 'SOL' ? WSOL_MINT : m));
+    void Promise.all([
+      jup.prices(priced).catch(() => ({}) as Record<string, { usdPrice: number }>),
+      ...list.map((m) =>
+        base.get(m)!.verified ? Promise.resolve(null) : jup.searchTokens(m).then((r) => r.find((t) => t.mint === m) ?? null, () => null),
+      ),
+    ]).then(([prices, ...found]) => {
+      if (!live) return;
+      const next = new Map(base);
+      list.forEach((m, i) => {
+        const t = found[i] as { symbol: string } | null;
+        const usdPrice = (prices as Record<string, { usdPrice: number }>)[priced[i]!]?.usdPrice;
+        next.set(m, { ...base.get(m)!, ...(t?.symbol && { symbol: t.symbol }), ...(usdPrice !== undefined && { usdPrice }) });
+      });
+      setFacts(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [key, clients]);
+  return facts;
+}
+
+/** What the user calls an address: one of their accounts, or an address book entry. */
+export type KnownAddress = { name: string; kind: 'account' | 'contact' | 'label' };
+
+/** Looks up an address among the user's accounts and address book (accounts win: they are the user's own). */
+export function useAddressLookup(accounts: readonly PublicAccount[]): (address: string) => KnownAddress | null {
+  const contacts = useCall<Contact[]>('contacts:list');
+  return useMemo(() => {
+    const known = new Map<string, KnownAddress>();
+    for (const c of contacts.data ?? []) known.set(c.address, { name: c.name, kind: c.kind });
+    for (const a of accounts) known.set(a.address, { name: a.label, kind: 'account' });
+    return (address) => known.get(address) ?? null;
+  }, [contacts.data, accounts]);
 }
 
 export function useHistory(owner: Address | null): { items: HistoryItem[]; loading: boolean; error: string | null; loadMore(): void; retry(): void; hasMore: boolean } {

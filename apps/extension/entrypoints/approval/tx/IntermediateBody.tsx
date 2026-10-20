@@ -2,8 +2,8 @@ import type { BatchView, InstructionView, IntermediateView, Warning } from '@cle
 import { useState } from 'react';
 import { Icon, Pill, Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
-import { stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
-import { AllClear, Deltas, Summary, TxTabs, UNKNOWN_CHANGES, WarningsTable } from './parts';
+import { depositNote, displayAmount, stepStatusLabel, TRUST_LABEL, UNEXPLAINED_RULE, type Tab } from './model';
+import { AllClear, Deltas, Recipient, Summary, TxTabs, UNKNOWN_CHANGES, WarningsTable } from './parts';
 
 const SHOWN_ACCOUNTS = 5;
 
@@ -123,7 +123,7 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
               <div key={i} className="contents">
                 <span>{b.asset}</span>
                 <span className={`text-right ${b.amount.startsWith('-') ? 'text-danger-text' : 'text-ok'}`}>
-                  {b.amount.startsWith('-') ? `−${b.amount.slice(1)}` : b.amount} {b.asset}
+                  {displayAmount(b.amount)} {b.asset}
                 </span>
               </div>
             ))}
@@ -131,6 +131,12 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
               <div className="contents text-muted">
                 <span className="text-xs">Network fees</span>
                 <span className="text-right text-xs">{c.fee}</span>
+              </div>
+            )}
+            {c.deposits && (
+              <div className="contents text-muted">
+                <span className="text-xs" title={depositNote(c.deposits.count)}>Account deposits</span>
+                <span className="text-right text-xs">{c.deposits.amount}</span>
               </div>
             )}
           </div>
@@ -151,8 +157,8 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
           );
         })}
       </ol>
-      <section className="flex items-start gap-2.5 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs leading-[1.45] text-warn-ink">
-        <span className="rounded-full bg-warn px-[7px] py-px text-xs font-semibold text-white">INFO</span>
+      <section className="flex items-start gap-2.5 rounded-xl border border-info/25 bg-info-bg px-3 py-2.5 text-xs leading-[1.45] text-info-ink">
+        <span className="rounded-full bg-info px-[7px] py-px text-xs font-semibold text-white">INFO</span>
         <span>All {n === 2 ? 'both' : n} are signed together. If one fails on-chain, the dApp decides what happens to the others.</span>
       </section>
     </>
@@ -166,6 +172,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
   const summary = sv?.summary ?? view.combined.summary;
   const changes = sv ? sv.balanceChanges : view.combined.balanceChanges;
   const fee = sv ? (sv.fee ?? (single ? view.combined.fee : null)) : view.combined.fee;
+  const deposits = sv ? (sv.deposits ?? null) : (view.combined.deposits ?? null);
   const shown = sv ? [...warnings.filter((w) => w.rule === UNEXPLAINED_RULE), ...sv.warnings] : warnings;
   const dangers = shown.filter((w) => w.severity === 'danger');
   const others = shown.filter((w) => w.severity !== 'danger');
@@ -175,7 +182,8 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
       {!single && <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={onTab} />}
       <section className="flex flex-col gap-1 px-1">
         <Summary text={summary} className="m-0 text-xl font-semibold tracking-[-0.02em]" />
-        <Deltas changes={changes} fee={fee} />
+        {(tab === 'all' || single) && view.combined.recipient && <Recipient address={view.combined.recipient} />}
+        <Deltas changes={changes} fee={fee} deposits={deposits} />
       </section>
       {dangers.length || others.length ? <WarningsTable warnings={[...dangers, ...others]} /> : <AllClear compact />}
       {step && !sv && <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">Clef could not explain this transaction.</p>}

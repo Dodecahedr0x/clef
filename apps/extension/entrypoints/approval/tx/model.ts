@@ -7,7 +7,40 @@ export type Tab = 'all' | number;
 export const MINUS = '−';
 export const displaySign = (s: string) => (s === '-' ? MINUS : s);
 /** Amount strings from views use an ASCII minus; shown with the typographic one. */
-export const displayAmount = (a: string) => (a.startsWith('-') ? MINUS + a.slice(1) : a);
+/**
+ * An engine amount ('-1234567.891234', '+5 (raw units)') for display: a real minus sign and grouped thousands.
+ * `round`: Basic keeps 4 decimals (more for amounts under 1, enough to show 2 significant digits) and marks the cut
+ * with '…'; the exact value is for a tooltip and for Expert.
+ */
+export function displayAmount(a: string, opts: { round?: boolean } = {}): string {
+  const m = /^([+-]?)(\d+)(?:\.(\d+))?(.*)$/s.exec(a);
+  if (!m) return a.startsWith('-') ? MINUS + a.slice(1) : a;
+  const [, sign = '', whole = '', fraction = '', rest = ''] = m;
+  let frac = fraction;
+  let cut = false;
+  if (opts.round && frac) {
+    const keep = whole !== '0' ? 4 : Math.max(6, (/^0*/.exec(frac)?.[0].length ?? 0) + 2);
+    if (frac.length > keep) {
+      frac = frac.slice(0, keep).replace(/0+$/, '');
+      cut = true;
+    }
+  }
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${sign === '-' ? MINUS : sign}${grouped}${frac ? `.${frac}` : ''}${cut ? '…' : ''}${rest}`;
+}
+
+/** Thousands grouped in prose ("Send 1234567.5 USDC" -> "Send 1,234,567.5 USDC"); addresses and short numbers untouched. */
+export const groupNumbers = (text: string) => text.replace(/(?<![\w.…,])(\d{4,})(?=(?:\.\d+)?(?![\w…]))/g, (n) => n.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+
+/** '1 new account' / '2 new accounts'. */
+/** The USD value of a signed display amount ("-1,234.5"), or null when the amount is in raw units or unpriced. */
+export function usdOf(amount: string, usdPrice: number | undefined): number | null {
+  if (usdPrice === undefined || amount.includes('raw')) return null;
+  const n = Number(amount.replace(/[^\d.+-]/g, ''));
+  return Number.isFinite(n) ? n * usdPrice : null;
+}
+
+export const depositNote = (count: number) => `Opens ${count} new ${count === 1 ? 'account' : 'accounts'}; the SOL comes back to whoever closes ${count === 1 ? 'it' : 'them'}.`;
 export const direction = (a: string): 'in' | 'out' | 'neutral' => (a.startsWith('-') ? 'out' : a.startsWith('+') ? 'in' : 'neutral');
 
 export const hasDanger = (warnings: readonly Warning[]) => warnings.some((w) => w.severity === 'danger');
@@ -43,8 +76,22 @@ function unexplainedMessage(s: BatchView['steps'][number]): string {
   return `Clef could not explain transaction ${s.index + 1}: ${why}. Signing what you cannot see can lose funds.`;
 }
 
-/** 'owner-change' -> 'Owner change'. */
-const RULE_TITLES: Record<string, string> = { 'unexplained-step': 'Could not explain', 'could-not-explain': 'Could not explain' };
+/** What a danger means, in a few plain words (the message says who and how much). Unlisted rules: 'owner-change' -> 'Owner change'. */
+const RULE_TITLES: Record<string, string> = {
+  'unexplained-step': "Clef can't read this",
+  'could-not-explain': "Clef can't read this",
+  'internal-error': "Clef can't read this",
+  'authority-change': 'Gives away control',
+  delegation: 'Lets someone spend your tokens',
+  'close-to-third-party': "Sends an account's balance to someone else",
+  'relation-mismatch': 'Wrong account',
+  'unexplained-outflow': "Funds leave in a way Clef can't read",
+  sweep: 'Moves your assets away',
+  'sensitive-program': 'Changes stake, vote or program accounts',
+  'stake-withdraw': 'Withdraws your stake to someone else',
+  'stake-foreign-authority': 'Someone else controls this stake',
+  'high-fee': 'Very high fee',
+};
 
 export const ruleTitle = (rule: string) => {
   if (RULE_TITLES[rule]) return RULE_TITLES[rule];

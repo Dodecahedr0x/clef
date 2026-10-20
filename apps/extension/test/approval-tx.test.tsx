@@ -3,11 +3,20 @@ import { cleanup, render, screen, within, waitFor } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hooks = vi.hoisted(() => ({ useExplainBatch: vi.fn() }));
+const hooks = vi.hoisted(() => ({
+  useExplainBatch: vi.fn(),
+  lookup: ((_: string) => null) as (a: string) => { name: string; kind: 'account' | 'contact' | 'label' } | null,
+  facts: new Map<string, { symbol?: string; verified: boolean; usdPrice?: number }>(),
+}));
 const api = vi.hoisted(() => ({ call: vi.fn(async () => ({})) }));
 const windows = vi.hoisted(() => ({ getCurrent: vi.fn(async () => ({ id: 7 })), update: vi.fn(async () => ({})) }));
 
-vi.mock('../lib/hooks', async (importOriginal) => ({ ...(await importOriginal<object>()), useExplainBatch: hooks.useExplainBatch }));
+vi.mock('../lib/hooks', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useExplainBatch: hooks.useExplainBatch,
+  useAddressLookup: () => hooks.lookup,
+  useTokenFacts: () => hooks.facts,
+}));
 vi.mock('../lib/api', async (importOriginal) => ({ ...(await importOriginal<object>()), call: api.call }));
 vi.mock('wxt/browser', () => ({ browser: { windows, runtime: { getURL: (p: string) => p, sendMessage: vi.fn() }, storage: { onChanged: { addListener() {}, removeListener() {} } } } }));
 
@@ -339,7 +348,7 @@ describe('Danger', () => {
     const reject = screen.getByRole('button', { name: 'Reject' });
     expect(reject.compareDocumentPosition(sign) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(reject.getAttribute('data-variant') ?? reject.className).toMatch(/primary/);
-    await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
+    await user.click(screen.getByRole('checkbox', { name: 'I understand this site is on a phishing list and I may lose funds' }));
     expect(sign.disabled).toBe(false);
     await user.click(reject);
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: false, log: expect.objectContaining({ dangerRules: ['phishing', 'owner-change'] }) }));
@@ -368,7 +377,7 @@ describe('Danger', () => {
       const sign = screen.getByRole('button', { name: 'Sign all 3 anyway' }) as HTMLButtonElement;
       expect(sign.disabled).toBe(true);
       expect(screen.getByRole('button', { name: 'Reject all' }).className).toMatch(/bg-primary/);
-      await user.click(screen.getByRole('checkbox', { name: 'I understand I may lose these funds' }));
+      await user.click(screen.getByRole('checkbox', { name: "I understand Clef can't show what this does" }));
       expect(sign.disabled).toBe(false);
       await user.click(sign);
       expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ approved: true, log: expect.objectContaining({ dangerRules: ['unexplained-step'] }) }));

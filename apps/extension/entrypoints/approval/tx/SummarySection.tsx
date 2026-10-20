@@ -1,7 +1,7 @@
 import type { ChangeView, TransferView } from '@clef/explain';
 import { Pubkey } from '../../../components';
 import { shortAddress } from '../../../lib/format';
-import { direction, displayAmount } from './model';
+import { depositNote, direction, displayAmount } from './model';
 
 const VERB: Record<TransferView['kind'], string> = { sol: 'sent', token: 'sent', create: 'funds new account', mint: 'minted', burn: 'burned' };
 
@@ -9,6 +9,7 @@ const VERB: Record<TransferView['kind'], string> = { sol: 'sent', token: 'sent',
 export function SummarySection({
   changes,
   fee,
+  deposits = null,
   transfers,
   transfersPartial,
   label,
@@ -16,6 +17,7 @@ export function SummarySection({
 }: {
   changes: ChangeView[] | null;
   fee: string | null;
+  deposits?: { amount: string; count: number } | null;
   transfers: TransferView[] | null;
   transfersPartial: boolean;
   label: (address: string) => string | undefined;
@@ -61,6 +63,12 @@ export function SummarySection({
           <div className="flex border-t border-line-soft px-3.5 py-1.5 text-muted">
             <span>Network fee</span>
             <span className="ml-auto tabular-nums">{fee}</span>
+          </div>
+        )}
+        {deposits && (
+          <div className="flex border-t border-line-soft px-3.5 py-1.5 text-muted" title={depositNote(deposits.count)}>
+            <span>Account deposits (refundable)</span>
+            <span className="ml-auto tabular-nums">{deposits.amount}</span>
           </div>
         )}
       </div>
