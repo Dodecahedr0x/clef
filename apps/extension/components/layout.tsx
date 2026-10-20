@@ -1,4 +1,5 @@
 import { cloneElement, useId, useState, type ReactElement, type ReactNode, type SyntheticEvent } from 'react';
+import { useCopy } from '../lib/a11y';
 import { shortAddress } from '../lib/format';
 import { Icon, type IconName } from './icons';
 import { TONE, type Tone } from './tone';
@@ -129,17 +130,12 @@ export function Avatar({ text, tone = 'neutral', size = 34, square = false, src 
  * clickable rows: the click is not passed on.
  */
 export function Pubkey({ value, className = '', prefix }: { value: string; className?: string; prefix?: string }) {
-  const [copied, setCopied] = useState(false);
+  const clip = useCopy(1200);
+  const copied = clip.copied;
   const copy = (e: SyntheticEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    void navigator.clipboard?.writeText(value).then(
-      () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
-      },
-      () => {},
-    );
+    clip.copy(value);
   };
   return (
     <span

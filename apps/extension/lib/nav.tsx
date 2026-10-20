@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { describeFocus, focusScreen, restoreFocus, type Opener } from './a11y';
 import type { Route } from '../entrypoints/popup/routes';
 
 export type { Route };
@@ -26,15 +27,46 @@ export function useOnboardingDraft(): OnboardingDraft {
   return draft;
 }
 
+type FocusIntent = { kind: 'forward' } | { kind: 'back'; opener: Opener };
+
 export function NavProvider({ initial, children }: { initial: Route; children: ReactNode }) {
   const [stack, setStack] = useState<Route[]>(() => [initial]);
+  // openers[i]: where focus was when stack[i + 1] was opened, to return there on Back.
+  const openers = useRef<Opener[]>([]);
+  const depth = useRef(1);
+  depth.current = stack.length;
+  const intent = useRef<FocusIntent | null>(null);
   const [secrets, setSecrets] = useState<{ password: string | null; mnemonic: string | null }>({ password: null, mnemonic: null });
 
-  const go = useCallback((r: Route) => setStack((s) => [...s, r]), []);
-  const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
-  const replace = useCallback((r: Route) => setStack((s) => [...s.slice(0, -1), r]), []);
-  const reset = useCallback((r: Route) => setStack([r]), []);
+  const go = useCallback((r: Route) => {
+    openers.current.push(describeFocus());
+    intent.current = { kind: 'forward' };
+    setStack((s) => [...s, r]);
+  }, []);
+  const back = useCallback(() => {
+    if (depth.current <= 1) return;
+    intent.current = { kind: 'back', opener: openers.current.pop() ?? null };
+    setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  }, []);
+  const replace = useCallback((r: Route) => {
+    intent.current = { kind: 'forward' };
+    setStack((s) => [...s.slice(0, -1), r]);
+  }, []);
+  const reset = useCallback((r: Route) => {
+    openers.current = [];
+    intent.current = { kind: 'forward' };
+    setStack([r]);
+  }, []);
   const route = stack[stack.length - 1] ?? initial;
+
+  // After the new screen mounted: focus its heading, or on Back what opened the screen we left.
+  useEffect(() => {
+    const i = intent.current;
+    intent.current = null;
+    if (!i) return;
+    if (i.kind === 'back') return restoreFocus(i.opener);
+    focusScreen();
+  }, [stack]);
   const nav = useMemo<Nav>(() => ({ route, go, back, replace, reset }), [route, go, back, replace, reset]);
 
   const set = useCallback((p: Partial<{ password: string; mnemonic: string }>) => setSecrets((d) => ({ ...d, ...p })), []);

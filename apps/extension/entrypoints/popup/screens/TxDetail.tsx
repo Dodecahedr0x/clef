@@ -7,6 +7,7 @@ import { shortAddress } from '../../../lib/format';
 import { useExplainLanded, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { explorerUrl } from '../../../lib/network';
+import { useCopy } from '../../../lib/a11y';
 import { BasicBody } from '../../approval/tx/BasicBody';
 import { ExpertBody } from '../../approval/tx/ExpertBody';
 import { IntermediateBody } from '../../approval/tx/IntermediateBody';
@@ -39,7 +40,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   const nav = useNav();
   const [level, setLevel] = useState<DetailLevel>(state.settings.detailLevel);
   const [tab, setTab] = useState<Tab>('all');
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyText } = useCopy();
   const result = useExplainLanded(signature, level);
   const expert = level === 'expert';
 
@@ -89,9 +90,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
     );
   }
 
-  const copy = () => {
-    void navigator.clipboard?.writeText(signature).then(() => setCopied(true), () => {});
-  };
+  const copy = () => copyText(signature, 'signature');
 
   return (
     <ExplainSource.Provider value="chain">

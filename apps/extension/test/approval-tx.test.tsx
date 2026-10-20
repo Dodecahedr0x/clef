@@ -423,6 +423,13 @@ describe('Danger', () => {
     await waitFor(() => expect(api.call).toHaveBeenCalledWith({ type: 'idls:add', programId: RAY_PROG, network: 'mainnet', json: '{"address":"x"}' }));
   });
 
+  it('announces the simulation result when the spinner goes', async () => {
+    const danger = { rule: 'owner-change', severity: 'danger', message: 'Makes 5Qz8…uN4d the owner of your USDC account.' };
+    explainWith((level) => batchView(level, 3, { warnings: [danger] }));
+    setup('basic');
+    await waitFor(() => expect(document.querySelector('[data-testid="announcer"]')?.textContent).toMatch(/^Simulation complete: 1 danger\./));
+  });
+
   it('nothing can be signed while the explanation loads', () => {
     hooks.useExplainBatch.mockImplementation(() => ({ status: 'loading' }));
     setup('basic');

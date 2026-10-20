@@ -205,6 +205,17 @@ test('MAX on SOL sends everything but the fee and empties the account', async ({
 
   await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'Send' }).click();
   await expect(popup.getByText(/Balance 10/)).toBeVisible({ timeout: 30_000 });
+  // Keyboard: the new screen's heading has focus; the token picker is modal, Escape closes it, focus goes back.
+  await expect(popup.getByRole('heading', { name: 'Send', level: 1 })).toBeFocused();
+  const chooser = popup.getByRole('button', { name: 'Choose token' });
+  await chooser.focus();
+  await popup.keyboard.press('Enter');
+  const picker = popup.getByRole('dialog', { name: 'Choose token' });
+  await expect(picker).toBeVisible();
+  await expect.poll(() => picker.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+  await popup.keyboard.press('Escape');
+  await expect(picker).toHaveCount(0);
+  await expect(chooser).toBeFocused();
   await popup.getByRole('textbox', { name: 'To' }).fill(to);
   await popup.getByRole('button', { name: 'MAX' }).click();
   await expect(popup.getByRole('textbox', { name: 'Amount' })).toHaveValue('9.999995');

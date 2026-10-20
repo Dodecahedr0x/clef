@@ -475,6 +475,20 @@ describe('Send', () => {
     expect(screen.queryByText(/Pasting an address\?/)).toBeNull();
   });
 
+  it('field errors are tied to their fields and announced', () => {
+    m.route = { name: 'send' };
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '7' } });
+    const amount = screen.getByLabelText('Amount');
+    expect(amount.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(amount.getAttribute('aria-describedby')!.split(' ')[0]!)?.textContent).toBe('More than your balance');
+    expect(screen.getByText('More than your balance').getAttribute('role')).toBe('alert');
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'zzzz-not-an-address' } });
+    const to = screen.getByLabelText('To');
+    expect(to.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(to.getAttribute('aria-describedby')!)?.textContent).toBe('Not a Solana address');
+  });
+
   it('shows the paste hint before an address and rejects more than the balance', () => {
     m.route = { name: 'send' };
     render(<SendScreen />);

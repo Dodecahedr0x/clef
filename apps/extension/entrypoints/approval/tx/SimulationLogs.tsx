@@ -1,5 +1,6 @@
 import type { LogLineView } from '@clef/explain';
 import { useState, type ReactNode } from 'react';
+import { useCopy } from '../../../lib/a11y';
 import { useOnChain } from './source';
 import { withCu } from './model';
 
@@ -20,9 +21,10 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
   const simulated = groups.some((g) => g.logs !== null);
   const status = failed ? { text: 'Failed', cls: 'bg-danger-bg text-danger-ink-2' } : simulated ? { text: 'Succeeded', cls: 'bg-ok-bg text-ok-ink' } : { text: onChain ? 'No logs' : 'Not simulated', cls: 'bg-warn-bg text-warn-ink' };
 
+  const clip = useCopy();
   const copy = () => {
     const text = groups.flatMap((g) => [...(separators ? [`# Transaction ${g.index + 1} · ${g.title}`] : []), ...(g.logs ?? []).map((l) => l.text)]).join('\n');
-    void navigator.clipboard?.writeText(text);
+    clip.copy(text, 'logs');
   };
 
   let n = 0;
@@ -86,7 +88,7 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
           {chip('program', 'Program logs')}
           {chip('compute', 'Compute')}
           <button type="button" onClick={copy} className="h-[30px] rounded-lg border border-line bg-surface px-2.5 text-xs text-ink">
-            Copy
+            {clip.copied ? 'Copied' : 'Copy'}
           </button>
         </div>
       </div>

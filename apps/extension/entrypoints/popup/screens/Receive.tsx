@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, EmptyState, Icon, PopupScreen, QrCode } from '../../../components';
+import { useCopy } from '../../../lib/a11y';
 import { useActiveAccount, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 
@@ -14,7 +15,8 @@ export function ReceiveScreen() {
   const nav = useNav();
   const { state } = useWallet();
   const account = useActiveAccount();
-  const [copied, setCopied] = useState(false);
+  const clip = useCopy();
+  const copied = clip.copied;
 
   if (!account) {
     return (
@@ -27,11 +29,7 @@ export function ReceiveScreen() {
   const groups = addressGroups(account.address);
   const network = state ? NETWORK_NAME[state.settings.network] : 'Mainnet';
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(account.address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const copy = async () => clip.copy(account.address, 'address');
   const share = async () => {
     if (typeof navigator.share === 'function') await navigator.share({ text: account.address }).catch(() => undefined);
     else await copy();

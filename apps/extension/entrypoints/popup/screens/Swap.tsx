@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SwapQuote } from '@clef/market';
 import { tokenAccountRent, WALLET_RENT_MIN } from '@clef/portfolio';
-import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Segmented, Spinner } from '../../../components';
+import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Segmented, Sheet, Spinner } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
@@ -98,13 +98,7 @@ function Picker({
   const local = options.filter((o) => !q || `${o.symbol} ${o.name}`.toLowerCase().includes(q.toLowerCase()));
   const list: (TokenMeta & { balance?: string })[] = found ? [...local, ...found.filter((f) => !local.some((l) => jupMint(l.mint) === f.mint))] : local;
   return (
-    <div role="dialog" aria-label={title} className="absolute inset-0 z-10 bg-bg flex flex-col">
-      <div className="h-14 px-4 flex items-center border-b border-line-soft">
-        <h2 className="m-0 text-[18px] font-semibold">{title}</h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="ml-auto w-11 h-11 flex items-center justify-center bg-transparent border-0">
-          <Icon name="close" size={20} />
-        </button>
-      </div>
+    <Sheet title={title} onClose={onClose}>
       {search && (
         <div className="px-4 pt-3">
           <input
@@ -130,7 +124,7 @@ function Picker({
           </li>
         ))}
       </ul>
-    </div>
+    </Sheet>
   );
 }
 
@@ -350,6 +344,8 @@ export function SwapScreen() {
                 inputMode="decimal"
                 autoComplete="off"
                 onChange={(e) => setAmountText(e.target.value)}
+                aria-invalid={tooMuch || undefined}
+                aria-describedby={tooMuch ? 'swap-pay-error' : undefined}
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[30px] font-semibold tracking-[-0.02em] tabular-nums"
               />
               <TokenButton h={inMeta} label="Choose token to pay" onClick={() => setPicking('in')} />
@@ -383,7 +379,11 @@ export function SwapScreen() {
           </section>
         </div>
 
-        {tooMuch && <span className="mt-2 text-[12px] text-danger-text">More than your balance</span>}
+        {tooMuch && (
+          <span id="swap-pay-error" role="alert" className="mt-2 text-[12px] text-danger-text">
+            More than your balance
+          </span>
+        )}
 
         {err && (
           <div className="mt-3.5">

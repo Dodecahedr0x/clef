@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAddress, type Address } from '@solana/kit';
 import type { Contact } from '@clef/wallet-core';
 import { buildSendTransaction, classifyRecipient, hasTokenAccount, maxSolSend, sendCosts, tokenAccountRent, WALLET_RENT_MIN, type Holding, type RecipientKind, type SendProblem } from '@clef/portfolio';
-import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Sheet, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
@@ -56,13 +56,7 @@ const RECIPIENT_NOTE: Partial<Record<RecipientKind, { severity: 'warn' | 'danger
 
 function TokenPicker({ holdings, onPick, onClose }: { holdings: Holding[]; onPick: (mint: string) => void; onClose: () => void }) {
   return (
-    <div role="dialog" aria-label="Choose token" className="absolute inset-0 z-10 bg-bg flex flex-col">
-      <div className="h-14 px-4 flex items-center border-b border-line-soft">
-        <h2 className="m-0 text-[18px] font-semibold">Choose token</h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="ml-auto w-11 h-11 flex items-center justify-center bg-transparent border-0">
-          <Icon name="close" size={20} />
-        </button>
-      </div>
+    <Sheet title="Choose token" onClose={onClose}>
       <ul className="list-none m-0 p-2 overflow-y-auto">
         {holdings.map((h) => (
           <li key={h.mint}>
@@ -77,7 +71,7 @@ function TokenPicker({ holdings, onPick, onClose }: { holdings: Holding[]; onPic
           </li>
         ))}
       </ul>
-    </div>
+    </Sheet>
   );
 }
 
@@ -201,6 +195,10 @@ export function SendScreen() {
   const canReview =
     !!account && !!h && !!to && amount !== null && amount > 0n && !tooMuch && !busy && kind !== 'checking' && hasAccount !== 'checking' && !costs?.problem && to !== account.address;
 
+  const amountError = tooMuch ? 'More than your balance' : amountText && amount === null ? 'Enter a valid amount' : null;
+  const toError =
+    toText && !picked && !to && suggestions.length === 0 ? 'Not a Solana address' : to && to === account?.address ? 'This is the sending account' : null;
+
   const max = () => {
     if (!h) return;
     setAmountText(unitsToInput(h.program === 'native' ? maxSolSend(h.amount) : h.amount, h.decimals));
@@ -269,6 +267,8 @@ export function SendScreen() {
                 inputMode="decimal"
                 autoComplete="off"
                 onChange={(e) => setAmountText(e.target.value)}
+                aria-invalid={amountError || costs?.problem ? true : undefined}
+                aria-describedby={[amountError && 'send-amount-error', costs?.problem && 'send-cost-problem'].filter(Boolean).join(' ') || undefined}
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[32px] font-semibold tracking-[-0.02em] tabular-nums"
               />
               <TokenButton h={h} label="Choose token" onClick={() => setPicking(true)} />
@@ -281,8 +281,11 @@ export function SendScreen() {
               </button>
             </div>
           </div>
-          {tooMuch && <span className="text-[12px] text-danger-text">More than your balance</span>}
-          {amountText && amount === null && <span className="text-[12px] text-danger-text">Enter a valid amount</span>}
+          {amountError && (
+            <span id="send-amount-error" role="alert" className="text-[12px] text-danger-text">
+              {amountError}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -298,6 +301,8 @@ export function SendScreen() {
                 setPicked(null);
                 setToText(e.target.value);
               }}
+              aria-invalid={toError ? true : undefined}
+              aria-describedby={toError ? 'send-to-error' : undefined}
               className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[14px]"
             />
             {kind === 'checking' && <Spinner size={14} />}
@@ -331,8 +336,11 @@ export function SendScreen() {
               <Pubkey value={picked.address} /> · {picked.source}
             </span>
           )}
-          {toText && !picked && !to && suggestions.length === 0 && <span className="text-[12px] text-danger-text">Not a Solana address</span>}
-          {to && to === account?.address && <span className="text-[12px] text-danger-text">This is the sending account</span>}
+          {toError && (
+            <span id="send-to-error" role="alert" className="text-[12px] text-danger-text">
+              {toError}
+            </span>
+          )}
         </div>
 
         {note ? (
@@ -348,7 +356,7 @@ export function SendScreen() {
               Network fee {sol(costs.fee)} SOL
               {costs.deposit > 0n && ` · ${sol(costs.deposit)} SOL deposit to open their ${h.symbol} account`}
             </span>
-            {costs.problem && <span role="alert" className="text-danger-text">{problemText(costs.problem, asset, h.symbol, costs.deposit)}</span>}
+            {costs.problem && <span id="send-cost-problem" role="alert" className="text-danger-text">{problemText(costs.problem, asset, h.symbol, costs.deposit)}</span>}
           </div>
         )}
         {error && <ErrorNote text={error} onRpc={() => nav.go({ name: 'settings/network' })} />}

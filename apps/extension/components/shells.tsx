@@ -28,7 +28,12 @@ export function PopupScreen({
         <header className={`flex h-14 flex-none items-center gap-1 pr-3 ${onBack || onClose ? 'pl-1.5' : 'pl-4'} ${title !== undefined ? 'border-b border-line-soft' : ''}`}>
           {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="text-ink" />}
           {onClose && !onBack && <IconButton label="Close" icon="close" onClick={onClose} className="text-ink" />}
-          {title !== undefined && <h1 className="m-0 truncate text-[18px] font-semibold">{title}</h1>}
+          {title !== undefined && (
+            // Takes focus when the screen opens (lib/a11y focusScreen); not a stop in the tab order.
+            <h1 tabIndex={-1} className="m-0 truncate text-[18px] font-semibold outline-none">
+              {title}
+            </h1>
+          )}
           {right && <div className="ml-auto flex items-center gap-2">{right}</div>}
         </header>
       )}

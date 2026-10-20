@@ -2,6 +2,7 @@ import type { AccountFactView, BatchView, ExplainedBatch, ExpertView, RelationEd
 import { useMemo, useState, type MouseEvent } from 'react';
 import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
+import { useCopy } from '../../../lib/a11y';
 import { shortAddress } from '../../../lib/format';
 import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
 import { Summary, TxTabs, WarningsTable } from './parts';
@@ -71,13 +72,8 @@ function graphInput(view: BatchView<'expert'>, state: FullState): GraphInput {
 
 /** A detail value that copies its full form (an address or hash shown shortened) on click. */
 function CopyValue({ text, value, label }: { text: string; value: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    void navigator.clipboard?.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }, () => {});
-  };
+  const { copied, copy: copyText } = useCopy();
+  const copy = () => copyText(value, label.toLowerCase());
   return (
     <button type="button" onClick={copy} title={`Copy ${value}`} aria-label={`Copy ${label.toLowerCase()} ${value}`} className="inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-left font-mono text-xs text-ink hover:text-primary">
       {text}

@@ -7,6 +7,7 @@ import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useApprovalHost } from '../../../lib/approval-host';
 import { clusterOfChain } from '../../../lib/network';
+import { announce, useCopy } from '../../../lib/a11y';
 import { useExplainBatch } from '../../../lib/hooks';
 import { BasicBody } from './BasicBody';
 import { ExpertBody } from './ExpertBody';
@@ -49,6 +50,7 @@ export function TxApproval({
   // A fresh array re-runs the explanation (Re-simulate).
   const wires = useMemo(() => [...request.transactions], [request.transactions, nonce]);
   const result = useExplainBatch(wires, level);
+  const raw = useCopy();
   const n = request.transactions.length;
   const host = useApprovalHost();
   // "Add IDL" on an undecodable instruction: confirm first (a site can hand over a file that hides a danger),
@@ -93,6 +95,19 @@ export function TxApproval({
     ...warnings.filter((w) => w.severity === 'danger').map((w) => `${w.rule}\u0000${w.message}`),
   ];
   const ack = acked !== null && dangerKeys.every((k) => acked.includes(k));
+
+  // The spinner is replaced silently: say what came of the simulation (once per explanation).
+  useEffect(() => {
+    if (result.status === 'failed') return announce('Clef could not explain this request. Signing what you cannot see can lose funds.');
+    if (!view) return;
+    const dangers = dangerKeys.length;
+    const others = warnings.filter((w) => w.severity !== 'danger').length;
+    announce(
+      dangers
+        ? `Simulation complete: ${dangers} ${dangers === 1 ? 'danger' : 'dangers'}. Read them before signing.`
+        : `Simulation complete${others ? `: ${others} ${others === 1 ? 'warning' : 'warnings'}` : ', no warnings'}.`,
+    );
+  }, [result.status, view]);
   const canSign = (ready || result.status === 'failed') && (!danger || ack) && !busy;
 
   // What the user saw, for the local request log (validated again by the background).
@@ -142,8 +157,8 @@ export function TxApproval({
   const approveLabel = `${n > 1 ? `Sign all ${n}` : 'Sign'}${danger ? ' anyway' : ''}`;
   const extra = expert ? (
     <div className="flex gap-2.5">
-      <Button variant="secondary" size="md" onClick={() => void navigator.clipboard?.writeText(request.transactions.map(toBase64).join('\n'))}>
-        Copy raw
+      <Button variant="secondary" size="md" onClick={() => raw.copy(request.transactions.map(toBase64).join('\n'), 'raw transactions')}>
+        {raw.copied ? 'Copied' : 'Copy raw'}
       </Button>
       <Button variant="secondary" size="md" disabled={busy} onClick={() => setNonce((x) => x + 1)}>
         Re-simulate
