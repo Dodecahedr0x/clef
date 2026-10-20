@@ -162,6 +162,20 @@ describe('AddAccount', () => {
   });
 });
 
+describe('no recovery phrase (started from a private key or watch-only)', () => {
+  it('New account first creates a phrase, shown and checked', async () => {
+    (h.state as { phrases?: number }).phrases = 0;
+    const user = userEvent.setup();
+    render(<AddAccountScreen />);
+    const news = screen.getAllByRole('button', { name: /New account/ });
+    expect(news).toHaveLength(1);
+    expect(news[0]!.textContent).toContain('Create a recovery phrase for new accounts');
+    await user.click(news[0]!);
+    expect(h.nav.go).toHaveBeenCalledWith({ name: 'accounts/new-phrase' });
+    expect(h.call).not.toHaveBeenCalled();
+  });
+});
+
 describe('several recovery phrases', () => {
   const ZOO0 = 'Sysvar1111111111111111111111111111111111111';
   beforeEach(() => {

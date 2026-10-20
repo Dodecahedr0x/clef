@@ -45,9 +45,12 @@ export function AddAccountScreen() {
   };
 
   const options: Option[] = [
-    ...(phrases > 1
+    // A wallet started from a private key or watch-only has no phrase yet: the first new account makes one, shown and checked.
+    ...(phrases === 0
+      ? [{ mark: '+', title: 'New account', desc: 'Create a recovery phrase for new accounts', tint: 'bg-primary-bg text-primary', run: () => nav.go({ name: 'accounts/new-phrase' }) }]
+      : phrases > 1
       ? Array.from({ length: phrases }, (_, i) => ({ mark: '+', title: 'New account', desc: `Next address from Recovery phrase ${i + 1}`, tint: 'bg-primary-bg text-primary', run: () => newAccount(i + 1) }))
-      : [{ mark: '+', title: 'New account', desc: 'Next address from your recovery phrase', tint: 'bg-primary-bg text-primary', run: () => newAccount() }]),
+        : [{ mark: '+', title: 'New account', desc: 'Next address from your recovery phrase', tint: 'bg-primary-bg text-primary', run: () => newAccount() }]),
     { mark: '↓', title: 'Import', desc: 'Another recovery phrase or a private key', tint: 'bg-surface-2 text-ink', run: () => nav.go({ name: 'import' }) },
     ...(HARDWARE_ENABLED
       ? [

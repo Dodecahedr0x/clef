@@ -42,6 +42,13 @@ describe('Security reveal with several recovery phrases', () => {
     expect(within(words).getAllByText('zoo')).toHaveLength(11);
   });
 
+  it('says so when the wallet has no phrase, with nothing to reveal', () => {
+    withPhrases(0);
+    render(<SecurityScreen />);
+    expect(screen.getByText(/This wallet has no recovery phrase/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reveal recovery phrase' })).toBeNull();
+  });
+
   it('does not ask when the wallet holds one phrase', async () => {
     withPhrases(1);
     const user = userEvent.setup();

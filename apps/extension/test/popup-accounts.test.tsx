@@ -172,6 +172,38 @@ describe('ConfirmPhrase', () => {
   });
 });
 
+describe('A first recovery phrase for a wallet without one', () => {
+  it('shows the phrase as step 1 of 2 and goes on to the check', async () => {
+    const user = userEvent.setup();
+    setState({ hasVault: true });
+    h.nav.route = { name: 'accounts/new-phrase' };
+    h.draft.mnemonic = GEN;
+    render(<RecoveryPhraseScreen />);
+    expect(screen.getByText(/New accounts come from this phrase/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'I wrote them down' }));
+    expect(h.nav.go).toHaveBeenCalledWith({ name: 'accounts/confirm-phrase' });
+  });
+
+  it('after the check, adds the phrase with its first account to the unlocked wallet', async () => {
+    const user = userEvent.setup();
+    setState({ hasVault: true });
+    h.nav.route = { name: 'accounts/confirm-phrase' };
+    h.draft.mnemonic = GEN;
+    h.call.mockResolvedValue({});
+    render(<ConfirmPhraseScreen />);
+    const words = GEN.split(' ');
+    const positions = screen.getByText(/Pick words \d+, \d+ and \d+/).textContent!.match(/\d+/g)!.map(Number);
+    for (const pos of positions) {
+      await user.click(within(screen.getByRole('group', { name: `Choose word ${pos}` })).getByRole('button', { name: words[pos - 1]! }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:importMnemonic', mnemonic: GEN, indexes: [0] }));
+    expect(h.call.mock.calls.some(([c]) => c.type === 'vault:create')).toBe(false);
+    expect(h.draft.clear).toHaveBeenCalled();
+    expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' });
+  });
+});
+
 describe('Import', () => {
   beforeEach(() => {
     h.draft.password = 'a-long-passphrase';
@@ -260,15 +292,37 @@ describe('Import', () => {
     expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' });
   });
 
-  it('private key tab: creates a vault with a fresh phrase and no HD account, then imports the key', async () => {
+  it('private key tab: creates the vault from that key alone, never with a phrase the user has not seen', async () => {
     const user = userEvent.setup();
     render(<ImportScreen />);
     await user.click(screen.getByRole('radio', { name: 'Private key' }));
     await user.type(screen.getByLabelText('Private key'), 'SECRET');
     await user.click(screen.getByRole('button', { name: 'Import account' }));
-    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'accounts:import', secretKey: 'SECRET' }));
-    expect(h.call).toHaveBeenCalledWith({ type: 'vault:create', password: 'a-long-passphrase', mnemonic: GEN, indexes: [] });
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'vault:create', password: 'a-long-passphrase', secretKey: 'SECRET' }));
+    expect(h.call.mock.calls.some(([c]) => c.type === 'mnemonic:generate' || c.type === 'accounts:import')).toBe(false);
     expect(h.nav.reset).toHaveBeenCalledWith({ name: 'home' });
+  });
+
+  it('private key tab: a rejected key at onboarding stays on the form', async () => {
+    const user = userEvent.setup();
+    h.call.mockRejectedValueOnce(new Error('Invalid secret key: expected 64 bytes'));
+    render(<ImportScreen />);
+    await user.click(screen.getByRole('radio', { name: 'Private key' }));
+    await user.type(screen.getByLabelText('Private key'), 'notakey');
+    await user.click(screen.getByRole('button', { name: 'Import account' }));
+    expect(await screen.findByText('Invalid secret key: expected 64 bytes')).toBeTruthy();
+    expect(h.call.mock.calls.filter(([c]) => c.type === 'vault:create')).toHaveLength(1);
+    expect(h.nav.reset).not.toHaveBeenCalled();
+  });
+
+  it('watch-only tab at onboarding creates the vault with the watched address and no phrase', async () => {
+    const user = userEvent.setup();
+    render(<ImportScreen />);
+    await user.click(screen.getByRole('radio', { name: 'Watch-only' }));
+    await user.type(screen.getByLabelText('Address'), WATCH);
+    await user.click(screen.getByRole('button', { name: 'Watch address' }));
+    await waitFor(() => expect(h.call).toHaveBeenCalledWith({ type: 'vault:create', password: 'a-long-passphrase', watch: { address: WATCH, label: 'Watch' } }));
+    expect(h.call.mock.calls.some(([c]) => c.type === 'mnemonic:generate' || c.type === 'accounts:watch')).toBe(false);
   });
 
   it('private key tab with an existing wallet only imports', async () => {

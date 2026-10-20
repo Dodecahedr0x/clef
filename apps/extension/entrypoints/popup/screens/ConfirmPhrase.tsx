@@ -39,6 +39,7 @@ export function ConfirmPhraseScreen() {
   const { refresh } = useWallet();
   const nav = useNav();
   const draft = useOnboardingDraft();
+  const adding = nav.route.name === 'accounts/confirm-phrase';
   const words = useMemo(() => draft.mnemonic?.split(' ') ?? [], [draft.mnemonic]);
   const quiz = useMemo(() => (words.length ? makeQuiz(words) : []), [words]);
   const [done, setDone] = useState(0);
@@ -57,16 +58,18 @@ export function ConfirmPhraseScreen() {
   };
 
   const finish = async () => {
-    if (!complete || !draft.password || !draft.mnemonic) return;
+    if (!complete || !draft.mnemonic || (!adding && !draft.password)) return;
     setBusy(true);
     setError(null);
     try {
-      await call({ type: 'vault:create', password: draft.password, mnemonic: draft.mnemonic });
+      // Adding: the phrase joins the unlocked vault with its first account.
+      if (adding) await call({ type: 'accounts:importMnemonic', mnemonic: draft.mnemonic, indexes: [0] });
+      else await call({ type: 'vault:create', password: draft.password, mnemonic: draft.mnemonic });
       draft.clear();
       await refresh(); // the router must see the new vault before it routes home
       nav.reset({ name: 'home' });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create the wallet');
+      setError(e instanceof Error ? e.message : adding ? 'Could not add the phrase' : 'Could not create the wallet');
       setBusy(false);
     }
   };
@@ -74,7 +77,7 @@ export function ConfirmPhraseScreen() {
   const n = quiz.map((q) => q.pos + 1);
   return (
     <OnboardingFrame>
-      <OnboardingHeader step={3} />
+      {adding ? <OnboardingHeader step={2} total={2} /> : <OnboardingHeader step={3} />}
       <h1 className="mt-2 text-[24px] font-semibold tracking-[-0.02em]">Check your copy</h1>
       <p className="mt-2 text-[14px] leading-normal text-muted">Pick words {n[0]}, {n[1]} and {n[2]} from what you wrote down.</p>
       <div className="mt-5 flex flex-col gap-2 font-mono text-[14px]">
@@ -112,7 +115,7 @@ export function ConfirmPhraseScreen() {
         </div>
       )}
       {error && <p className="mt-3 text-[12px] text-danger-text">{error}</p>}
-      <Button block className="mt-auto" disabled={!complete || busy} onClick={finish}>{busy ? 'Encrypting…' : 'Finish setup'}</Button>
+      <Button block className="mt-auto" disabled={!complete || busy} onClick={finish}>{busy ? 'Encrypting…' : adding ? 'Create account' : 'Finish setup'}</Button>
     </OnboardingFrame>
   );
 }

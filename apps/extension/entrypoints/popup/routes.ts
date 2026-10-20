@@ -16,6 +16,9 @@ export type Route =
   | { name: 'accounts' }
   | { name: 'accounts/add' }
   | { name: 'accounts/squads' }
+  /** A first recovery phrase for a wallet started from a private key or watch-only: shown, then checked. */
+  | { name: 'accounts/new-phrase' }
+  | { name: 'accounts/confirm-phrase' }
   | { name: 'proposals'; multisig: string }
   | { name: 'welcome' }
   | { name: 'create-password'; next: 'create' | 'import' }

@@ -186,10 +186,29 @@ export class InternalApi {
       case 'state':
         return this.state();
       case 'vault:create': {
-        // [] (onboarding by private key or watch-only) keeps the phrase without accounts
-        const unique = Array.isArray(raw.indexes) && raw.indexes.length === 0 ? [] : indexesField(raw, [0]);
-        const secretIds = await vault.create(field(raw, 'password'), [{ kind: 'mnemonic', phrase: field(raw, 'mnemonic') }]);
-        for (const index of unique) await this.addHdAccount(secretIds[0]!, index);
+        const password = field(raw, 'password');
+        if (raw.secretKey !== undefined) {
+          // Onboarding by private key: the vault holds that key alone. No recovery phrase until the user makes one.
+          const { address, privateKey } = await parseSecretKey(field(raw, 'secretKey'));
+          try {
+            const [secretId] = await vault.create(password, [{ kind: 'keypair', privateKey }]);
+            await accounts.add({ kind: 'imported', address, label: 'Imported 1', secretId: secretId! });
+          } finally {
+            zeroize(privateKey);
+          }
+        } else if (raw.watch !== undefined) {
+          // Onboarding watch-only: an empty vault (it still holds the password) and the watched address.
+          const watch = isObj(raw.watch) ? raw.watch : {};
+          const address = addressField(watch, 'address');
+          const label = optField(watch, 'label', 32)?.trim() || 'Watch';
+          await vault.create(password, []);
+          await accounts.add({ kind: 'watch', address, label });
+        } else {
+          // [] (onboarding by phrase, its accounts imported next on the chosen path) keeps the phrase without accounts
+          const unique = Array.isArray(raw.indexes) && raw.indexes.length === 0 ? [] : indexesField(raw, [0]);
+          const secretIds = await vault.create(password, [{ kind: 'mnemonic', phrase: field(raw, 'mnemonic') }]);
+          for (const index of unique) await this.addHdAccount(secretIds[0]!, index);
+        }
         await this.deps.onUnlock();
         return {};
       }

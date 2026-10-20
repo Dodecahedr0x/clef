@@ -44,12 +44,15 @@ export function ImportScreen() {
     if (state && !state.hasVault && !draft.password) nav.replace({ name: 'create-password', next: 'import' });
   }, [state, draft.password, nav]);
 
-  // Without a vault yet, the password from the previous step creates one; key and watch-only imports get a fresh phrase.
-  const ensureVault = async (mnemonic?: string, indexes: number[] = []) => {
-    if (hasVault) return;
+  // Without a vault yet, the password from the previous step creates one from what is imported: a phrase, a key, or
+  // (watch-only) nothing. Never a phrase the user hasn't seen; a bad key or address creates no wallet.
+  const password = () => {
     if (!draft.password) throw new Error('Set a password first');
-    const phrase = mnemonic ?? (await call<{ mnemonic: string }>({ type: 'mnemonic:generate' })).mnemonic;
-    await call({ type: 'vault:create', password: draft.password, mnemonic: phrase, indexes });
+    return draft.password;
+  };
+  const ensureVault = async (mnemonic: string, indexes: number[] = []) => {
+    if (hasVault) return;
+    await call({ type: 'vault:create', password: password(), mnemonic, indexes });
   };
 
   const run = async (work: () => Promise<void>) => {
@@ -91,12 +94,12 @@ export function ImportScreen() {
       </div>
       {tab === 'phrase' && <PhraseTab hasVault={hasVault} busy={busy} error={error} run={run} ensureVault={ensureVault} rpc={state?.settings ?? null} />}
       {tab === 'key' && <KeyTab busy={busy} error={error} onImport={(secretKey) => run(async () => {
-        await ensureVault();
-        await call({ type: 'accounts:import', secretKey });
+        if (hasVault) await call({ type: 'accounts:import', secretKey });
+        else await call({ type: 'vault:create', password: password(), secretKey });
       })} />}
       {tab === 'watch' && <WatchTab busy={busy} error={error} onWatch={(address, label) => run(async () => {
-        await ensureVault();
-        await call({ type: 'accounts:watch', address, label });
+        if (hasVault) await call({ type: 'accounts:watch', address, label });
+        else await call({ type: 'vault:create', password: password(), watch: { address, label } });
       })} />}
     </div>
   );
@@ -109,7 +112,7 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
   busy: boolean;
   error: string | null;
   run: (work: () => Promise<void>) => Promise<void>;
-  ensureVault: (mnemonic?: string, indexes?: number[]) => Promise<void>;
+  ensureVault: (mnemonic: string, indexes?: number[]) => Promise<void>;
   rpc: Settings | null;
 }) {
   const [text, setText] = useState('');

@@ -135,13 +135,20 @@ function ChangePassword() {
 
 export function SecurityScreen() {
   const nav = useNav();
+  const phrases = useWallet().state?.phrases;
   return (
     <PopupScreen title="Password & recovery phrase" onBack={nav.back} scroll>
       <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
         <SectionLabel>Recovery phrase</SectionLabel>
         <ListGroup>
           <div className="p-3">
-            <RevealPhrase />
+            {phrases === 0 ? (
+              <p className="m-0 text-[12px] leading-[1.45] text-muted">
+                This wallet has no recovery phrase. Your imported keys are backed up only by your own copies of them. Add account → New account creates a phrase.
+              </p>
+            ) : (
+              <RevealPhrase />
+            )}
           </div>
         </ListGroup>
         <div className="mt-4">

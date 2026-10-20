@@ -1,5 +1,5 @@
 import { deriveEd25519, MemoryStore, mnemonicToSeed, Vault, WrongPasswordError } from '@clef/vault';
-import { createKeyPairSignerFromPrivateKeyBytes, getAddressEncoder, type Address } from '@solana/kit';
+import { createKeyPairSignerFromPrivateKeyBytes, getAddressEncoder, getBase58Decoder, type Address } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 import { AccountStore, InternalApi, keyRef, PermissionStore, SettingsStore, type Account, type FullWalletState } from '../src';
 import { A, ABANDON, FAST } from './fixture';
@@ -152,12 +152,39 @@ describe('InternalApi with several recovery phrases', () => {
     }
   });
 
-  it('onboarding by key keeps a phrase without accounts; an imported phrase becomes phrase 2', async () => {
+  it('onboarding by phrase can keep it without accounts until they are imported on the chosen path', async () => {
     const { call, state } = api();
     await call('vault:create', { password: PASSWORD, mnemonic: ABANDON, indexes: [] });
     expect(await state()).toMatchObject({ phrases: 1, accounts: [] });
     expect(await call('accounts:importMnemonic', { mnemonic: ZOO, indexes: [0] })).toEqual({ phrase: 2 });
     expect((await state()).accounts).toMatchObject([{ phrase: 2, index: 0 }]);
+  });
+
+  it('onboarding by private key holds that key alone: no recovery phrase; an imported phrase is phrase 1', async () => {
+    const { call, state, vault } = api();
+    const key = getBase58Decoder().decode(new Uint8Array([...deriveEd25519(await mnemonicToSeed(ZOO), [44, 501, 0, 0]), ...getAddressEncoder().encode(await addressFor(ZOO, [44, 501, 0, 0]))]));
+    await call('vault:create', { password: PASSWORD, secretKey: key });
+    expect(await state()).toMatchObject({ unlocked: true, phrases: 0, accounts: [{ kind: 'imported', label: 'Imported 1', address: await addressFor(ZOO, [44, 501, 0, 0]) }] });
+    expect((await vault.list()).map((s) => s.kind)).toEqual(['keypair']);
+    await expect(call('accounts:derive', {})).rejects.toThrow('No recovery phrase in this wallet');
+    expect(await call('accounts:importMnemonic', { mnemonic: ABANDON, indexes: [0] })).toEqual({ phrase: 1 });
+  });
+
+  it('onboarding watch-only creates an empty vault and the watched account', async () => {
+    const { call, state, vault } = api();
+    await call('vault:create', { password: PASSWORD, watch: { address: A } });
+    expect(await state()).toMatchObject({ unlocked: true, phrases: 0, accounts: [{ kind: 'watch', address: A, label: 'Watch' }] });
+    expect(await vault.list()).toEqual([]);
+    await call('vault:lock');
+    await call('vault:unlock', { password: PASSWORD });
+    expect(await state()).toMatchObject({ unlocked: true, phrases: 0 });
+  });
+
+  it('an invalid key or address at onboarding creates no wallet', async () => {
+    const { call, state } = api();
+    await expect(call('vault:create', { password: PASSWORD, secretKey: 'notakey' })).rejects.toThrow();
+    await expect(call('vault:create', { password: PASSWORD, watch: { address: 'nope' } })).rejects.toThrow();
+    expect(await state()).toMatchObject({ hasVault: false, accounts: [] });
   });
 
   it('re-importing a phrase whose keys the old flow stored as imported upgrades them to HD accounts', async () => {

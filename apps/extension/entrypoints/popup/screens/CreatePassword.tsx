@@ -4,12 +4,12 @@ import { useNav, useOnboardingDraft } from '../../../lib/nav';
 
 export const MIN_PASSWORD = 8;
 
-export function OnboardingHeader({ step }: { step: number }) {
+export function OnboardingHeader({ step, total = 3 }: { step: number; total?: number }) {
   const nav = useNav();
   return (
     <header className="-mx-3.5 flex h-14 flex-none items-center gap-1">
       <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
-      <div className="ml-auto mr-3.5"><StepDots total={3} current={step} /></div>
+      <div className="ml-auto mr-3.5"><StepDots total={total} current={step} /></div>
     </header>
   );
 }

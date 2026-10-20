@@ -53,6 +53,8 @@ const SCREENS: Record<RouteName, () => JSX.Element> = {
   'create-password': CreatePasswordScreen,
   'recovery-phrase': RecoveryPhraseScreen,
   'confirm-phrase': ConfirmPhraseScreen,
+  'accounts/new-phrase': RecoveryPhraseScreen,
+  'accounts/confirm-phrase': ConfirmPhraseScreen,
   import: ImportScreen,
   unlock: UnlockScreen,
 };
