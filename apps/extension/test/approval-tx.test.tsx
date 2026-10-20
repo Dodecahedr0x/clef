@@ -211,12 +211,12 @@ describe('Expert', () => {
     await waitFor(() => expect(windows.update).toHaveBeenCalledWith(7, { width: 760 }));
     const rail = screen.getByRole('navigation', { name: 'Transaction sections' });
     const links = within(rail).getAllByRole('link');
-    expect(links.map((l) => l.getAttribute('href'))).toEqual(['#exp-changes', '#exp-rel', '#exp-instr', '#exp-logs', '#exp-details']);
-    expect(links[0]!.getAttribute('aria-label')).toBe('State changes · 3');
-    expect(within(links[0]!).getByText('3')).toBeTruthy();
-    for (const tip of ['Account relationships', 'Instructions', 'Simulation logs', 'Transaction details']) expect(within(rail).getByRole('link', { name: tip })).toBeTruthy();
-    expect(within(rail).getAllByRole('tooltip').map((t) => t.textContent)).toEqual(['State changes · 3', 'Account relationships', 'Instructions', 'Simulation logs', 'Transaction details']);
-    for (const id of ['exp-changes', 'exp-rel', 'exp-instr', 'exp-logs', 'exp-details']) expect(document.getElementById(id)).toBeTruthy();
+    expect(links.map((l) => l.getAttribute('href'))).toEqual(['#exp-summary', '#exp-changes', '#exp-rel', '#exp-instr', '#exp-logs', '#exp-details']);
+    expect(links[1]!.getAttribute('aria-label')).toBe('State changes · 3');
+    expect(within(links[1]!).getByText('3')).toBeTruthy();
+    for (const tip of ['Summary', 'Account relationships', 'Instructions', 'Simulation logs', 'Transaction details']) expect(within(rail).getByRole('link', { name: tip })).toBeTruthy();
+    expect(within(rail).getAllByRole('tooltip').map((t) => t.textContent)).toEqual(['Summary', 'State changes · 3', 'Account relationships', 'Instructions', 'Simulation logs', 'Transaction details']);
+    for (const id of ['exp-summary', 'exp-changes', 'exp-rel', 'exp-instr', 'exp-logs', 'exp-details']) expect(document.getElementById(id)).toBeTruthy();
   });
 
   it('state changes: +/- diff lines, temp tag, and the Not decoded byte diff with Add IDL', async () => {

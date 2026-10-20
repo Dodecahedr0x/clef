@@ -4,15 +4,17 @@ import { Icon, Tooltip, type IconName } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { cuNumber, edgeKey, expertSteps, networkName, UNEXPLAINED_RULE, withCu, type Tab } from './model';
-import { Deltas, Summary, TxTabs, WarningsTable } from './parts';
+import { Summary, TxTabs, WarningsTable } from './parts';
 import { ExpertInstructions } from './ExpertInstructions';
 import { RelationsGraph, type GraphInput } from './RelationsGraph';
 import { SimulationLogs } from './SimulationLogs';
 import { StateChanges } from './StateChanges';
+import { SummarySection } from './SummarySection';
 import { useOnChain } from './source';
 
-type Section = 'changes' | 'rel' | 'instr' | 'logs' | 'details';
+type Section = 'summary' | 'changes' | 'rel' | 'instr' | 'logs' | 'details';
 const RAIL: { id: Section; icon: IconName; tip: string }[] = [
+  { id: 'summary', icon: 'swap', tip: 'Summary' },
   { id: 'changes', icon: 'changes', tip: 'State changes' },
   { id: 'rel', icon: 'relations', tip: 'Account relationships' },
   { id: 'instr', icon: 'instructions', tip: 'Instructions' },
@@ -144,7 +146,7 @@ export function ExpertBody(p: {
 }) {
   const onChain = useOnChain();
   const { view, tab, state } = p;
-  const [active, setActive] = useState<Section>('changes');
+  const [active, setActive] = useState<Section>('summary');
   const n = view.steps.length;
   const isAll = tab === 'all' || n === 1;
   const steps = expertSteps(view, n === 1 ? 'all' : tab);
@@ -167,6 +169,9 @@ export function ExpertBody(p: {
   const title = sv?.summary ?? view.combined.summary;
   const changes = sv ? sv.balanceChanges : view.combined.balanceChanges;
   const fee = sv ? sv.fee : view.combined.fee;
+  // Every step's transfers in the "all" tab, else the selected step's; null when none is known.
+  const known = steps.filter((s) => s.view.transfers);
+  const transfers = known.length ? known.flatMap((s) => s.view.transfers!) : null;
   const net = networkName(p.chain);
   const logMeta =
     isAll && n > 1
@@ -181,21 +186,18 @@ export function ExpertBody(p: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-3 border-b border-line-soft bg-surface px-4 pt-1 pb-3.5 min-[600px]:px-5">
+      <div className="flex flex-col gap-2 border-b border-line-soft bg-surface px-4 py-2 min-[600px]:px-5">
         {n > 1 && (
           <div className="flex items-center gap-1.5">
             <TxTabs titles={view.steps.map((s) => s.title)} value={tab} onChange={p.onTab} />
             <span className="ml-auto text-xs text-muted">Signed together · sent in order</span>
           </div>
         )}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-3.5 tabular-nums">
-            <Summary text={title} className="m-0 min-w-0 text-lg font-semibold tracking-[-0.02em] [overflow-wrap:anywhere] min-[600px]:text-2xl" />
-            <span className={`ml-auto text-xs ${dangers.length ? 'text-danger-text' : others.length ? 'text-warn' : 'text-ok'}`}>
-              {shownWarnings.length ? `${shownWarnings.length} warning${shownWarnings.length === 1 ? '' : 's'}` : 'No warnings'}
-            </span>
-          </div>
-          <Deltas changes={changes} fee={fee} />
+        <div className="flex items-baseline gap-3.5 tabular-nums">
+          <Summary text={title} className="m-0 min-w-0 text-base font-semibold tracking-[-0.01em] [overflow-wrap:anywhere]" />
+          <span className={`ml-auto flex-none text-xs ${dangers.length ? 'text-danger-text' : others.length ? 'text-warn' : 'text-ok'}`}>
+            {shownWarnings.length ? `${shownWarnings.length} warning${shownWarnings.length === 1 ? '' : 's'}` : 'No warnings'}
+          </span>
         </div>
       </div>
 
@@ -226,11 +228,15 @@ export function ExpertBody(p: {
         </nav>
 
         <main className="box-border flex min-w-0 flex-1 flex-col gap-8 overflow-y-auto px-5 pt-4 pb-6">
-          {(dangers.length > 0 || others.length > 0) && (
-            <div className="flex flex-col gap-3">
-              <WarningsTable warnings={[...dangers, ...others]} />
-            </div>
-          )}
+          {(dangers.length > 0 || others.length > 0) && <WarningsTable warnings={[...dangers, ...others]} />}
+          <SummarySection
+            changes={changes}
+            fee={fee}
+            transfers={transfers}
+            transfersPartial={steps.some((s) => s.view.transfersPartial)}
+            label={(a) => graph.labels.get(a) ?? graph.idlNames?.get(a)}
+            onChain={onChain}
+          />
           <StateChanges diffs={diffs} isAll={isAll} batchSize={n} ownerOf={ownerOf} network={state.settings.network} onResimulate={p.onResimulate} />
           <RelationsGraph input={graph} tab={isAll ? 'all' : (tab as number)} batchSize={n} />
           <ExpertInstructions steps={steps} />

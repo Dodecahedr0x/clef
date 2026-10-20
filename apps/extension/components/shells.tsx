@@ -77,14 +77,14 @@ export function ApprovalFrame({
   return (
     <div className={`flex ${width === 'fill' ? 'h-full w-full' : 'h-screen'} flex-col overflow-hidden bg-bg font-sans text-ink`} style={width === 'fill' ? undefined : { width }}>
       {banner}
-      <header className={`flex flex-none items-center gap-2.5 border-b border-line-soft py-3.5 ${onBack ? 'pl-1.5 pr-4' : 'px-4'}`}>
+      <header className={`flex flex-none items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
         {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
-        <span className="flex size-8 flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-surface-2 text-[14px] font-semibold text-primary">
+        <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-[7px] border border-line bg-surface-2 text-[13px] font-semibold text-primary">
           {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[14px] font-semibold">{title ?? name}</span>
-          <span className="truncate text-[12px] text-muted">{subtitle}</span>
+          <span className="truncate text-[13px] leading-tight font-semibold">{title ?? name}</span>
+          <span className="truncate text-[11px] leading-tight text-muted">{subtitle}</span>
         </div>
         {headerRight && <div className="flex flex-none items-center gap-2">{headerRight}</div>}
       </header>

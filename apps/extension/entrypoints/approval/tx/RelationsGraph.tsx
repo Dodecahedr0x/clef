@@ -72,15 +72,18 @@ export function graphEdges(g: GraphInput, opts: { showExternal: boolean; showTra
   const groups = new Map<string, GraphEdge>();
   const add = (kind: GraphEdge['kind'], from: string, to: string, r?: RelationEdge, t?: TransferView) => {
     if (from === to) return;
-    // Relations have no direction on screen: one line per pair (a has_one and the stored field it checks merge).
-    if (kind === 'relation' && to < from) [from, to] = [to, from];
     const id = `${kind}|${from}|${to}`;
     const e = groups.get(id) ?? { id, kind, from, to, label: '', relations: [], transfers: [] };
     if (r) e.relations.push(r);
     if (t) e.transfers.push(t);
     groups.set(id, e);
   };
-  for (const e of [...g.edges, ...(opts.showExternal ? g.external : [])]) add('relation', e.from, e.to, e);
+  // Arrows point from the account a fact is about ("A stores B", "A owned by P"). A has_one is about its target
+  // (`to` holds the field naming `from`): drawn from the holder, so it merges with the stored field it checks.
+  for (const e of [...g.edges, ...(opts.showExternal ? g.external : [])]) {
+    if (e.kind === 'has_one') add('relation', e.to, e.from, e);
+    else add('relation', e.from, e.to, e);
+  }
   if (opts.showTransfers) {
     for (const t of g.transfers ?? []) if (opts.tab === 'all' || t.step === opts.tab) add('transfer', t.from, t.to, undefined, t);
   }
@@ -191,6 +194,8 @@ const ZOOM = { min: 0.3, max: 2, step: 0.2 } as const;
 const clampZoom = (z: number) => Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(z * 100) / 100));
 
 const TRANSFER_STROKE = '#2F6FDB';
+const RELATION_STROKES = ['#9AA1AE', '#0F7A62', '#C8402A', '#CBD0DA'] as const;
+const markerId = (stroke: string) => `clef-rel-arrow-${stroke.slice(1)}`;
 
 /** Mismatch red over PDA green over grey; outside the request lighter and dashed; by a called program dotted. */
 function edgeStyle(e: GraphEdge): { stroke: string; dash?: string; text: string; weight?: number } {
@@ -292,14 +297,20 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
 
   return (
     <section id="exp-rel" aria-label="Account relationships" className="flex scroll-mt-4 flex-col gap-3">
-      <div className="flex items-center gap-2.5">
-        <h2 className="m-0 flex-1 text-lg font-semibold">Account relationships</h2>
+      <h2 className="m-0 text-lg font-semibold">Account relationships</h2>
+      <span className="text-xs text-muted">{note}</span>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <label className="flex cursor-pointer items-center gap-2 text-xs">
           <input type="checkbox" role="switch" checked={showExternal} aria-checked={showExternal} onChange={() => setShowExternal(!showExternal)} className="m-0 size-[18px] accent-primary" />
           Show accounts outside the request
         </label>
+        {transfers.length > 0 && (
+          <label className="flex cursor-pointer items-center gap-2 text-xs">
+            <input type="checkbox" role="switch" checked={showTransfers} aria-checked={showTransfers} onChange={() => setShowTransfers(!showTransfers)} className="m-0 size-[18px] accent-primary" />
+            Show SOL and token transfers ({transfers.length})
+          </label>
+        )}
       </div>
-      <span className="text-xs text-muted">{note}</span>
       {nodes.length === 0 ? (
         <p className="m-0 rounded-xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
       ) : (
@@ -319,6 +330,11 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
               <div className="absolute top-0 left-0 origin-top-left" style={{ width: contentW, height: contentH, transform: `scale(${zoom})` }}>
                 <svg aria-hidden="true" width={contentW} height={contentH} viewBox={`0 0 ${contentW} ${contentH}`} className="absolute inset-0">
                   <defs>
+                    {RELATION_STROKES.map((c) => (
+                      <marker key={c} id={markerId(c)} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M0 1 L9 5 L0 9 z" fill={c} />
+                      </marker>
+                    ))}
                     <marker id="clef-flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                       <path d="M0 0 L10 5 L0 10 z" fill={TRANSFER_STROKE} />
                     </marker>
@@ -337,7 +353,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                         fill="none"
                         strokeDasharray={st.dash}
                         opacity={faded(e) ? 0.12 : 1}
-                        {...(e.kind === 'transfer' && { markerEnd: 'url(#clef-flow-arrow)' })}
+                        markerEnd={e.kind === 'transfer' ? 'url(#clef-flow-arrow)' : `url(#${markerId(st.stroke)})`}
                       />
                     );
                   })}
@@ -435,7 +451,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                   );
                 })}
                 <div className="absolute top-3 left-3.5 flex gap-3.5 text-xs text-muted">
-                  <span>— in the request</span>
+                  <span>→ A label B: A is the account the link is about</span>
                   <span className="text-ok">- - PDA seeds</span>
                   <span>··· outside the request</span>
                   {transfers.length > 0 && <span style={{ color: TRANSFER_STROKE }}>→ transfer (dotted: by a called program)</span>}
@@ -454,12 +470,6 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             </div>
           )}
         </div>
-      )}
-      {transfers.length > 0 && (
-        <label className="flex cursor-pointer items-center gap-2 self-start text-xs">
-          <input type="checkbox" role="switch" checked={showTransfers} aria-checked={showTransfers} onChange={() => setShowTransfers(!showTransfers)} className="m-0 size-[18px] accent-primary" />
-          Show SOL and token transfers ({transfers.length})
-        </label>
       )}
       {input.transfersPartial && <span className="text-xs text-muted">The RPC didn't report what the called programs moved: only transfers the instructions make themselves are drawn.</span>}
       {selected && (

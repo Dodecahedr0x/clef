@@ -146,6 +146,14 @@ describe('graph edges', () => {
     expect(edges[0]!.label).toBe('admin');
   });
 
+  it('keeps each relation’s direction: from the account the fact is about', () => {
+    const g = input({ edges: [rel('SESSION', 'RECIPIENT', 'stores', { kind: 'data-ref' }), rel('RECIPIENT', 'SESSION', 'owned by', { kind: 'program-owner' })] });
+    expect(graphEdges(g, OPTS).map((e) => [e.from, e.to, e.label])).toEqual([
+      ['SESSION', 'RECIPIENT', 'stores'],
+      ['RECIPIENT', 'SESSION', 'owned by'],
+    ]);
+  });
+
   it('draws the selected step’s transfers, and none when hidden', () => {
     const t = (step: number) => ({ kind: 'sol' as const, from: 'ME', to: 'RECIPIENT', amount: `${step} SOL`, instructionIndex: 0, inner: false, step });
     const g = input({ transfers: [t(0), t(1)] });
