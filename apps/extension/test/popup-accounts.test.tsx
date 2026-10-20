@@ -69,7 +69,7 @@ describe('Welcome', () => {
     await user.click(screen.getByRole('button', { name: 'I already have a wallet' }));
     expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'create-password', next: 'import' });
     await user.click(screen.getByRole('button', { name: 'Watch an address' }));
-    expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'create-password', next: 'import' });
+    expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'create-password', next: 'import', tab: 'watch' });
   });
 });
 
@@ -110,6 +110,20 @@ describe('CreatePassword', () => {
     await user.type(screen.getByLabelText('Confirm password'), 'a-long-passphrase');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(h.nav.go).toHaveBeenCalledWith({ name: 'import' });
+  });
+});
+
+describe('Password rule', () => {
+  it('is stated under the field, and Watch an address keeps its tab through the password step', async () => {
+    const user = userEvent.setup();
+    h.nav.route = { name: 'create-password', next: 'import', tab: 'watch' } as never;
+    render(<CreatePasswordScreen />);
+    const field = screen.getByLabelText('Password');
+    expect(document.getElementById(field.getAttribute('aria-describedby')!)?.textContent).toMatch(/^Use 12 or more characters, or 8 or more that mix three of/);
+    await user.type(field, 'a-long-passphrase');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-long-passphrase');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(h.nav.go).toHaveBeenCalledWith({ name: 'import', tab: 'watch' });
   });
 });
 
@@ -205,6 +219,12 @@ describe('A first recovery phrase for a wallet without one', () => {
 });
 
 describe('Import', () => {
+  it('opens on the tab the route names', () => {
+    h.nav.route = { name: 'import', tab: 'watch' } as never;
+    render(<ImportScreen />);
+    expect(screen.getByRole('radio', { name: 'Watch-only' }).getAttribute('aria-checked')).toBe('true');
+  });
+
   beforeEach(() => {
     h.draft.password = 'a-long-passphrase';
     h.nav.route = { name: 'import' };

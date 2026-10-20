@@ -60,3 +60,24 @@ describe('Security reveal with several recovery phrases', () => {
     expect(await screen.findByRole('list', { name: 'Recovery phrase' })).toBeTruthy();
   });
 });
+
+describe('Change password', () => {
+  it('states the rule and refuses a password the create step would refuse', async () => {
+    withPhrases(1);
+    const user = userEvent.setup();
+    render(<SecurityScreen />);
+    const next = screen.getByLabelText('New password');
+    expect(document.getElementById(next.getAttribute('aria-describedby')!)?.textContent).toMatch(/^Use 12 or more characters/);
+    await user.type(screen.getByLabelText('Current password'), 'old password here');
+    await user.type(next, 'abcdefgh');
+    await user.type(screen.getByLabelText('Confirm new password'), 'abcdefgh');
+    const submit = screen.getByRole('button', { name: 'Change password' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    expect(screen.getByText('Weak')).toBeTruthy();
+    await user.clear(next);
+    await user.clear(screen.getByLabelText('Confirm new password'));
+    await user.type(next, 'a-long-passphrase');
+    await user.type(screen.getByLabelText('Confirm new password'), 'a-long-passphrase');
+    expect(submit.disabled).toBe(false);
+  });
+});

@@ -3,8 +3,8 @@ import { Alert, Button, ListGroup, PasswordField, PopupScreen, SectionLabel, Seg
 import { call } from '../../../lib/api';
 import { useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { PASSWORD_RULE, passwordOk, StrengthMeter } from './CreatePassword';
 
-const MIN_PASSWORD = 8;
 
 function errorText(e: unknown, fallback: string): string {
   return e instanceof Error && e.message ? e.message : fallback;
@@ -83,9 +83,8 @@ function ChangePassword() {
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const tooShort = next.length > 0 && next.length < MIN_PASSWORD;
   const mismatch = confirm.length > 0 && confirm !== next;
-  const valid = current.length > 0 && next.length >= MIN_PASSWORD && confirm === next;
+  const valid = current.length > 0 && passwordOk(next) && confirm === next;
 
   return (
     <form
@@ -111,12 +110,13 @@ function ChangePassword() {
     >
       <PasswordField label="Current password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
       <PasswordField
-        label={`New password (at least ${MIN_PASSWORD} characters)`}
+        label="New password"
         autoComplete="new-password"
         value={next}
-        error={tooShort ? 'Too short' : null}
+        hint={PASSWORD_RULE}
         onChange={(e) => setNext(e.target.value)}
       />
+      <StrengthMeter password={next} />
       <PasswordField
         label="Confirm new password"
         autoComplete="new-password"

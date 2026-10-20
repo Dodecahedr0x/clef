@@ -9,6 +9,7 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
+import { ViewOnlyScreen } from './ViewOnly';
 import { SendStatus } from './SendStatus';
 import { TokenButton, errorMessage, parseAmount, toBase64, unitsToInput } from './Send';
 
@@ -129,6 +130,12 @@ function Picker({
 }
 
 export function SwapScreen() {
+  const account = useActiveAccount();
+  if (account?.kind === 'watch') return <ViewOnlyScreen title="Swap" />;
+  return <SwapForm />;
+}
+
+function SwapForm() {
   const nav = useNav();
   const route = nav.route.name === 'swap' ? nav.route : null;
   const { state } = useWallet();
@@ -390,8 +397,8 @@ export function SwapScreen() {
             {err.jupiterKey ? (
               <Alert severity="warn" title={err.title}>
                 {err.body}
-                <button type="button" onClick={() => nav.go({ name: 'settings' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-[12px]">
-                  Open Settings
+                <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-[12px]">
+                  Open swap settings
                 </button>
               </Alert>
             ) : (

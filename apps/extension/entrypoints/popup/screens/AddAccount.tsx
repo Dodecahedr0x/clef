@@ -59,7 +59,7 @@ export function AddAccountScreen() {
         ]
       : []),
     { mark: 'S', title: 'Squads multisig', desc: 'Propose and vote with one of your accounts', tint: 'bg-warn-bg text-warn', run: () => nav.go({ name: 'accounts/squads' }) },
-    { mark: '◎', title: 'Watch an address', desc: 'See balances and preview requests, no signing', tint: 'bg-info-bg text-info', run: () => nav.go({ name: 'import' }) },
+    { mark: '◎', title: 'Watch an address', desc: 'See balances and preview requests, no signing', tint: 'bg-info-bg text-info', run: () => nav.go({ name: 'import', tab: 'watch' }) },
   ];
 
   return (

@@ -6,7 +6,8 @@ export type Route =
   | { name: 'swap'; inputMint?: string; outputMint?: string }
   | { name: 'history' }
   | { name: 'history/tx'; signature: string; origin?: string }
-  | { name: 'settings' }
+  /** `section`: open scrolled to it, its first field focused (a rate-limited swap points at the Jupiter key). */
+  | { name: 'settings'; section?: 'swaps' }
   | { name: 'settings/sites' }
   | { name: 'settings/idls'; addFor?: string }
   | { name: 'settings/idls/view'; programId: string; network: string; tier: 'yours' | 'curated' | 'published' | 'chain' }
@@ -21,10 +22,11 @@ export type Route =
   | { name: 'accounts/confirm-phrase' }
   | { name: 'proposals'; multisig: string }
   | { name: 'welcome' }
-  | { name: 'create-password'; next: 'create' | 'import' }
+  | { name: 'create-password'; next: 'create' | 'import'; tab?: ImportTab }
   | { name: 'recovery-phrase' }
   | { name: 'confirm-phrase' }
-  | { name: 'import' }
+  | { name: 'import'; tab?: ImportTab }
   | { name: 'unlock' };
 
 export type RouteName = Route['name'];
+export type ImportTab = 'phrase' | 'key' | 'watch';

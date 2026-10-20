@@ -10,6 +10,7 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
+import { ViewOnlyScreen } from './ViewOnly';
 import { SendStatus } from './SendStatus';
 
 /** Decimal string -> base units; null when malformed or more precise than the token allows. */
@@ -145,6 +146,12 @@ function useRecipientKind(to: Address | null, rpcKey: unknown, chainFor: () => P
 }
 
 export function SendScreen() {
+  const account = useActiveAccount();
+  if (account?.kind === 'watch') return <ViewOnlyScreen title="Send" />;
+  return <SendForm />;
+}
+
+function SendForm() {
   const nav = useNav();
   const route = nav.route.name === 'send' ? nav.route : null;
   const { state } = useWallet();

@@ -160,6 +160,32 @@ afterEach(() => {
 });
 
 describe('Portfolio', () => {
+  it('a watch-only account gets Send and Swap disabled, with the reason and a way to switch', () => {
+    m.state.activeAccount = 'Watch111111111111111111111111111111111111111';
+    render(<PortfolioScreen />);
+    const actions = screen.getByRole('navigation', { name: 'Wallet actions' });
+    for (const name of ['Send', 'Swap']) {
+      const b = within(actions).getByRole('button', { name }) as HTMLButtonElement;
+      expect(b.disabled).toBe(true);
+      expect(document.getElementById(b.getAttribute('aria-describedby')!)?.textContent).toMatch(/^View-only account — switch to one you can sign with\./);
+    }
+    expect((within(actions).getByRole('button', { name: 'Receive' }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(within(document.getElementById('view-only-hint')!).getByRole('button', { name: 'Switch account' }));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'accounts' });
+  });
+
+  it('Send and Swap reached on a watch-only account say so instead of showing a form', () => {
+    m.state.activeAccount = 'Watch111111111111111111111111111111111111111';
+    m.route = { name: 'send' };
+    render(<SendScreen />);
+    expect(screen.getByText('This account is view-only')).toBeTruthy();
+    expect(screen.queryByLabelText('Amount')).toBeNull();
+    cleanup();
+    m.route = { name: 'swap' };
+    render(<SwapScreen />);
+    expect(screen.getByText('This account is view-only')).toBeTruthy();
+  });
+
   it('a balance the RPC did not return names the RPC, offers Try again and Change RPC, and keeps the raw error behind Details', () => {
     m.portfolioError = 'HTTP error (403): Forbidden';
     render(<PortfolioScreen />);
@@ -197,7 +223,7 @@ describe('Portfolio', () => {
     render(<PortfolioScreen />);
     expect(screen.getByText(/No prices: Jupiter rejected your API key/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Fix it in Settings' }));
-    expect(m.go).toHaveBeenCalledWith({ name: 'settings' });
+    expect(m.go).toHaveBeenCalledWith({ name: 'settings', section: 'swaps' });
   });
 
   describe('free public mainnet RPC notice', () => {
@@ -662,8 +688,8 @@ describe('Swap', () => {
     expect(await screen.findByText('Jupiter is rate-limiting quotes')).toBeTruthy();
     expect(screen.getByText(/Try again in 4 s, or add a free Jupiter API key/)).toBeTruthy();
     expect(screen.getByText(/Settings → Swaps/)).toBeTruthy();
-    fireEvent.click(screen.getByText('Open Settings'));
-    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings' });
+    fireEvent.click(screen.getByText('Open swap settings'));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings', section: 'swaps' });
     expect((screen.getByRole('button', { name: 'Review swap' }) as HTMLButtonElement).disabled).toBe(true);
   });
 

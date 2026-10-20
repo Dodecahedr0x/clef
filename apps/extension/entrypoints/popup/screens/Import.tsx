@@ -36,7 +36,7 @@ export function ImportScreen() {
   const draft = useOnboardingDraft();
   const { state, refresh } = useWallet();
   const hasVault = state?.hasVault ?? false;
-  const [tab, setTab] = useState<Tab>(location.hash === '#import-key' ? 'key' : 'phrase');
+  const [tab, setTab] = useState<Tab>(() => (nav.route.name === 'import' && nav.route.tab) || (location.hash === '#import-key' ? 'key' : 'phrase'));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

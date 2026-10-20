@@ -138,7 +138,7 @@ describe('AddAccount', () => {
     await user.click(screen.getByRole('button', { name: /Squads multisig/ }));
     expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'accounts/squads' });
     await user.click(screen.getByRole('button', { name: /Watch an address/ }));
-    expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'import' });
+    expect(h.nav.go).toHaveBeenLastCalledWith({ name: 'import', tab: 'watch' });
   });
 
   it('hides Ledger and Keystone while hardware is disabled', () => {

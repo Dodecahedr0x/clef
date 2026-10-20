@@ -134,6 +134,12 @@ function renderScreen(ui: ReactElement) {
 const patches = () => api.calls.filter((c) => c.type === 'settings:update').map((c) => c.patch);
 
 describe('SettingsScreen', () => {
+  it('opened at Swaps, focuses the Jupiter key field', async () => {
+    nav = { ...nav, route: { name: 'settings', section: 'swaps' } } as typeof nav;
+    renderScreen(<SettingsScreen />);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Jupiter API key')));
+  });
+
   it('shows every row with live counts, network, RPC host and DAS tag', async () => {
     renderScreen(<SettingsScreen />);
     expect(await screen.findByRole('radio', { name: 'Intermediate' })).toHaveAttribute('aria-checked', 'true');

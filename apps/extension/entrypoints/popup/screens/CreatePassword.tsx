@@ -4,6 +4,10 @@ import { useNav, useOnboardingDraft } from '../../../lib/nav';
 
 export const MIN_PASSWORD = 8;
 
+/** What `passwordScore(p) >= 2` asks for, said up front: the same rule for a new wallet and a changed password. */
+export const PASSWORD_RULE = 'Use 12 or more characters, or 8 or more that mix three of: lowercase, uppercase, numbers, symbols.';
+export const passwordOk = (p: string) => passwordScore(p) >= 2;
+
 export function OnboardingHeader({ step, total = 3 }: { step: number; total?: number }) {
   const nav = useNav();
   return (
@@ -39,21 +43,35 @@ const STRENGTH = [
   { label: 'Very strong', color: 'bg-ok', text: 'text-ok' },
 ] as const;
 
+/** Four bars and a word; says nothing until something is typed. */
+export function StrengthMeter({ password }: { password: string }) {
+  if (!password) return null;
+  const score = passwordScore(password);
+  const s = STRENGTH[score]!;
+  return (
+    <div className="flex items-center gap-2">
+      <div aria-hidden="true" className="grid flex-1 grid-cols-4 gap-1">
+        {[1, 2, 3, 4].map((i) => <span key={i} className={`h-1 rounded-[2px] ${i <= Math.max(score, 1) ? s.color : 'bg-line-strong'}`} />)}
+      </div>
+      <span className={`text-[12px] ${s.text}`}>{s.label}</span>
+    </div>
+  );
+}
+
 export function CreatePasswordScreen() {
   const nav = useNav();
   const draft = useOnboardingDraft();
   const next = nav.route.name === 'create-password' ? nav.route.next : 'create';
+  const tab = nav.route.name === 'create-password' ? nav.route.tab : undefined;
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const score = passwordScore(password);
-  const s = STRENGTH[score]!;
   const match = confirm.length > 0 && confirm === password;
-  const valid = score >= 2 && match;
+  const valid = passwordOk(password) && match;
 
   const submit = () => {
     if (!valid) return;
     draft.set({ password });
-    nav.go(next === 'create' ? { name: 'recovery-phrase' } : { name: 'import' });
+    nav.go(next === 'create' ? { name: 'recovery-phrase' } : { name: 'import', ...(tab && { tab }) });
   };
 
   return (
@@ -68,15 +86,8 @@ export function CreatePasswordScreen() {
           submit();
         }}
       >
-        <PasswordField label="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-        {password.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div aria-hidden="true" className="grid flex-1 grid-cols-4 gap-1">
-              {[1, 2, 3, 4].map((i) => <span key={i} className={`h-1 rounded-[2px] ${i <= Math.max(score, 1) ? s.color : 'bg-line-strong'}`} />)}
-            </div>
-            <span className={`text-[12px] ${s.text}`}>{s.label}</span>
-          </div>
-        )}
+        <PasswordField label="Password" value={password} onChange={(e) => setPassword(e.target.value)} hint={PASSWORD_RULE} autoFocus />
+        <StrengthMeter password={password} />
         <div className="mt-2.5">
           <PasswordField label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         </div>

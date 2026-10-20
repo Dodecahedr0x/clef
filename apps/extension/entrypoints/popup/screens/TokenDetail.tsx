@@ -4,6 +4,7 @@ import type { Holding } from '@clef/portfolio';
 import { Avatar, EmptyState, Pill, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useHistory, usePortfolio } from '../../../lib/hooks';
+import { actionGate, ViewOnlyHint } from './ViewOnly';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
 
@@ -55,6 +56,7 @@ export function TokenDetailScreen() {
   const nav = useNav();
   const route = nav.route.name === 'token' ? nav.route : null;
   const account = useActiveAccount();
+  const viewOnly = account?.kind === 'watch';
   const owner = account?.address ?? null;
   const { data, loading } = usePortfolio(owner);
   const { items } = useHistory(owner);
@@ -94,16 +96,17 @@ export function TokenDetailScreen() {
       </section>
 
       <nav aria-label="Token actions" className="px-4 pb-4 grid grid-cols-3 gap-2">
-        <button type="button" onClick={() => nav.go({ name: 'send', mint: h.mint })} className="h-11 bg-primary text-white border-0 rounded-[12px] text-[14px] font-semibold">
+        <button type="button" onClick={() => nav.go({ name: 'send', mint: h.mint })} {...actionGate('send', viewOnly)} className="h-11 bg-primary text-white border-0 rounded-[12px] text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-45">
           Send
         </button>
         <button type="button" onClick={() => nav.go({ name: 'receive' })} className="h-11 bg-surface text-ink border border-line rounded-[12px] text-[14px]">
           Receive
         </button>
-        <button type="button" onClick={() => nav.go({ name: 'swap', inputMint: h.mint })} className="h-11 bg-surface text-ink border border-line rounded-[12px] text-[14px]">
+        <button type="button" onClick={() => nav.go({ name: 'swap', inputMint: h.mint })} {...actionGate('swap', viewOnly)} className="h-11 bg-surface text-ink border border-line rounded-[12px] text-[14px] disabled:cursor-not-allowed disabled:opacity-45">
           Swap
         </button>
       </nav>
+      {viewOnly && <ViewOnlyHint className="px-4 -mt-2 pb-4" />}
 
       <h2 className="mx-5 mt-2 mb-2 text-[12px] font-semibold text-muted uppercase tracking-[0.06em]">About this token</h2>
       <dl className="mx-3 my-0 px-3 py-1 bg-surface border border-line rounded-[12px] grid grid-cols-[120px_minmax(0,1fr)] text-[12px]">

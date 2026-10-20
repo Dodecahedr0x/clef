@@ -19,7 +19,7 @@ export function WelcomeScreen() {
           {HARDWARE_ENABLED && (
             <button type="button" className="border-0 bg-transparent p-0 text-info hover:text-info-ink" onClick={toImport}>Connect Ledger or Keystone</button>
           )}
-          <button type="button" className="border-0 bg-transparent p-0 text-info hover:text-info-ink" onClick={toImport}>Watch an address</button>
+          <button type="button" className="border-0 bg-transparent p-0 text-info hover:text-info-ink" onClick={() => nav.go({ name: 'create-password', next: 'import', tab: 'watch' })}>Watch an address</button>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { useNav } from '../../../lib/nav';
 import { clusterOf, networkLabel } from '../../../lib/network';
 import { PanelButton, TabButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
+import { actionGate, ViewOnlyHint } from './ViewOnly';
 
 const LEVEL_LABEL = { basic: 'Basic', intermediate: 'Intermediate', expert: 'Expert' } as const;
 const AVATAR_TONES = ['violet', 'info', 'primary', 'ok', 'warn'] as const;
@@ -222,7 +223,7 @@ function PriceKeyHint() {
   return (
     <div className="text-[12px] text-danger-text">
       No prices: Jupiter rejected your API key.{' '}
-      <button type="button" onClick={() => nav.go({ name: 'settings' })} className="text-[12px] text-info bg-transparent border-0 underline p-0">
+      <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="text-[12px] text-info bg-transparent border-0 underline p-0">
         Fix it in Settings
       </button>
     </div>
@@ -233,6 +234,7 @@ function BasicPortfolio() {
   const nav = useNav();
   const { state } = useWallet();
   const account = useActiveAccount();
+  const viewOnly = account?.kind === 'watch';
   const { data, loading, error, refresh } = usePortfolio(account?.address ?? null);
   const [tab, setTab] = useState<'tokens' | 'activity' | 'sites'>('tokens');
   const spam = useSpam(data, refresh);
@@ -291,13 +293,15 @@ function BasicPortfolio() {
             key={a.label}
             type="button"
             onClick={() => nav.go({ name: a.route })}
-            className={`h-16 flex flex-col items-center justify-center gap-1.5 rounded-[14px] text-[12px] ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line font-medium'}`}
+            {...actionGate(a.route, viewOnly)}
+            className={`h-16 flex flex-col items-center justify-center gap-1.5 rounded-[14px] text-[12px] disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line font-medium'}`}
           >
             <Icon name={a.icon} size={18} />
             {a.label}
           </button>
         ))}
       </nav>
+      {viewOnly && <ViewOnlyHint className="px-4 -mt-2 pb-3" />}
       <RpcNotice tokensUnavailable={!!data?.tokensUnavailable} />
 
       <div className="px-4 border-b border-line-soft shrink-0">
@@ -331,6 +335,7 @@ function ExpertPortfolio() {
   const nav = useNav();
   const { state } = useWallet();
   const account = useActiveAccount();
+  const viewOnly = account?.kind === 'watch';
   const health = useHealth();
   const { data, error, refresh } = usePortfolio(account?.address ?? null);
   const spam = useSpam(data, refresh);
@@ -388,12 +393,14 @@ function ExpertPortfolio() {
             key={a.label}
             type="button"
             onClick={() => nav.go({ name: a.route })}
-            className={`h-11 rounded-[12px] text-[12px] ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line'}`}
+            {...actionGate(a.route, viewOnly)}
+            className={`h-11 rounded-[12px] text-[12px] disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line'}`}
           >
             {a.label}
           </button>
         ))}
       </nav>
+      {viewOnly && <ViewOnlyHint className="px-4 -mt-2 pb-3" />}
       <RpcNotice tokensUnavailable={!!data?.tokensUnavailable} />
 
       <div className="px-4 pb-1.5 flex items-center text-[12px] text-muted shrink-0">

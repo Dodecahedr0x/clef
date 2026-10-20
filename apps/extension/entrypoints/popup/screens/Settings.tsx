@@ -93,6 +93,14 @@ export function SettingsScreen() {
   const idls = useCall<UserIdl[]>('idls:list');
   const das = useDas();
   const [jupKey, setJupKey] = useState<string | null>(null);
+  const section = nav.route.name === 'settings' ? nav.route.section : undefined;
+  const loaded = !!state;
+
+  useEffect(() => {
+    if (section !== 'swaps' || !loaded) return;
+    document.getElementById('settings-swaps')?.scrollIntoView?.({ block: 'start' });
+    document.getElementById('jupiter-key')?.focus({ preventScroll: true });
+  }, [section, loaded]);
 
   if (!state) {
     return (
@@ -216,11 +224,12 @@ export function SettingsScreen() {
           )}
         </ListGroup>
 
-        <div className="mt-4">
+        <div id="settings-swaps" className="mt-4 scroll-mt-2">
           <SectionLabel>Swaps</SectionLabel>
         </div>
         <section className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5">
           <TextField
+            id="jupiter-key"
             label="Jupiter API key"
             type="password"
             autoComplete="off"

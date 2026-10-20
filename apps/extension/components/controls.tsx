@@ -131,12 +131,14 @@ export function Toggle({ label, description, checked, onChange }: { label: React
   );
 }
 
-type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null; trailing?: ReactNode; mono?: boolean };
+/** `hint`: a standing note under the field (a rule to meet); an error replaces it. */
+type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null; hint?: ReactNode; trailing?: ReactNode; mono?: boolean };
 
-export function TextField({ label, error, trailing, mono = false, id, className = '', ...props }: FieldProps) {
+export function TextField({ label, error, hint, trailing, mono = false, id, className = '', ...props }: FieldProps) {
   const auto = useId();
   const inputId = id ?? auto;
   const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <label htmlFor={inputId} className="text-[12px] text-muted">{label}</label>
@@ -148,24 +150,29 @@ export function TextField({ label, error, trailing, mono = false, id, className 
           autoComplete="off"
           spellCheck={false}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={error ? errorId : hint ? hintId : undefined}
           className={`min-w-0 flex-1 border-0 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint ${mono ? 'font-mono' : ''}`}
           {...props}
         />
         {trailing}
       </div>
-      {error && <span id={errorId} className="text-[12px] text-danger-text">{error}</span>}
+      {error ? (
+        <span id={errorId} className="text-[12px] text-danger-text">{error}</span>
+      ) : (
+        hint && <span id={hintId} className="text-[12px] text-muted">{hint}</span>
+      )}
     </div>
   );
 }
 
-export function PasswordField({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null }) {
+export function PasswordField({ label, error, hint, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null; hint?: ReactNode }) {
   const [shown, setShown] = useState(false);
   return (
     <TextField
       {...props}
       label={label}
       error={error}
+      hint={hint}
       type={shown ? 'text' : 'password'}
       style={shown ? undefined : { letterSpacing: '0.15em' }}
       trailing={<IconButton size={40} label={shown ? 'Hide password' : 'Show password'} icon={shown ? 'eye-off' : 'eye'} onClick={() => setShown((s) => !s)} />}
