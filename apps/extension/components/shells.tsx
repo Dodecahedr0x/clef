@@ -98,7 +98,7 @@ export function ApprovalFrame({
 /** The header line of every approval: who is asking, what for, and (optionally) controls on the right. */
 export function ApprovalHeader({ mark, title, subtitle, right, onBack }: { mark: ReactNode; title: ReactNode; subtitle: ReactNode; right?: ReactNode; onBack?: () => void }) {
   return (
-    <header className={`flex flex-none flex-wrap items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
+    <header data-approval-header className={`flex flex-none flex-wrap items-center gap-2 border-b border-line-soft py-1.5 ${onBack ? 'pl-1 pr-3' : 'px-3'}`}>
       {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
       {mark}
       <div className="flex min-w-0 flex-1 basis-28 flex-col">

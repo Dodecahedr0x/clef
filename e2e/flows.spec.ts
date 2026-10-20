@@ -122,7 +122,25 @@ test('a narrowed approval window reflows: no sideways scroll, Sign stays reachab
   await expect(approval.getByText('3 transactions, signed together')).toBeVisible({ timeout: 30_000 });
   expect(await overflow()).toBeLessThanOrEqual(0);
   await expect(approval.getByRole('button', { name: /^Sign all 3/ })).toBeInViewport();
-
+  // No text drawn over other text: the balance rows wrap, and the header clears the test-network tag.
+  const overlaps = await approval.evaluate(() => {
+    // Where each run of text is drawn (a Range), not its element's box: overflowing text spills outside its box.
+    const root = '[aria-labelledby="basic-bc"], header, [data-testid="network-edge"]';
+    const runs = Array.from(document.querySelectorAll(root)).flatMap((el) => {
+      const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const out: { node: Node; text: string; r: DOMRect }[] = [];
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        if (!n.textContent!.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        for (const r of Array.from(range.getClientRects())) if (r.width && r.height) out.push({ node: n, text: n.textContent!.trim(), r });
+      }
+      return out;
+    });
+    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    return runs.flatMap((a, i) => runs.slice(i + 1).filter((b) => b.node !== a.node && hit(a.r, b.r)).map((b) => `${a.text} × ${b.text}`));
+  });
+  expect(overlaps).toEqual([]);
   await level.getByRole('radio', { name: 'Expert' }).click();
   await approval.setViewportSize({ width: 380, height: 960 });
   await expect(approval.getByRole('heading', { name: 'Request details' })).toBeAttached({ timeout: 30_000 });

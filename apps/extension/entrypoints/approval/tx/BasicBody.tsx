@@ -68,18 +68,19 @@ export function BasicBody({ view, warnings, danger }: { view: BatchView; warning
             const name = nameOf(b);
             const usd = usdOf(b.amount, f?.usdPrice);
             return (
-              <div key={i} className={`flex items-center gap-3 px-3.5 py-3 ${i ? 'border-t border-line-soft' : ''}`}>
+              <div key={i} className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-3 ${i ? 'border-t border-line-soft' : ''}`}>
                 <Avatar text={name.slice(0, 1).toUpperCase()} tone={AVATAR_TONE[i % AVATAR_TONE.length]} size={32} />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-sm">{name}</span>
+                <span className="flex min-w-0 flex-1 basis-14 flex-col">
+                  <span className="text-sm [overflow-wrap:anywhere]">{name}</span>
                   {f && !f.verified && b.mint && (
                     <span className="text-xs text-warn">
                       unverified · <Pubkey value={b.mint} className="text-muted" />
                     </span>
                   )}
                 </span>
-                <span className="flex flex-col items-end">
-                  <span className="text-sm font-semibold" title={`${displayAmount(b.amount)} ${name}`}>
+                {/* In a narrow window the amount drops below the name instead of covering it. */}
+                <span className="ml-auto flex min-w-0 flex-col items-end text-right">
+                  <span className="text-sm font-semibold [overflow-wrap:anywhere]" title={`${displayAmount(b.amount)} ${name}`}>
                     <Amount direction={direction(b.amount)}>{`${displayAmount(b.amount, { round: true })} ${name}`}</Amount>
                   </span>
                   {usd !== null && <span className="text-xs text-muted tabular-nums">{formatUsd(usd)}</span>}
