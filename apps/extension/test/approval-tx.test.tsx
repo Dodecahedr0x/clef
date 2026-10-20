@@ -439,6 +439,31 @@ describe('Batch simulation and hardware', () => {
     expect(within(notice).getByText(/simulateBundle/)).toBeTruthy();
   });
 
+  it('the incomplete notice is only for transactions simulated alone, and only for more than one', () => {
+    explainWith((level) => batchView(level, 3, { incomplete: true }));
+    setup('basic');
+    expect(screen.queryByRole('note', { name: 'Incomplete simulation' })).toBeNull();
+    cleanup();
+    explainWith((level) => ({ ...batchView(level, 1, { incomplete: true }), mode: 'independent' }));
+    setup('basic');
+    expect(screen.queryByRole('note', { name: 'Incomplete simulation' })).toBeNull();
+  });
+
+  it("a failed simulation's reason from the RPC is under Why? on the danger", async () => {
+    const reason = 'Your RPC answered: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.';
+    explainWith((level) => {
+      const v = batchView(level, 1);
+      const view = v.steps[0]!.view as { warnings: unknown[] };
+      v.steps[0] = { ...v.steps[0]!, status: 'failed', view: { ...view, warnings: [{ rule: 'simulation-failed', severity: 'warn', message: 'Simulation failed or unavailable: balance changes are unknown.', details: [reason] }] } as any };
+      return v;
+    });
+    const { user } = setup('basic');
+    const danger = screen.getAllByRole('region', { name: /^Danger/ })[0]!;
+    expect(within(danger).getByText(/Clef could not explain transaction 1/)).toBeTruthy();
+    await user.click(within(danger).getAllByText('Why?')[0]!);
+    expect(within(danger).getAllByText(reason).length).toBeGreaterThan(0);
+  });
+
   it('hardware signer: calls onSign with the wires and forwards the signatures', async () => {
     const sigs = [new Uint8Array(64).fill(1), new Uint8Array(64).fill(2), new Uint8Array(64).fill(3)];
     const onSign = vi.fn(async () => sigs);

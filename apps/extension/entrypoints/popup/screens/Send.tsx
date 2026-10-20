@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAddress, type Address } from '@solana/kit';
 import type { Contact } from '@clef/wallet-core';
 import { buildSendTransaction, classifyRecipient, hasTokenAccount, maxSolSend, sendCosts, tokenAccountRent, WALLET_RENT_MIN, type Holding, type RecipientKind, type SendProblem } from '@clef/portfolio';
-import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, ErrorNote, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
+import { sendErrorText, type ErrorText } from '../../../lib/error-text';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -164,7 +165,7 @@ export function SendScreen() {
   const [picked, setPicked] = useState<Suggestion | null>(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorText | null>(null);
   const [sent, setSent] = useState<string | null>(null);
 
   const holdings = data?.holdings.filter((h) => !h.spam || h.mint === mint) ?? [];
@@ -222,7 +223,7 @@ export function SendScreen() {
       });
       setSent(res.signatures?.[0] ?? '');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(sendErrorText(e, { rpcUrl: settings?.rpcUrl }));
     } finally {
       setBusy(false);
     }
@@ -351,7 +352,7 @@ export function SendScreen() {
             {costs.problem && <span role="alert" className="text-danger-text">{problemText(costs.problem, asset, h.symbol, costs.deposit)}</span>}
           </div>
         )}
-        {error && <Alert severity="danger">{error}</Alert>}
+        {error && <ErrorNote text={error} onRpc={() => nav.go({ name: 'settings/network' })} />}
       </div>
       {picking && (
         <TokenPicker

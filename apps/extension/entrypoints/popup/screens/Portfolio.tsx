@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_RPC, type Settings } from '@clef/wallet-core';
 import type { Holding, Portfolio } from '@clef/portfolio';
-import { Avatar, Icon, Logo, NetworkSwitch, Spinner, Tabs, type IconName, Pubkey } from '../../../components';
+import { Avatar, ErrorNote, Icon, Logo, NetworkSwitch, Spinner, Tabs, type IconName, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
+import { loadErrorText } from '../../../lib/error-text';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -134,9 +135,15 @@ const ACTIONS: { label: string; icon: IconName; route: 'send' | 'receive' | 'swa
 
 function ActivityTab({ owner }: { owner: Parameters<typeof useHistory>[0] }) {
   const nav = useNav();
-  const { items, loading, error } = useHistory(owner);
+  const rpcUrl = useWallet().state?.settings.rpcUrl;
+  const { items, loading, error, retry } = useHistory(owner);
   if (loading && items.length === 0) return <div className="p-6 flex justify-center"><Spinner /></div>;
-  if (error) return <p className="px-4 py-3 text-[12px] text-danger-text">{error}</p>;
+  if (error)
+    return (
+      <div className="px-4 py-3">
+        <ErrorNote text={loadErrorText(error, rpcUrl)} onRetry={retry} onRpc={() => nav.go({ name: 'settings/network' })} />
+      </div>
+    );
   if (items.length === 0) return <p className="px-4 py-3 text-[12px] text-muted">No activity yet.</p>;
   return (
     <>
@@ -274,7 +281,7 @@ function BasicPortfolio() {
           {data ? (data.totalUsd !== null ? formatUsd(data.totalUsd) : `${sol ? sol.uiAmount : '0'} SOL`) : loading ? <Spinner size={24} /> : '—'}
         </div>
         {change && <div className={`text-[14px] tabular-nums ${change.tone === 'ok' ? 'text-ok' : change.tone === 'danger' ? 'text-danger-text' : 'text-muted'}`}>{change.text}</div>}
-        {error && <div className="text-[12px] text-danger-text">{error}</div>}
+        {error && <ErrorNote text={loadErrorText(error, settings?.rpcUrl)} onRetry={refresh} onRpc={() => nav.go({ name: 'settings/network' })} />}
         {data?.priceError === 'invalid-key' && <PriceKeyHint />}
       </section>
 
@@ -371,7 +378,7 @@ function ExpertPortfolio() {
         <div className="font-mono text-[12px] text-muted">
           {exactUnits(sol?.amount ?? 0n, 9)} SOL · {(sol?.amount ?? 0n).toLocaleString('en-US')} lamports
         </div>
-        {error && <div className="text-[12px] text-danger-text">{error}</div>}
+        {error && <ErrorNote text={loadErrorText(error, settings?.rpcUrl)} onRetry={refresh} onRpc={() => nav.go({ name: 'settings/network' })} />}
         {data?.priceError === 'invalid-key' && <PriceKeyHint />}
       </section>
 

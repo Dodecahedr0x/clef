@@ -163,7 +163,7 @@ async function combine(all: readonly Step[], included: readonly Step[], mode: Ex
   const failed = all.find((s) => s.status === 'failed');
   const parts = all.map((s) => (s.explained ? s.explained.summary : 'could not be decoded'));
   let summary = all.length === 1 ? parts[0]! : `${all.length} transactions: ${parts.map((p, i) => `${i + 1}. ${p}`).join('; ')}`;
-  if (failed) summary = `Transaction ${failed.index + 1} failed -- ${summary}`;
+  if (failed && all.length > 1) summary = `Transaction ${failed.index + 1} failed -- ${summary}`;
   return {
     balanceChanges: blank || !included.length ? null : sumBalances(explained.map((e) => e.balanceChanges)),
     accountDiffs,

@@ -1,7 +1,8 @@
 import type { ApprovalDecision, ApprovalRequest, SignerInfo } from '@clef/wallet-core';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Alert, Button, NetworkEdge, Spinner } from '../../components';
+import { Alert, Button, ErrorNote, NetworkEdge, Spinner } from '../../components';
 import { decide, getApproval, pingApproval, type FullState } from '../../lib/api';
+import type { ErrorText } from '../../lib/error-text';
 import { useWallet } from '../../lib/hooks';
 import { NavProvider, useNav } from '../../lib/nav';
 import { clusterOf, clusterOfChain } from '../../lib/network';
@@ -37,9 +38,17 @@ function UnlockGate({ onUnlocked }: { onUnlocked: () => void }) {
 /** How often an open approval tells the background it is still there (Chrome stops an idle worker after ~30 s). */
 export const APPROVAL_PING_MS = 20_000;
 
+/** The answer did not reach Clef: say what that means for the site, and what to check. */
+export function decisionErrorText(d: ApprovalDecision, e: unknown): ErrorText {
+  const detail = e instanceof Error && e.message ? e.message : undefined;
+  return d.approved
+    ? { tone: 'danger', title: "Clef couldn't complete your approval", body: 'Close this window, then check the site and Activity before trying again.', detail }
+    : { tone: 'danger', title: "Clef couldn't record your rejection", body: 'Nothing was signed. Close this window; the site may still show the request as waiting.', detail };
+}
+
 function Dispatch({ request, state, requestId, onClose }: { request: ApprovalRequest; state: FullState; requestId: string; onClose?: () => void }) {
   const [signing, setSigning] = useState<Signing | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorText | null>(null);
   const [gone, setGone] = useState(false);
 
   // Keeps the service worker, which holds the pending request, alive while the user is in another window; and
@@ -66,7 +75,7 @@ function Dispatch({ request, state, requestId, onClose }: { request: ApprovalReq
     (d: ApprovalDecision) => {
       decide(requestId, d).then(
         (r) => r?.gone && setGone(true),
-        (e: unknown) => setError(e instanceof Error ? e.message : 'Clef did not accept the decision'),
+        (e: unknown) => setError(decisionErrorText(d, e)),
       );
     },
     [requestId],
@@ -100,9 +109,12 @@ function Dispatch({ request, state, requestId, onClose }: { request: ApprovalReq
   if (error) {
     return (
       <Centered>
-        <Alert severity="danger" title="Something went wrong">
-          {error}
-        </Alert>
+        <div className="flex max-w-[320px] flex-col items-center gap-4">
+          <ErrorNote text={error} />
+          <Button variant="secondary" onClick={() => (onClose ? onClose() : window.close())}>
+            Close
+          </Button>
+        </div>
       </Centered>
     );
   }

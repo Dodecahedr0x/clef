@@ -7,7 +7,7 @@ import type { RequestLogEntry } from '@clef/wallet-core';
 const m = vi.hoisted(() => ({
   state: null as any,
   portfolio: null as any,
-  history: { items: [] as any[], loading: false, error: null as string | null, loadMore: () => {}, hasMore: false },
+  history: { items: [] as any[], loading: false, error: null as string | null, loadMore: () => {}, retry: () => {}, hasMore: false },
   health: { slot: null as bigint | null, latencyMs: null as number | null },
   calls: {} as Record<string, unknown>,
   route: { name: 'home' } as any,
@@ -20,13 +20,14 @@ const m = vi.hoisted(() => ({
   classifyRecipient: null as any,
   buildSendTransaction: null as any,
   hasTokenAccount: null as any,
+  portfolioError: null as string | null,
 }));
 
 vi.mock('../lib/hooks', () => ({
   useWallet: () => ({ state: m.state, error: null, refresh: async () => {} }),
   useActiveAccount: () => m.state?.accounts.find((a: any) => a.address === m.state.activeAccount) ?? null,
   useCall: (type: string) => ({ data: (m.calls[type] ?? null) as any, error: null, loading: false, reload: () => {} }),
-  usePortfolio: () => ({ data: m.portfolio, loading: false, error: null, refresh: m.refresh }),
+  usePortfolio: () => ({ data: m.portfolio, loading: false, error: m.portfolioError ?? null, refresh: m.refresh }),
   useHistory: () => m.history,
   useHealth: () => m.health,
 }));
@@ -136,7 +137,8 @@ beforeEach(() => {
     errorReportsAvailable: false,
   };
   m.portfolio = portfolio();
-  m.history = { items: [], loading: false, error: null, loadMore: vi.fn(), hasMore: false };
+  m.portfolioError = null;
+  m.history = { items: [], loading: false, error: null, loadMore: vi.fn(), retry: vi.fn(), hasMore: false };
   m.health = { slot: 287_412_903n, latencyMs: 84 };
   m.calls = {};
   m.route = { name: 'home' };
@@ -156,6 +158,18 @@ afterEach(() => {
 });
 
 describe('Portfolio', () => {
+  it('a balance the RPC did not return names the RPC, offers Try again and Change RPC, and keeps the raw error behind Details', () => {
+    m.portfolioError = 'HTTP error (403): Forbidden';
+    render(<PortfolioScreen />);
+    expect(screen.getByText(/^Couldn't reach /)).toBeTruthy();
+    expect(screen.getByText(/Your funds are safe/)).toBeTruthy();
+    expect(screen.getByText('HTTP error (403): Forbidden')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(m.refresh).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Change RPC' }));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings/network' });
+  });
+
   it('shows total, change, network, holdings and the spam row', async () => {
     render(<PortfolioScreen />);
     expect(screen.getByText('$1,284.52')).toBeTruthy();
@@ -429,17 +443,36 @@ describe('Send', () => {
     expect(screen.getByText('More than your balance')).toBeTruthy();
   });
 
-  it('surfaces a rejected approval', async () => {
+  it('a rejected approval reads as a cancel, not an error', async () => {
     m.route = { name: 'send', to: ALICE };
     m.call = vi.fn(async () => {
-      throw new Error('User rejected the request');
+      throw Object.assign(new Error('User rejected the request'), { code: 4001 });
     });
     render(<SendScreen />);
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1' } });
     const review = screen.getByRole('button', { name: 'Review' });
     await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(review);
-    expect(await screen.findByText('User rejected the request')).toBeTruthy();
+    expect(await screen.findByText('Cancelled. Nothing was sent.')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a send that never reached the RPC names it, keeps the raw error behind Details, and links the RPC settings', async () => {
+    m.route = { name: 'send', to: ALICE };
+    m.call = vi.fn(async () => {
+      throw new Error('Failed to fetch');
+    });
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1' } });
+    const review = screen.getByRole('button', { name: 'Review' });
+    await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(review);
+    expect(await screen.findByText(/^Couldn't reach /)).toBeTruthy();
+    expect(screen.getByText(/Nothing was sent/)).toBeTruthy();
+    expect(screen.getByText('Details')).toBeTruthy();
+    expect(screen.getByText('Failed to fetch')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Change RPC' }));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings/network' });
   });
 
   it('parses amounts strictly', () => {
@@ -574,8 +607,9 @@ describe('Swap', () => {
     fireEvent.change(screen.getByLabelText('You pay'), { target: { value: '1' } });
     expect(await screen.findByText('Jupiter is rate-limiting quotes')).toBeTruthy();
     expect(screen.getByText(/Try again in 4 s, or add a free Jupiter API key/)).toBeTruthy();
-    fireEvent.click(screen.getByText('Open Network & RPC'));
-    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings/network' });
+    expect(screen.getByText(/Settings → Swaps/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Open Settings'));
+    expect(m.go).toHaveBeenLastCalledWith({ name: 'settings' });
     expect((screen.getByRole('button', { name: 'Review swap' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -603,6 +637,16 @@ describe('Swap', () => {
 });
 
 describe('History', () => {
+  it('a history that failed to load shows the error with Try again, not "Nothing here yet"', () => {
+    const retry = vi.fn();
+    m.history = { items: [], loading: false, error: 'Failed to fetch', loadMore: vi.fn(), retry, hasMore: false };
+    render(<HistoryScreen />);
+    expect(screen.getByText(/^Couldn't reach /)).toBeTruthy();
+    expect(screen.queryByText('Nothing here yet')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalled();
+  });
+
   const now = Date.now();
   const sec = (ms: number) => Math.floor(ms / 1000);
   const items: HistoryItem[] = [
@@ -618,7 +662,7 @@ describe('History', () => {
   ];
 
   beforeEach(() => {
-    m.history = { items, loading: false, error: null, loadMore: vi.fn(), hasMore: true };
+    m.history = { items, loading: false, error: null, loadMore: vi.fn(), retry: vi.fn(), hasMore: true };
     m.calls['log:list'] = log;
   });
 

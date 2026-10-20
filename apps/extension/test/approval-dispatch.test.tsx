@@ -137,6 +137,22 @@ describe('approval kept alive while the user is elsewhere', () => {
     expect(await screen.findByText('This request expired')).toBeTruthy();
   });
 
+  it('a decision Clef could not take says what to check, keeps the raw error behind Details, and can be closed', async () => {
+    request = txRequest();
+    decide.mockRejectedValueOnce(new Error('Signature does not verify') as never);
+    const close = vi.spyOn(window, 'close').mockImplementation(() => {});
+    render(<Approval />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Device signed' }));
+    expect(await screen.findByText("Clef couldn't complete your approval")).toBeTruthy();
+    expect(screen.getByText(/check the site and Activity/)).toBeTruthy();
+    expect(screen.getByText('Signature does not verify')).toBeTruthy();
+    expect(screen.queryByText('Something went wrong')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(close).toHaveBeenCalled();
+    close.mockRestore();
+  });
+
   it('a decision for a request that is gone shows the expired notice instead of doing nothing', async () => {
     request = txRequest();
     decide.mockResolvedValueOnce({ gone: true } as never);

@@ -16,7 +16,10 @@ async function send<T>(msg: InternalMessage): Promise<T> {
   const reply = (await browser.runtime.sendMessage(msg)) as InternalReply<T> | undefined;
   if (!reply) throw new Error('The wallet did not respond');
   // An action the background does not know means it runs an older build than this page.
-  if (!reply.ok) throw new Error(/^Unknown (call|message)/.test(reply.error) ? STALE_BACKGROUND : reply.error);
+  if (!reply.ok) {
+    const error = new Error(/^Unknown (call|message)/.test(reply.error) ? STALE_BACKGROUND : reply.error);
+    throw reply.code === undefined ? error : Object.assign(error, { code: reply.code });
+  }
   return reply.value;
 }
 

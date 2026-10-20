@@ -210,7 +210,7 @@ export function TxApproval({
       }
     >
       <div className={`flex flex-col ${expert ? 'min-h-0 flex-1' : 'min-h-full'}`}>
-        {view?.combined.incomplete && (
+        {view?.combined.incomplete && view.mode === 'independent' && view.steps.length > 1 && (
           <div className={expert ? 'px-5 pt-3' : 'px-4 pt-4'}>
             <IncompleteNotice dependentSteps={view.dependentSteps} />
           </div>

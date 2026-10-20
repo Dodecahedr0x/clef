@@ -152,7 +152,7 @@ function useExplainExtras(): ExplainExtras | null {
   return useMemo(() => (loading ? null : { contacts: contacts.data ?? [], userIdls: idls.data ?? [] }), [loading, contacts.data, idls.data]);
 }
 
-export function useHistory(owner: Address | null): { items: HistoryItem[]; loading: boolean; error: string | null; loadMore(): void; hasMore: boolean } {
+export function useHistory(owner: Address | null): { items: HistoryItem[]; loading: boolean; error: string | null; loadMore(): void; retry(): void; hasMore: boolean } {
   const { state } = useWallet();
   const clients = useClients();
   const extras = useExplainExtras();
@@ -200,7 +200,12 @@ export function useHistory(owner: Address | null): { items: HistoryItem[]; loadi
     if (next !== undefined && !loading) pageRef.current(next);
   }, [next, loading]);
 
-  return { items, loading, error, loadMore, hasMore };
+  /** Loads again the page that failed: the first one, or the one after what is shown. */
+  const retry = useCallback(() => {
+    if (!loading) pageRef.current(items.length ? next : undefined);
+  }, [items.length, next, loading]);
+
+  return { items, loading, error, loadMore, retry, hasMore };
 }
 
 const HEALTH_POLL_MS = 15_000;

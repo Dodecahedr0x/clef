@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { RequestLogEntry } from '@clef/wallet-core';
 import type { HistoryItem } from '@clef/portfolio';
-import { Button, Chips, EmptyState, Icon, PopupScreen, Spinner, type IconName, Pubkey } from '../../../components';
+import { Button, Chips, EmptyState, ErrorNote, Icon, PopupScreen, Spinner, type IconName, Pubkey } from '../../../components';
+import { loadErrorText } from '../../../lib/error-text';
 import { shortAddress } from '../../../lib/format';
-import { useActiveAccount, useCall, useHistory } from '../../../lib/hooks';
+import { useActiveAccount, useCall, useHistory, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { RpcNotice } from './RpcNotice';
 import { dayLabel } from './TokenDetail';
@@ -188,6 +189,7 @@ export function HistoryScreen() {
   const owner = account?.address ?? null;
   const history = useHistory(owner);
   const log = useCall<RequestLogEntry[]>('log:list', { limit: 500 });
+  const rpcUrl = useWallet().state?.settings.rpcUrl;
   const [filter, setFilter] = useState<Filter>('all');
 
   const mine = (o: string) => !!account && (o === account.address || o === account.label || /^you\b/i.test(o));
@@ -222,13 +224,13 @@ export function HistoryScreen() {
       </div>
       <RpcNotice className="mt-3" />
       <div className="px-3 pt-3 pb-4 flex flex-col gap-1.5">
-        {history.error && <p className="m-0 text-[12px] text-danger-text">{history.error}</p>}
+        {history.error && <ErrorNote text={loadErrorText(history.error, rpcUrl)} onRetry={history.retry} onRpc={() => nav.go({ name: 'settings/network' })} />}
         {history.loading && rows.length === 0 && (
           <div className="p-6 flex justify-center">
             <Spinner />
           </div>
         )}
-        {!history.loading && shown.length === 0 && <EmptyState title="Nothing here yet" />}
+        {!history.loading && !history.error && shown.length === 0 && <EmptyState title="Nothing here yet" />}
         {groups.map((g, gi) => (
           <section key={g.label + gi} className="flex flex-col gap-1.5">
             <h2 className={`mx-1 mb-0.5 ${gi ? 'mt-2' : 'mt-0'} text-[12px] font-semibold text-muted uppercase tracking-[0.06em]`}>{g.label}</h2>

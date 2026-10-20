@@ -158,7 +158,8 @@ describe('explainBatch independent fallback', () => {
     const batch = await explainBatch([{ wire: buildWire([transfer(TEMP)]) }], ctxFor(reader));
     expect(batch.mode).toBe('independent');
     expect(batch.steps[0]!.status).toBe('failed');
-    expect(batch.combined.summary).toMatch(/^Transaction 1 failed/);
+    // One transaction: no "Transaction 1 failed" prefix; the danger says the simulation failed.
+    expect(batch.combined.summary).not.toMatch(/^Transaction 1/);
     const view = viewForBatch(batch, 'basic');
     expect(view.steps[0]!.status).toBe('failed');
   });
@@ -211,6 +212,6 @@ describe('explainLanded', () => {
   it('marks a failed transaction failed in the summary', async () => {
     const b = await explainLanded({ wire: buildWire([transfer(OTHER, SOL)]), meta: meta({ InstructionError: [0, { Custom: 1 }] }) }, ctxFor(new MemoryChainReader()));
     expect(b.steps[0]!.status).toBe('failed');
-    expect(b.combined.summary).toMatch(/^Transaction 1 failed/);
+    expect(b.combined.summary).toBe('Failed: Interact with System Program');
   });
 });

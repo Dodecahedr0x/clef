@@ -55,6 +55,8 @@ describe('explain', () => {
     expect(ex.balanceChanges).toBeNull();
     expect(ex.issues[0]).toMatchObject({ stage: 'simulate' });
     expect(ex.warnings.map((w) => w.rule)).toContain('simulation-failed');
+    // The RPC's reason, for "Why?".
+    expect(ex.warnings.find((w) => w.rule === 'simulation-failed')?.details?.[0]).toMatch(/^Your RPC answered: .*Custom/);
   });
 
   it('treats a misaligned simulation result as a failed simulation', async () => {
@@ -469,7 +471,14 @@ describe('explain', () => {
     };
     const ex = await explain({ wire, meta }, ctx(new MemoryChainReader()));
     expect(ex.issues).toContainEqual({ stage: 'execute', message: 'Transaction failed: {"InstructionError":[0,{"Custom":1}]}' });
-    expect(ex.warnings).toEqual([{ rule: 'transaction-failed', severity: 'info', message: 'Transaction failed; only the fee was charged.' }]);
+    expect(ex.warnings).toEqual([
+      {
+        rule: 'transaction-failed',
+        severity: 'info',
+        message: 'Transaction failed; only the fee was charged.',
+        details: ['Your RPC answered: Transaction failed: {"InstructionError":[0,{"Custom":1}]}'],
+      },
+    ]);
     expect(ex.summary).toBe('Failed: Interact with System Program');
   });
 

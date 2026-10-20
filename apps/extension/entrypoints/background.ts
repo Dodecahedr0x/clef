@@ -186,7 +186,10 @@ export default defineBackground(() => {
     if (!isExtensionPage(sender, browser.runtime.id, extensionBase)) return undefined;
     return handleInternal(msg as InternalMessage).then(
       (value): InternalReply => ({ ok: true, value }),
-      (e: unknown): InternalReply => ({ ok: false, error: e instanceof Error ? e.message : 'Unexpected error' }),
+      (e: unknown): InternalReply => {
+        const code = (e as { code?: unknown } | null)?.code;
+        return { ok: false, error: e instanceof Error ? e.message : 'Unexpected error', ...(typeof code === 'number' && { code }) };
+      },
     );
   });
 });

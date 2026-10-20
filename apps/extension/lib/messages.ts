@@ -19,7 +19,8 @@ export type InternalMessage =
   /** Sent by an open approval every few seconds: keeps the service worker (and the request in it) alive. */
   | { channel: 'approval'; op: 'ping'; id: string };
 
-export type InternalReply<T = unknown> = { ok: true; value: T } | { ok: false; error: string };
+/** `code`: the protocol error code when there is one (4001 = the user rejected). */
+export type InternalReply<T = unknown> = { ok: true; value: T } | { ok: false; error: string; code?: number };
 
 /** Page <-> relay window messages. */
 export const INPAGE_SOURCE = 'clef-inpage';

@@ -4,7 +4,7 @@ import { formatUnits } from './format';
 import { shortAddress } from './labels';
 import { CLOCK_SYSVAR, CORE_PROGRAMS, KNOWN_MINTS, MAX_COMPUTE_UNIT_LIMIT, NATIVE_MINTS, PROGRAM_NAMES, PLUMBING_PROGRAMS, RENT_SYSVAR, SENSITIVE_PROGRAMS, STAKE_PROGRAM, SYSTEM_PROGRAM, TOKEN_PROGRAMS, TRUSTED_PROGRAMS, VOTE_PROGRAM } from './registry';
 import type { StateChange } from './state-changes';
-import type { BalanceChange, ExplainedTransaction, NamedAccount, Warning } from './types';
+import type { BalanceChange, ExplainedTransaction, Issue, NamedAccount, Warning } from './types';
 
 export type RiskInput = Pick<ExplainedTransaction, 'instructions' | 'relations' | 'balanceChanges' | 'issues' | 'me'> & {
   /** Authority changes seen in pre/post account state (simulation), however they were made. */
@@ -309,8 +309,11 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
     warn('high-fee', severity, `Pays a priority fee of ${formatUnits(priority, 9)} SOL.`);
   }
 
+  const reasons = (stage: Issue['stage']) => input.issues.filter((i) => i.stage === stage).slice(0, 3).map((i) => `Your RPC answered: ${i.message.slice(0, 200)}`);
+
   if (input.issues.some((i) => i.stage === 'execute')) {
     warn('transaction-failed', 'info', 'Transaction failed; only the fee was charged.');
+    warnings[warnings.length - 1]!.details = reasons('execute');
   }
 
   if (input.balancesChanged) {
@@ -328,6 +331,7 @@ export function evaluateRisks(raw: RiskInput): Warning[] {
         ? 'Your RPC could not simulate this transaction: it does not accept this transaction format or size (version 1 transactions, up to 4 KB, need an up-to-date RPC). Balance changes are unknown.'
         : 'Simulation failed or unavailable: balance changes are unknown.',
     );
+    warnings[warnings.length - 1]!.details = reasons('simulate');
   }
 
   const unexplained = input.instructions.some((ix) => !ix.name && !PLUMBING_PROGRAMS.has(ix.programId));

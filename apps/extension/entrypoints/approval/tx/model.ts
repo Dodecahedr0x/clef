@@ -22,7 +22,12 @@ export function batchWarnings(view: BatchView): Warning[] {
       out.push(w);
     }
   };
-  for (const s of view.steps) if (unexplained(s)) add({ rule: UNEXPLAINED_RULE, severity: 'danger', message: unexplainedMessage(s) });
+  for (const s of view.steps) {
+    if (!unexplained(s)) continue;
+    // The RPC's own words for the failure, under "Why?".
+    const details = s.view?.warnings.find((w) => (w.rule === 'simulation-failed' || w.rule === 'transaction-failed') && w.details?.length)?.details;
+    add({ rule: UNEXPLAINED_RULE, severity: 'danger', message: unexplainedMessage(s), ...(details && { details }) });
+  }
   view.combined.warnings.forEach(add);
   for (const s of view.steps) s.view?.warnings.forEach(add);
   return out;

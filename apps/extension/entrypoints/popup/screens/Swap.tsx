@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SwapQuote } from '@clef/market';
 import { tokenAccountRent, WALLET_RENT_MIN } from '@clef/portfolio';
-import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Segmented, Spinner, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, EmptyState, ErrorNote, Icon, PopupScreen, Segmented, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
+import { sendErrorText, type ErrorText } from '../../../lib/error-text';
 import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -31,25 +32,33 @@ const DEFAULT_META: Record<string, TokenMeta> = {
 const jupMint = (m: string) => (m === 'SOL' ? WSOL : m);
 const units = (a: bigint, decimals: number) => Number(a) / 10 ** decimals;
 
-/** Words for a Jupiter failure; rate limits point at the optional API key. */
-export function swapErrorText(e: unknown): { title: string; body: string; settings: boolean } {
-  const code = (e as { code?: string } | null)?.code;
+/**
+ * Words for a failed swap. Quote failures come from Jupiter; rate limits and key problems point at the Jupiter key
+ * (Settings → Swaps). Anything else happened while sending, and reads like a failed send.
+ */
+export type SwapErrorText = ErrorText & { jupiterKey?: boolean };
+export function swapErrorText(e: unknown, opts: { rpcUrl?: string; slippageBps?: number } = {}): SwapErrorText {
+  const code = (e as { code?: unknown } | null)?.code;
   const retry = (e as { retryAfterMs?: number } | null)?.retryAfterMs;
+  const detail = errorMessage(e) || undefined;
   switch (code) {
     case 'rate-limited':
       return {
+        tone: 'danger',
         title: 'Jupiter is rate-limiting quotes',
-        body: `Keyless access is shared and limited.${retry ? ` Try again in ${Math.ceil(retry / 1000)} s,` : ' Try again shortly,'} or add a free Jupiter API key in Network & RPC settings.`,
-        settings: true,
+        body: `Keyless access is shared and limited.${retry ? ` Try again in ${Math.ceil(retry / 1000)} s,` : ' Try again shortly,'} or add a free Jupiter API key in Settings → Swaps.`,
+        jupiterKey: true,
       };
     case 'invalid-key':
-      return { title: 'Jupiter rejected your API key', body: 'Check the key in Network & RPC settings, or remove it to use keyless access.', settings: true };
+      return { tone: 'danger', title: 'Jupiter rejected your API key', body: 'Check the key in Settings → Swaps, or remove it to use keyless access.', jupiterKey: true };
     case 'bad-request':
-      return { title: 'No quote for this swap', body: errorMessage(e), settings: false };
+      return { tone: 'danger', title: 'No quote for this swap', body: 'Jupiter could not price this swap. Try another amount or token.', detail };
     case 'unavailable':
-      return { title: 'Jupiter is unavailable', body: 'Quotes could not be fetched. Try again in a moment.', settings: false };
-    default:
-      return { title: 'Swap failed', body: errorMessage(e), settings: false };
+      return { tone: 'danger', title: 'Jupiter is unavailable', body: 'Quotes could not be fetched. Try again in a moment.', detail };
+    default: {
+      const t = sendErrorText(e, opts);
+      return t.tone === 'neutral' ? { ...t, title: 'Cancelled. Nothing was swapped.' } : t;
+    }
   }
 }
 
@@ -266,7 +275,7 @@ export function SwapScreen() {
   const outUsd = outUi !== null && prices[jupMint(outMint)] != null ? outUi * prices[jupMint(outMint)]! : null;
   const rate = quote && inMeta && outMeta ? units(quote.outAmount, outMeta.decimals) / units(quote.inAmount, inMeta.decimals) : null;
   const impact = quote ? (quote.priceImpactPct < 0.01 ? '<0.01%' : `${quote.priceImpactPct.toFixed(2)}%`) : null;
-  const err = error ? swapErrorText(error) : null;
+  const err = error ? swapErrorText(error, { rpcUrl: settings?.rpcUrl, slippageBps }) : null;
   const pickerOptions = (data?.holdings.filter((h) => !h.spam) ?? []).map((h) => ({
     mint: h.mint,
     symbol: h.symbol,
@@ -373,14 +382,16 @@ export function SwapScreen() {
 
         {err && (
           <div className="mt-3.5">
-            <Alert severity={error && (error as { code?: string }).code === 'unavailable' ? 'warn' : 'danger'} title={err.title}>
-              {err.body}
-              {err.settings && (
-                <button type="button" onClick={() => nav.go({ name: 'settings/network' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-[12px]">
-                  Open Network & RPC
+            {err.jupiterKey ? (
+              <Alert severity="warn" title={err.title}>
+                {err.body}
+                <button type="button" onClick={() => nav.go({ name: 'settings' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-[12px]">
+                  Open Settings
                 </button>
-              )}
-            </Alert>
+              </Alert>
+            ) : (
+              <ErrorNote text={err} onRpc={() => nav.go({ name: 'settings/network' })} />
+            )}
           </div>
         )}
 
