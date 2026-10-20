@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SwapQuote } from '@clef/market';
+import { tokenAccountRent, WALLET_RENT_MIN } from '@clef/portfolio';
 import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Segmented, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
@@ -7,7 +8,14 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
-import { SOL_FEE_RESERVE, TokenButton, errorMessage, parseAmount, toBase64, unitsToInput } from './Send';
+import { TokenButton, errorMessage, parseAmount, toBase64, unitsToInput } from './Send';
+
+/**
+ * SOL that MAX keeps back when swapping SOL: Jupiter's priority fee (well under 0.001 SOL), the wrapped-SOL account
+ * it opens for the swap (refunded) and the output token account if it is new, while the wallet stays above the
+ * minimum it must hold. About 0.006 SOL.
+ */
+export const SWAP_SOL_RESERVE = 1_000_000n + 2n * tokenAccountRent('token') + WALLET_RENT_MIN;
 
 export const WSOL = 'So11111111111111111111111111111111111111112';
 export const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -214,7 +222,7 @@ export function SwapScreen() {
   };
   const max = () => {
     if (!inHolding) return;
-    const v = inHolding.program === 'native' ? (inHolding.amount > SOL_FEE_RESERVE ? inHolding.amount - SOL_FEE_RESERVE : 0n) : inHolding.amount;
+    const v = inHolding.program === 'native' ? (inHolding.amount > SWAP_SOL_RESERVE ? inHolding.amount - SWAP_SOL_RESERVE : 0n) : inHolding.amount;
     setAmountText(unitsToInput(v, inHolding.decimals));
   };
 

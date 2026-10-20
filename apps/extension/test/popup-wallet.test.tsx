@@ -19,6 +19,7 @@ const m = vi.hoisted(() => ({
   jupiter: null as any,
   classifyRecipient: null as any,
   buildSendTransaction: null as any,
+  hasTokenAccount: null as any,
 }));
 
 vi.mock('../lib/hooks', () => ({
@@ -37,9 +38,11 @@ vi.mock('../lib/nav', () => ({
 vi.mock('../lib/clients', () => ({
   createClients: () => ({ chain: { tag: 'chain' }, portfolio: { tag: 'reader' }, jupiter: m.jupiter }),
 }));
-vi.mock('@clef/portfolio', () => ({
+vi.mock('@clef/portfolio', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   classifyRecipient: (...a: unknown[]) => m.classifyRecipient(...a),
   buildSendTransaction: (...a: unknown[]) => m.buildSendTransaction(...a),
+  hasTokenAccount: (...a: unknown[]) => m.hasTokenAccount(...a),
 }));
 
 import { PortfolioScreen } from '../entrypoints/popup/screens/Portfolio';
@@ -145,6 +148,7 @@ beforeEach(() => {
   m.jupiter = null;
   m.classifyRecipient = vi.fn(async () => 'wallet');
   m.buildSendTransaction = vi.fn(async () => ({ wire: new Uint8Array([1, 2, 3]), createsAta: false, lastValidBlockHeight: 10n }));
+  m.hasTokenAccount = vi.fn(async () => true);
 });
 afterEach(() => {
   cleanup();
@@ -309,17 +313,70 @@ describe('TokenDetail', () => {
 });
 
 describe('Send', () => {
-  it('MAX keeps a fee reserve for SOL, and the token picker switches the asset', () => {
+  it('MAX sends all SOL but the fee, and the token picker switches the asset', () => {
     m.route = { name: 'send' };
     render(<SendScreen />);
     fireEvent.click(screen.getByText('MAX'));
-    expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('6.21039');
+    expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('6.210395');
     expect(screen.getByText(/≈ \$879\.39/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Choose token' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Choose token' })).getByText('USDC'));
     fireEvent.click(screen.getByText('MAX'));
     expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('312.4');
+  });
+
+  it('MAX on SOL can be sent: it empties the wallet instead of leaving less than a wallet must hold', async () => {
+    m.route = { name: 'send', to: ALICE };
+    render(<SendScreen />);
+    fireEvent.click(screen.getByText('MAX'));
+    const review = screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement;
+    await waitFor(() => expect(review.disabled).toBe(false));
+    expect(screen.getByText('Network fee 0.000005 SOL')).toBeTruthy();
+    // What the old MAX entered: 10,000 lamports kept, 5,000 left after the fee.
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '6.21039' } });
+    expect(await screen.findByText(/This would leave 0\.000005 SOL, less than the 0\.00089088 SOL a wallet must keep/)).toBeTruthy();
+    expect(review.disabled).toBe(true);
+  });
+
+  it('refuses SOL to a new address below what opens it', async () => {
+    m.route = { name: 'send', to: ALICE };
+    m.classifyRecipient = vi.fn(async () => 'new');
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0.0001' } });
+    expect(await screen.findByText(/This address has no account yet: it needs at least 0\.00089088 SOL to open/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0.001' } });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it('a token send checks the SOL for the fee and for the recipient account it opens', async () => {
+    m.route = { name: 'send', to: ALICE, mint: USDC };
+    m.portfolio = { ...m.portfolio, holdings: [holding({ amount: 1_000_000n }), USDC_H] };
+    m.hasTokenAccount = vi.fn(async () => false);
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    expect(await screen.findByText('Network fee 0.000005 SOL · 0.00203928 SOL deposit to open their USDC account')).toBeTruthy();
+    expect(m.hasTokenAccount).toHaveBeenCalledWith({ tag: 'chain' }, ALICE, USDC, 'token');
+    expect(screen.getByText(/Not enough SOL: sending USDC here costs 0\.00204428 SOL .* This account has 0\.001 SOL\./)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+
+    // The recipient already holds USDC: only the fee, which fits.
+    m.hasTokenAccount = vi.fn(async () => true);
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText('Network fee 0.000005 SOL')).toBeTruthy();
+  });
+
+  it('a token send from an account with no SOL says it needs SOL for the fee', async () => {
+    m.route = { name: 'send', to: ALICE, mint: USDC };
+    m.portfolio = { ...m.portfolio, holdings: [holding({ amount: 0n }), USDC_H] };
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    expect(await screen.findByText('Not enough SOL for the network fee: it needs 0.000005 SOL and this account has 0 SOL.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Review' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('suggests contacts and own accounts, then submits with send:true', async () => {
@@ -428,6 +485,15 @@ describe('Swap', () => {
     prices: vi.fn(async () => ({ [WSOL]: { usdPrice: 141.6, priceChange24h: 1 }, [USDC]: { usdPrice: 1, priceChange24h: 0 } })),
     quoteAndBuild: vi.fn(async (p: { slippageBps: number }) => ({ quote: { ...quote(212_400_000n), slippageBps: p.slippageBps }, wire: new Uint8Array([9, 9]), lastValidBlockHeight: 1n })),
     searchTokens: vi.fn(async () => [{ mint: JUP_MINT, symbol: 'JUP', name: 'Jupiter', decimals: 6, verified: true }]),
+  });
+
+  it('MAX on SOL keeps back what the swap needs in SOL (about 0.006)', () => {
+    m.route = { name: 'swap' };
+    m.jupiter = jupiter();
+    render(<SwapScreen />);
+    fireEvent.click(screen.getByText('MAX'));
+    // 6.2104 SOL minus 0.001 (priority fee) + 2 token account deposits + a wallet's minimum.
+    expect((screen.getByLabelText('You pay') as HTMLInputElement).value).toBe('6.20443056');
   });
 
   it('quotes, shows rate, minimum received, route and Clef fee None, then submits', async () => {

@@ -195,3 +195,28 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await detail.getByRole('button', { name: 'Back' }).click();
   await expect(row).toBeVisible();
 });
+
+test('MAX on SOL sends everything but the fee and empties the account', async ({ context, popup, dapp, base, validator }) => {
+  await setup({ context, popup, dapp, base, validator });
+  const to = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+
+  await popup.getByRole('navigation', { name: 'Wallet actions' }).getByRole('button', { name: 'Send' }).click();
+  await expect(popup.getByText(/Balance 10/)).toBeVisible({ timeout: 30_000 });
+  await popup.getByRole('textbox', { name: 'To' }).fill(to);
+  await popup.getByRole('button', { name: 'MAX' }).click();
+  await expect(popup.getByRole('textbox', { name: 'Amount' })).toHaveValue('9.999995');
+  await expect(popup.getByText('Network fee 0.000005 SOL')).toBeVisible();
+  const review = popup.getByRole('button', { name: 'Review' });
+  await expect(review).toBeEnabled({ timeout: 30_000 });
+  const approvalP = nextApproval(context);
+  await review.click();
+  const approval = await approvalP;
+  await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
+  const ack = approval.getByLabel('I understand I may lose these funds');
+  if (await ack.count()) await ack.check();
+  await decideAndClose(approval, /^Sign( anyway)?$/);
+
+  await expect(popup.getByText('Sent', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect.poll(async () => (await rpcCall<{ value: number }>(validator, 'getBalance', [A, { commitment: 'confirmed' }])).value, { timeout: 30_000 }).toBe(0);
+  expect((await rpcCall<{ value: number }>(validator, 'getBalance', [to, { commitment: 'confirmed' }])).value).toBe(10 * SOL - 5000);
+});

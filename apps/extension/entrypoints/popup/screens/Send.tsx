@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { isAddress, type Address } from '@solana/kit';
 import type { Contact } from '@clef/wallet-core';
-import { buildSendTransaction, classifyRecipient, type Holding, type RecipientKind } from '@clef/portfolio';
+import { buildSendTransaction, classifyRecipient, hasTokenAccount, maxSolSend, sendCosts, tokenAccountRent, WALLET_RENT_MIN, type Holding, type RecipientKind, type SendProblem } from '@clef/portfolio';
 import { Alert, Avatar, Button, EmptyState, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
@@ -9,9 +9,6 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
-
-/** Lamports kept back by MAX on SOL so the network fee still fits. */
-export const SOL_FEE_RESERVE = 10_000n;
 
 /** Decimal string -> base units; null when malformed or more precise than the token allows. */
 export function parseAmount(text: string, decimals: number): bigint | null {
@@ -97,6 +94,44 @@ export function TokenButton({ h, onClick, label }: { h: { symbol: string; mint: 
   );
 }
 
+/** Exact SOL, e.g. '0.000005' (amounts this small must not round away). */
+const sol = (lamports: bigint) => unitsToInput(lamports, 9);
+
+function problemText(p: SendProblem, asset: 'sol' | 'token', symbol: string, deposit: bigint): string {
+  switch (p.kind) {
+    case 'fee':
+      if (asset === 'sol') return `Not enough SOL left for the network fee (${sol(p.need)} SOL). MAX sends everything minus the fee.`;
+      return deposit
+        ? `Not enough SOL: sending ${symbol} here costs ${sol(p.need)} SOL (the network fee and a deposit to open their ${symbol} account). This account has ${sol(p.have)} SOL.`
+        : `Not enough SOL for the network fee: it needs ${sol(p.need)} SOL and this account has ${sol(p.have)} SOL.`;
+    case 'dust':
+      return asset === 'sol'
+        ? `This would leave ${sol(p.left)} SOL, less than the ${sol(WALLET_RENT_MIN)} SOL a wallet must keep. Send everything (MAX) or keep at least ${sol(WALLET_RENT_MIN)} SOL.`
+        : `After the fees this account would keep ${sol(p.left)} SOL, less than the ${sol(WALLET_RENT_MIN)} SOL a wallet must hold. Add SOL to it first.`;
+    case 'recipient-min':
+      return `This address has no account yet: it needs at least ${sol(p.min)} SOL to open. Send at least that much.`;
+  }
+}
+
+/** Whether the recipient already has a token account for the mint; false means the send opens one, at the sender's cost. */
+function useHasTokenAccount(to: Address | null, h: Holding | undefined, rpcKey: unknown, chainFor: () => Parameters<typeof hasTokenAccount>[0]) {
+  const [exists, setExists] = useState<boolean | 'checking' | null>(null);
+  const program = h && h.program !== 'native' ? h.program : null;
+  useEffect(() => {
+    if (!to || !h || !program) return setExists(null);
+    let live = true;
+    setExists('checking');
+    hasTokenAccount(chainFor(), to, h.mint as Address, program)
+      .then((x) => live && setExists(x))
+      // Unknown: assume the deposit, so the check never lets an unaffordable send through.
+      .catch(() => live && setExists(false));
+    return () => {
+      live = false;
+    };
+  }, [to, h?.mint, program, rpcKey]);
+  return exists;
+}
+
 function useRecipientKind(to: Address | null, rpcKey: unknown, chainFor: () => Parameters<typeof classifyRecipient>[0]) {
   const [kind, setKind] = useState<RecipientKind | 'checking' | null>(null);
   useEffect(() => {
@@ -153,12 +188,20 @@ export function SendScreen() {
   const tooMuch = h !== undefined && amount !== null && amount > h.amount;
   const usd = h?.usdPrice != null && amount !== null ? (Number(amount) / 10 ** h.decimals) * h.usdPrice : null;
   const note = kind && kind !== 'checking' ? RECIPIENT_NOTE[kind] : undefined;
-  const canReview = !!account && !!h && !!to && amount !== null && amount > 0n && !tooMuch && !busy && kind !== 'checking' && to !== account.address;
+
+  // SOL the send costs on top of the amount (fee, and the deposit for a recipient token account it opens), and why
+  // it can't go through: caught here rather than as a failed simulation.
+  const asset = h?.program === 'native' ? 'sol' : 'token';
+  const solBalance = data?.holdings.find((x) => x.program === 'native')?.amount ?? 0n;
+  const hasAccount = useHasTokenAccount(to, h, clients, () => clients!.chain);
+  const deposit = h && h.program !== 'native' && hasAccount === false ? tokenAccountRent(h.program) : 0n;
+  const costs = h && to && amount !== null && amount > 0n && !tooMuch ? sendCosts({ asset, amount, solBalance, recipientIsNew: kind === 'new', deposit }) : null;
+  const canReview =
+    !!account && !!h && !!to && amount !== null && amount > 0n && !tooMuch && !busy && kind !== 'checking' && hasAccount !== 'checking' && !costs?.problem && to !== account.address;
 
   const max = () => {
     if (!h) return;
-    const v = h.program === 'native' ? (h.amount > SOL_FEE_RESERVE ? h.amount - SOL_FEE_RESERVE : 0n) : h.amount;
-    setAmountText(unitsToInput(v, h.decimals));
+    setAmountText(unitsToInput(h.program === 'native' ? maxSolSend(h.amount) : h.amount, h.decimals));
   };
 
   const review = async () => {
@@ -298,6 +341,15 @@ export function SendScreen() {
           </Alert>
         ) : (
           !to && <Alert severity="warn">Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</Alert>
+        )}
+        {costs && h && (
+          <div className="flex flex-col gap-1 text-[12px] tabular-nums">
+            <span className="text-muted">
+              Network fee {sol(costs.fee)} SOL
+              {costs.deposit > 0n && ` · ${sol(costs.deposit)} SOL deposit to open their ${h.symbol} account`}
+            </span>
+            {costs.problem && <span role="alert" className="text-danger-text">{problemText(costs.problem, asset, h.symbol, costs.deposit)}</span>}
+          </div>
         )}
         {error && <Alert severity="danger">{error}</Alert>}
       </div>
