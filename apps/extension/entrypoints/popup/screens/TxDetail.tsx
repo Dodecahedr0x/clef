@@ -6,19 +6,13 @@ import { call, type FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useExplainLanded, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { explorerUrl } from '../../../lib/network';
 import { BasicBody } from '../../approval/tx/BasicBody';
 import { ExpertBody } from '../../approval/tx/ExpertBody';
 import { IntermediateBody } from '../../approval/tx/IntermediateBody';
 import { batchWarnings, hasDanger, type Tab } from '../../approval/tx/model';
 import { DangerCards } from '../../approval/tx/parts';
 import { ExplainSource, IdlAdder } from '../../approval/tx/source';
-
-function explorerUrl(state: FullState, signature: string): string | null {
-  const s = state.settings;
-  const cluster = s.network === 'custom' ? s.customCluster : s.network;
-  if (cluster === 'localnet') return null;
-  return `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${cluster === 'devnet' ? '?cluster=devnet' : ''}`;
-}
 
 const when = (t: number | null | undefined) =>
   t ? new Date(t * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'time unknown';
@@ -60,7 +54,7 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
   const failed = result.status === 'ok' && result.batch.steps[0]?.status === 'failed';
   const status = result.status === 'ok' ? `${failed ? 'Failed' : 'Confirmed'} · ${when(result.blockTime)}` : 'Loading…';
   const subtitle = origin ? `${status} · ${siteName(origin)}` : status;
-  const explorer = explorerUrl(state, signature);
+  const explorer = explorerUrl(state.settings, signature);
 
   let body;
   if (result.status === 'failed') {

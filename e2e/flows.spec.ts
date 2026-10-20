@@ -175,7 +175,10 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   if (await ack.count()) await ack.check();
   await decideAndClose(approval, /^Sign( anyway)?$/);
 
+  // "Sent" only once the validator confirms it; no public explorer sees localnet.
   await expect(popup.getByText('Sent', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(popup.getByText('Confirmed by the network.')).toBeVisible();
+  await expect(popup.getByRole('button', { name: 'View on explorer' })).toHaveCount(0);
   await expect
     .poll(async () => (await rpcCall<{ value: number }>(validator, 'getBalance', [to, { commitment: 'confirmed' }])).value, { timeout: 30_000 })
     .toBe(before + SOL / 2);

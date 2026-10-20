@@ -20,3 +20,10 @@ export function networkLabel(s: Pick<Settings, 'network' | 'customCluster'>): st
   const name = CLUSTER_LABEL[clusterOf(s)];
   return s.network === 'custom' ? `${name} · custom RPC` : name;
 }
+
+/** The Solana Explorer page for a transaction; null on localnet, which no public explorer sees. */
+export function explorerUrl(s: Pick<Settings, 'network' | 'customCluster'>, signature: string): string | null {
+  const cluster = clusterOf(s);
+  if (cluster === 'localnet') return null;
+  return `https://explorer.solana.com/tx/${encodeURIComponent(signature)}${cluster === 'devnet' ? '?cluster=devnet' : ''}`;
+}

@@ -21,6 +21,7 @@ const m = vi.hoisted(() => ({
   buildSendTransaction: null as any,
   hasTokenAccount: null as any,
   portfolioError: null as string | null,
+  confirm: null as any,
 }));
 
 vi.mock('../lib/hooks', () => ({
@@ -37,7 +38,7 @@ vi.mock('../lib/nav', () => ({
   useNav: () => ({ route: m.route, go: m.go, back: m.back, replace: vi.fn(), reset: m.reset }),
 }));
 vi.mock('../lib/clients', () => ({
-  createClients: () => ({ chain: { tag: 'chain' }, portfolio: { tag: 'reader' }, jupiter: m.jupiter }),
+  createClients: () => ({ chain: { tag: 'chain' }, portfolio: { tag: 'reader', confirm: m.confirm, getLatestBlockhash: async () => ({ lastValidBlockHeight: 99n }) }, jupiter: m.jupiter }),
 }));
 vi.mock('@clef/portfolio', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -151,6 +152,7 @@ beforeEach(() => {
   m.classifyRecipient = vi.fn(async () => 'wallet');
   m.buildSendTransaction = vi.fn(async () => ({ wire: new Uint8Array([1, 2, 3]), createsAta: false, lastValidBlockHeight: 10n }));
   m.hasTokenAccount = vi.fn(async () => true);
+  m.confirm = vi.fn(async () => 'confirmed');
 });
 afterEach(() => {
   cleanup();
@@ -417,11 +419,49 @@ describe('Send', () => {
     fireEvent.click(review);
     await waitFor(() => expect(m.call).toHaveBeenCalled());
     expect(m.buildSendTransaction).toHaveBeenCalledWith(
-      { chain: { tag: 'chain' }, reader: { tag: 'reader' } },
+      { chain: { tag: 'chain' }, reader: expect.objectContaining({ tag: 'reader' }) },
       { from: ME, to: ALICE, mint: 'SOL', amount: 500_000_000n },
     );
     expect(m.call).toHaveBeenCalledWith({ type: 'wallet:submit', account: ME, transactions: ['AQID'], send: true, purpose: 'send' });
     expect(await screen.findByText('Sent')).toBeTruthy();
+    // Tracked against the signed transaction's own expiry.
+    expect(m.confirm).toHaveBeenCalledWith('5igSig111', 10n);
+    expect(screen.getByText('Confirmed by the network.')).toBeTruthy();
+  });
+
+  it('"Sent" waits for confirmation; an expired send says nothing was sent and returns to the form', async () => {
+    let finish!: (o: string) => void;
+    m.confirm = vi.fn(() => new Promise((r) => (finish = r)));
+    m.route = { name: 'send', to: ALICE };
+    m.call = vi.fn(async () => ({ signatures: ['5igSig111'] }));
+    render(<SendScreen />);
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1' } });
+    const review = screen.getByRole('button', { name: 'Review' });
+    await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(review);
+    expect(await screen.findByText('Sending…')).toBeTruthy();
+    expect(screen.queryByText('Sent')).toBeNull();
+    expect(screen.getByRole('button', { name: 'View on explorer' })).toBeTruthy();
+    finish('expired');
+    expect(await screen.findByText("Didn't go through")).toBeTruthy();
+    expect(screen.getByText(/nothing was sent/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('1');
+  });
+
+  it('a transaction that landed and failed says so; one Clef lost track of points to Activity', async () => {
+    for (const [outcome, title] of [['failed', 'Send failed'], ['boom', "Couldn't confirm"]] as const) {
+      m.confirm = vi.fn(async () => (outcome === 'boom' ? Promise.reject(new Error('Failed to fetch')) : outcome));
+      m.route = { name: 'send', to: ALICE };
+      m.call = vi.fn(async () => ({ signatures: ['5igSig111'] }));
+      render(<SendScreen />);
+      fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1' } });
+      const review = screen.getByRole('button', { name: 'Review' });
+      await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(review);
+      expect(await screen.findByText(title)).toBeTruthy();
+      cleanup();
+    }
   });
 
   it.each([
@@ -549,7 +589,7 @@ describe('Swap', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Review swap' }));
     await waitFor(() => expect(m.call).toHaveBeenCalledWith({ type: 'wallet:submit', account: ME, transactions: ['CQk='], send: true, purpose: 'swap' }));
     expect(m.jupiter.quoteAndBuild).toHaveBeenCalledTimes(2);
-    expect(await screen.findByText('Swap sent')).toBeTruthy();
+    expect(await screen.findByText('Swapped')).toBeTruthy();
   });
 
   it('refreshes the quote when the countdown ends', async () => {

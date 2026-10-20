@@ -195,7 +195,8 @@ export class KitPortfolioReader implements PortfolioReader {
     }
   }
 
-  private async status(signature: string): Promise<'confirmed' | 'failed' | null> {
+  /** 'confirmed' at confirmed commitment or better, 'failed' when it landed with an error, else null (unknown or processed only). */
+  async status(signature: string): Promise<'confirmed' | 'failed' | null> {
     const { value } = await this.call<Ctx<({ err: unknown; confirmationStatus: string | null } | null)[]>>('getSignatureStatuses', [
       [signature],
       { searchTransactionHistory: false },

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SwapQuote } from '@clef/market';
 import { tokenAccountRent, WALLET_RENT_MIN } from '@clef/portfolio';
-import { Alert, Avatar, Button, EmptyState, ErrorNote, Icon, PopupScreen, Segmented, Spinner, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Segmented, Spinner } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
@@ -9,6 +9,7 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
+import { SendStatus } from './SendStatus';
 import { TokenButton, errorMessage, parseAmount, toBase64, unitsToInput } from './Send';
 
 /**
@@ -140,7 +141,8 @@ export function SwapScreen() {
   const account = useActiveAccount();
   const settings = state?.settings ?? null;
   const { data } = usePortfolio(account?.address ?? null);
-  const jupiter = useMemo(() => (settings ? createClients(settings).jupiter : null), [settings?.rpcUrl, settings?.network, settings?.jupiterApiKey]);
+  const clients = useMemo(() => (settings ? createClients(settings) : null), [settings?.rpcUrl, settings?.network, settings?.jupiterApiKey]);
+  const jupiter = clients?.jupiter ?? null;
 
   const [inMint, setInMint] = useState(route?.inputMint ?? 'SOL');
   const [outMint, setOutMint] = useState(route?.outputMint ?? (route?.inputMint === USDC ? 'SOL' : USDC));
@@ -156,7 +158,7 @@ export function SwapScreen() {
   const [nonce, setNonce] = useState(0);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<{ signature: string; lastValidBlockHeight?: bigint; what: string } | null>(null);
 
   const holding = (m: string) => data?.holdings.find((h) => h.mint === m);
   const meta = (m: string): TokenMeta | undefined => {
@@ -250,7 +252,8 @@ export function SwapScreen() {
         send: true,
         purpose: 'swap',
       });
-      setDone(res.signatures?.[0] ?? '');
+      const what = `${amountText} ${inMeta?.symbol ?? ''} → ${outMeta?.symbol ?? ''}`;
+      setDone({ signature: res.signatures?.[0] ?? '', ...(account!.kind !== 'squads' && { lastValidBlockHeight: r.lastValidBlockHeight }), what });
     } catch (e) {
       setError(e);
     } finally {
@@ -260,13 +263,15 @@ export function SwapScreen() {
 
   if (done !== null) {
     return (
-      <PopupScreen title="Swap" onBack={() => nav.reset({ name: 'home' })}>
-        <EmptyState
-          title="Swap sent"
-          body={done && <Pubkey value={done} className="text-[12px] text-muted" />}
-          action={<Button onClick={() => nav.reset({ name: 'home' })}>Done</Button>}
-        />
-      </PopupScreen>
+      <SendStatus
+        kind="swap"
+        what={done.what}
+        signature={done.signature}
+        {...(done.lastValidBlockHeight !== undefined && { lastValidBlockHeight: done.lastValidBlockHeight })}
+        confirmer={clients?.portfolio ?? null}
+        onDone={() => nav.reset({ name: 'home' })}
+        onRetry={() => setDone(null)}
+      />
     );
   }
 

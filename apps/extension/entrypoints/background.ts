@@ -1,5 +1,5 @@
 import '../lib/node-globals';
-import { KitChainReader, KitPortfolioReader } from '@clef/rpc';
+import { KitChainReader, KitPortfolioReader, RebroadcastingSender } from '@clef/rpc';
 import { buildProposeTransactions, fetchMultisig } from '@clef/squads';
 import { Vault } from '@clef/vault';
 import {
@@ -98,7 +98,11 @@ export default defineBackground(() => {
     accounts,
     permissions,
     settings,
-    sender: { send: async (wire, options) => new KitChainReader(await rpcUrl()).send(wire, options) },
+    // Sends again until the transaction lands or its blockhash expires, while this worker lives.
+    sender: new RebroadcastingSender(
+      { send: async (wire, options) => new KitChainReader(await rpcUrl()).send(wire, options) },
+      async (signature) => (await new KitPortfolioReader(await rpcUrl()).status(signature)) !== null,
+    ),
     approver: queue,
     emit,
     activity: () => autoLock.touch(),

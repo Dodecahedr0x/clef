@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAddress, type Address } from '@solana/kit';
 import type { Contact } from '@clef/wallet-core';
 import { buildSendTransaction, classifyRecipient, hasTokenAccount, maxSolSend, sendCosts, tokenAccountRent, WALLET_RENT_MIN, type Holding, type RecipientKind, type SendProblem } from '@clef/portfolio';
-import { Alert, Avatar, Button, EmptyState, ErrorNote, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
+import { Alert, Avatar, Button, ErrorNote, Icon, PopupScreen, Spinner, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { createClients } from '../../../lib/clients';
 import { sendErrorText, type ErrorText } from '../../../lib/error-text';
@@ -10,6 +10,7 @@ import { formatToken, formatUsd, shortAddress } from '../../../lib/format';
 import { useActiveAccount, useCall, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { avatarTone } from './Portfolio';
+import { SendStatus } from './SendStatus';
 
 /** Decimal string -> base units; null when malformed or more precise than the token allows. */
 export function parseAmount(text: string, decimals: number): bigint | null {
@@ -166,7 +167,7 @@ export function SendScreen() {
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorText | null>(null);
-  const [sent, setSent] = useState<string | null>(null);
+  const [sent, setSent] = useState<{ signature: string; lastValidBlockHeight?: bigint } | null>(null);
 
   const holdings = data?.holdings.filter((h) => !h.spam || h.mint === mint) ?? [];
   const h = data?.holdings.find((x) => x.mint === mint);
@@ -210,7 +211,7 @@ export function SendScreen() {
     setBusy(true);
     setError(null);
     try {
-      const { wire } = await buildSendTransaction(
+      const { wire, lastValidBlockHeight } = await buildSendTransaction(
         { chain: clients.chain, reader: clients.portfolio },
         { from: account.address, to, mint: mint === 'SOL' ? 'SOL' : (mint as Address), amount },
       );
@@ -221,7 +222,8 @@ export function SendScreen() {
         send: true,
         purpose: 'send',
       });
-      setSent(res.signatures?.[0] ?? '');
+      // A multisig signature is the proposal's, on a blockhash of its own: SendStatus fetches a current height.
+      setSent({ signature: res.signatures?.[0] ?? '', ...(account.kind !== 'squads' && { lastValidBlockHeight }) });
     } catch (e) {
       setError(sendErrorText(e, { rpcUrl: settings?.rpcUrl }));
     } finally {
@@ -231,18 +233,15 @@ export function SendScreen() {
 
   if (sent !== null) {
     return (
-      <PopupScreen title="Send" onBack={() => nav.reset({ name: 'home' })}>
-        <EmptyState
-          title="Sent"
-          body={
-            <span>
-              {amountText} {h?.symbol} to {picked?.name ?? shortAddress(to ?? '')}
-              {sent && <span className="block mt-1"><Pubkey value={sent} className="text-[12px] text-muted" /></span>}
-            </span>
-          }
-          action={<Button onClick={() => nav.reset({ name: 'home' })}>Done</Button>}
-        />
-      </PopupScreen>
+      <SendStatus
+        kind="send"
+        what={`${amountText} ${h?.symbol ?? ''} to ${picked?.name ?? shortAddress(to ?? '')}`}
+        signature={sent.signature}
+        {...(sent.lastValidBlockHeight !== undefined && { lastValidBlockHeight: sent.lastValidBlockHeight })}
+        confirmer={clients?.portfolio ?? null}
+        onDone={() => nav.reset({ name: 'home' })}
+        onRetry={() => setSent(null)}
+      />
     );
   }
 
