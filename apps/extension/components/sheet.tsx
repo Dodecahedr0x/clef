@@ -40,7 +40,7 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
       className="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-bg p-0 text-ink backdrop:bg-transparent"
     >
       <div className="h-14 px-4 flex flex-none items-center border-b border-line-soft">
-        <h2 className="m-0 text-[18px] font-semibold">{title}</h2>
+        <h2 className="m-0 text-lg font-semibold">{title}</h2>
         <button type="button" aria-label="Close" onClick={onClose} className="ml-auto w-11 h-11 flex items-center justify-center bg-transparent border-0">
           <Icon name="close" size={20} />
         </button>

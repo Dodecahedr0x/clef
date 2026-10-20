@@ -78,24 +78,24 @@ export function ConfirmPhraseScreen() {
   return (
     <OnboardingFrame>
       {adding ? <OnboardingHeader step={2} total={2} /> : <OnboardingHeader step={3} />}
-      <h1 className="mt-2 text-[24px] font-semibold tracking-[-0.02em]">Check your copy</h1>
-      <p className="mt-2 text-[14px] leading-normal text-muted">Pick words {n[0]}, {n[1]} and {n[2]} from what you wrote down.</p>
-      <div className="mt-5 flex flex-col gap-2 font-mono text-[14px]">
+      <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">Check your copy</h1>
+      <p className="mt-2 text-sm leading-normal text-muted">Pick words {n[0]}, {n[1]} and {n[2]} from what you wrote down.</p>
+      <div className="mt-5 flex flex-col gap-2 font-mono text-sm">
         {quiz.map((q, i) =>
           i < done ? (
-            <div key={q.pos} className="flex h-12 items-center gap-3 rounded-[12px] border border-ok-line bg-surface px-3.5">
-              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
+            <div key={q.pos} className="flex h-12 items-center gap-3 rounded-2xl border border-ok-line bg-surface px-3.5">
+              <span className="text-xs text-muted">#{q.pos + 1}</span>
               <span className="flex-1">{q.word}</span>
               <span className="font-sans text-ok">✓</span>
             </div>
           ) : i === done ? (
-            <div key={q.pos} className={`flex h-12 items-center gap-3 rounded-[12px] border-2 bg-surface px-3.5 ${wrong ? 'border-danger' : 'border-primary'}`}>
-              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
+            <div key={q.pos} className={`flex h-12 items-center gap-3 rounded-2xl border-2 bg-surface px-3.5 ${wrong ? 'border-danger' : 'border-primary'}`}>
+              <span className="text-xs text-muted">#{q.pos + 1}</span>
               <span className={`flex-1 font-sans ${wrong ? 'text-danger-text' : 'text-muted'}`}>{wrong ? `That's not word #${q.pos + 1}` : 'Choose below'}</span>
             </div>
           ) : (
-            <div key={q.pos} className="flex h-12 items-center gap-3 rounded-[12px] border border-dashed border-line-strong bg-surface-2 px-3.5">
-              <span className="text-[12px] text-muted">#{q.pos + 1}</span>
+            <div key={q.pos} className="flex h-12 items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-surface-2 px-3.5">
+              <span className="text-xs text-muted">#{q.pos + 1}</span>
             </div>
           ),
         )}
@@ -107,14 +107,14 @@ export function ConfirmPhraseScreen() {
               key={w}
               type="button"
               onClick={() => pick(w)}
-              className={`h-11 rounded-[10px] border bg-surface text-[14px] text-ink hover:border-primary ${wrong === w ? 'border-danger' : 'border-line-strong'}`}
+              className={`h-11 rounded-xl border bg-surface text-sm text-ink hover:border-primary ${wrong === w ? 'border-danger' : 'border-line-strong'}`}
             >
               {w}
             </button>
           ))}
         </div>
       )}
-      {error && <p className="mt-3 text-[12px] text-danger-text">{error}</p>}
+      {error && <p className="mt-3 text-xs text-danger-text">{error}</p>}
       <Button block className="mt-auto" disabled={!complete || busy} onClick={finish}>{busy ? 'Encrypting…' : adding ? 'Create account' : 'Finish setup'}</Button>
     </OnboardingFrame>
   );

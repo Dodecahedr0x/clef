@@ -7,21 +7,21 @@ import { CheckRow, Footer, Page, PhishingAck, siteName, SiteMark } from './share
 import { Pubkey } from '../../../components';
 
 const TAGS: Partial<Record<PublicAccount['kind'], string>> = { ledger: 'Ledger', keystone: 'Keystone', squads: 'Squads' };
-const DOTS: Record<string, string> = { ledger: 'bg-violet', keystone: 'bg-violet', imported: 'bg-ok', squads: 'bg-warn rounded-[6px]' };
+const DOTS: Record<string, string> = { ledger: 'bg-violet', keystone: 'bg-violet', imported: 'bg-ok', squads: 'bg-warn rounded-md' };
 
 export function AccountRadio({ account, name, checked, onSelect }: { account: PublicAccount; name: string; checked: boolean; onSelect: () => void }) {
   const tag = TAGS[account.kind];
   return (
     <label
-      className={`flex min-h-[52px] cursor-pointer items-center gap-[10px] rounded-[12px] bg-surface px-3 ${checked ? 'border-[1.5px] border-primary' : 'border border-line'}`}
+      className={`flex min-h-[52px] cursor-pointer items-center gap-[10px] rounded-2xl bg-surface px-3 ${checked ? 'border-[1.5px] border-primary' : 'border border-line'}`}
     >
       <input type="radio" name={name} checked={checked} onChange={onSelect} className="m-0 h-[18px] w-[18px] accent-primary" />
       <span aria-hidden="true" className={`h-[22px] w-[22px] flex-none rounded-full ${DOTS[account.kind] ?? 'bg-info-dot'}`} />
       <span className="flex min-w-0 flex-1 flex-col text-left">
-        <span className="truncate text-[14px] font-medium">{account.label}</span>
-        <Pubkey value={account.address} className="text-[12px] text-muted" />
+        <span className="truncate text-sm font-medium">{account.label}</span>
+        <Pubkey value={account.address} className="text-xs text-muted" />
       </span>
-      {tag && <span className="rounded-[5px] border border-line-strong px-1.5 py-px text-[12px] text-muted">{tag}</span>}
+      {tag && <span className="rounded-sm border border-line-strong px-1.5 py-px text-xs text-muted">{tag}</span>}
     </label>
   );
 }
@@ -40,8 +40,8 @@ export function ConnectApproval({ request, state, onDecide }: { request: Extract
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <section className="flex flex-col items-center gap-[10px] px-5 pb-5 pt-7 text-center">
           <SiteMark text={host} size={56} blocked={!!phishing} />
-          <h1 className="m-0 text-[20px] font-semibold">{host} wants to connect</h1>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
+          <h1 className="m-0 text-xl font-semibold">{host} wants to connect</h1>
+          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
             {https && (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-ok)" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
                 <rect x="5" y="11" width="14" height="10" rx="2" />
@@ -50,22 +50,22 @@ export function ConnectApproval({ request, state, onDecide }: { request: Extract
             )}
             {request.origin}
           </span>
-          {!phishing && <span className="text-[12px] text-muted">Not on a phishing list · {known ? 'connected before' : 'first visit'}</span>}
+          {!phishing && <span className="text-xs text-muted">Not on a phishing list · {known ? 'connected before' : 'first visit'}</span>}
         </section>
 
         <fieldset className="mx-4 flex flex-col gap-1.5 border-0 p-0">
-          <legend className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Share account</legend>
+          <legend className="px-1 pb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Share account</legend>
           {accounts.map((a) => (
             <AccountRadio key={a.address} account={a} name="connect-account" checked={selected === a.address} onSelect={() => setSelected(a.address)} />
           ))}
         </fieldset>
 
-        <section className="mx-4 mt-4 flex flex-col gap-2 rounded-[12px] border border-line bg-surface px-[14px] py-3 text-[12px] leading-[1.45]">
+        <section className="mx-4 mt-4 flex flex-col gap-2 rounded-2xl border border-line bg-surface px-[14px] py-3 text-xs leading-[1.45]">
           <CheckRow ok>See this account’s address and balances</CheckRow>
           <CheckRow ok>Ask you to sign — every request comes back here</CheckRow>
           <CheckRow ok={false}>Move funds without your approval</CheckRow>
         </section>
-        <p className="mx-5 mt-2 mb-0 text-[12px] leading-[1.45] text-muted">Stays connected until you disconnect it in Settings · Connected sites.</p>
+        <p className="mx-5 mt-2 mb-0 text-xs leading-[1.45] text-muted">Stays connected until you disconnect it in Settings · Connected sites.</p>
 
         {phishing && (
           <div className="mx-4 mt-3">

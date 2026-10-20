@@ -32,7 +32,7 @@ function Detail({ step, ix }: { step: Step; ix: ExpertInstructionView }) {
   return (
     <>
       <span className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">{name}</span>
-      <table aria-label={name} className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-xl border border-line bg-surface font-mono text-xs">
+      <table aria-label={name} className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-2xl border border-line bg-surface font-mono text-xs">
         <colgroup>
           <col className="w-[38px]" />
           <col className="w-[120px]" />
@@ -67,7 +67,7 @@ function Detail({ step, ix }: { step: Step; ix: ExpertInstructionView }) {
         {pdas.map((r, i) => {
           const at = ix.accounts.findIndex((a) => a.address === r.from);
           return (
-            <div key={i} className="rounded-xl border border-line bg-surface px-3.5 py-3 font-mono text-xs leading-[1.7]">
+            <div key={i} className="rounded-2xl border border-line bg-surface px-3.5 py-3 font-mono text-xs leading-[1.7]">
               <div className="font-sans text-muted">PDA · {r.label}</div>
               <div>
                 seeds = [
@@ -88,7 +88,7 @@ function Detail({ step, ix }: { step: Step; ix: ExpertInstructionView }) {
             </div>
           );
         })}
-        <div className="col-span-1 rounded-xl border border-line bg-surface px-3.5 py-3 font-mono text-xs leading-[1.7] break-all">
+        <div className="col-span-1 rounded-2xl border border-line bg-surface px-3.5 py-3 font-mono text-xs leading-[1.7] break-all">
           <div className="font-sans text-muted">Instruction data · {hex.length / 2} bytes</div>
           {disc !== undefined && <span className={ix.idl ? 'font-semibold text-primary' : ''}>{disc}</span>} {rest.join(' ')}
         </div>
@@ -106,7 +106,7 @@ export function ExpertInstructions({ steps }: { steps: Step[] }) {
     <section id="exp-instr" aria-label="Instructions" className="flex scroll-mt-4 flex-col gap-3">
       <h2 className="m-0 text-lg font-semibold">Instructions</h2>
       {steps.map((s) => (
-        <div key={s.index} className="overflow-hidden rounded-xl border border-line bg-surface">
+        <div key={s.index} className="overflow-hidden rounded-2xl border border-line bg-surface">
           <div className="border-b border-line-soft bg-surface-3 px-3.5 py-2 text-xs font-semibold text-muted">
             Transaction {s.index + 1} · {s.title}
           </div>

@@ -87,29 +87,29 @@ export function TokenDetailScreen() {
       right={h.verified ? <Pill tone="primary">Verified mint</Pill> : <Pill tone="warn">Unverified mint</Pill>}
     >
       <section className="px-4 pt-5 pb-4 flex flex-col gap-1">
-        <div className="text-[34px] font-semibold tracking-[-0.03em] tabular-nums">
-          {h.uiAmount} <span className="text-[18px] text-muted font-medium">{h.symbol}</span>
+        <div className="text-4xl font-semibold tracking-[-0.03em] tabular-nums">
+          {h.uiAmount} <span className="text-lg text-muted font-medium">{h.symbol}</span>
         </div>
-        <span className="text-[12px] text-muted tabular-nums">
+        <span className="text-xs text-muted tabular-nums">
           {h.usdValue === null ? 'No price available' : `≈ ${formatUsd(h.usdValue)} · price $${(h.usdPrice ?? 0).toFixed(4)}`}
         </span>
       </section>
 
       <nav aria-label="Token actions" className="px-4 pb-4 grid grid-cols-3 gap-2">
-        <button type="button" onClick={() => nav.go({ name: 'send', mint: h.mint })} {...actionGate('send', viewOnly)} className="h-11 bg-primary text-white border-0 rounded-[12px] text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-45">
+        <button type="button" onClick={() => nav.go({ name: 'send', mint: h.mint })} {...actionGate('send', viewOnly)} className="h-11 bg-primary text-white border-0 rounded-2xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45">
           Send
         </button>
-        <button type="button" onClick={() => nav.go({ name: 'receive' })} className="h-11 bg-surface text-ink border border-line rounded-[12px] text-[14px]">
+        <button type="button" onClick={() => nav.go({ name: 'receive' })} className="h-11 bg-surface text-ink border border-line rounded-2xl text-sm">
           Receive
         </button>
-        <button type="button" onClick={() => nav.go({ name: 'swap', inputMint: h.mint })} {...actionGate('swap', viewOnly)} className="h-11 bg-surface text-ink border border-line rounded-[12px] text-[14px] disabled:cursor-not-allowed disabled:opacity-45">
+        <button type="button" onClick={() => nav.go({ name: 'swap', inputMint: h.mint })} {...actionGate('swap', viewOnly)} className="h-11 bg-surface text-ink border border-line rounded-2xl text-sm disabled:cursor-not-allowed disabled:opacity-45">
           Swap
         </button>
       </nav>
       {viewOnly && <ViewOnlyHint className="px-4 -mt-2 pb-4" />}
 
-      <h2 className="mx-5 mt-2 mb-2 text-[12px] font-semibold text-muted uppercase tracking-[0.06em]">About this token</h2>
-      <dl className="mx-3 my-0 px-3 py-1 bg-surface border border-line rounded-[12px] grid grid-cols-[120px_minmax(0,1fr)] text-[12px]">
+      <h2 className="mx-5 mt-2 mb-2 text-xs font-semibold text-muted uppercase tracking-[0.06em]">About this token</h2>
+      <dl className="mx-3 my-0 px-3 py-1 bg-surface border border-line rounded-2xl grid grid-cols-[120px_minmax(0,1fr)] text-xs">
         <Row k="Mint" first>
           {native ? <span className="font-mono">Native SOL</span> : <Pubkey value={h.mint} />}
         </Row>
@@ -132,15 +132,15 @@ export function TokenDetailScreen() {
         )}
       </dl>
 
-      <h2 className="mx-5 mt-6 mb-2 text-[12px] font-semibold text-muted uppercase tracking-[0.06em]">Recent</h2>
-      <ul className="list-none mx-3 mt-0 mb-4 px-3 bg-surface border border-line rounded-[12px] text-[14px]">
-        {recent.length === 0 && <li className="h-11 flex items-center text-[12px] text-muted">No recent activity</li>}
+      <h2 className="mx-5 mt-6 mb-2 text-xs font-semibold text-muted uppercase tracking-[0.06em]">Recent</h2>
+      <ul className="list-none mx-3 mt-0 mb-4 px-3 bg-surface border border-line rounded-2xl text-sm">
+        {recent.length === 0 && <li className="h-11 flex items-center text-xs text-muted">No recent activity</li>}
         {recent.map((it, i) => {
           const d = it.deltas.find((x) => x.mint === h.mint)!;
           return (
             <li key={it.signature} className={`h-11 flex items-center gap-2 ${i ? 'border-t border-line-soft' : ''}`}>
               <span className="flex-1 truncate">{it.title}</span>
-              <span className="text-[12px] text-muted">{it.blockTime ? dayLabel(it.blockTime * 1000) : ''}</span>
+              <span className="text-xs text-muted">{it.blockTime ? dayLabel(it.blockTime * 1000) : ''}</span>
               <span className={`tabular-nums ${d.direction === 'in' ? 'text-ok' : 'text-danger-text'}`}>
                 {d.direction === 'in' ? '+' : '−'}
                 {d.amount}

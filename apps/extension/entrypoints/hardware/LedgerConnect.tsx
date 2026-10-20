@@ -125,10 +125,10 @@ export function LedgerConnect() {
         }
       >
         <div className="flex flex-1 flex-col gap-3.5 px-4 pt-4">
-          <div className="flex h-[160px] items-center justify-center rounded-[16px] border border-line bg-surface text-muted">
+          <div className="flex h-[160px] items-center justify-center rounded-4xl border border-line bg-surface text-muted">
             {phase === 'connecting' ? <Spinner size={28} /> : <Icon name="usb" size={40} />}
           </div>
-          <ol className="m-0 flex flex-col gap-2 pl-5 text-[14px] leading-[1.45]">
+          <ol className="m-0 flex flex-col gap-2 pl-5 text-sm leading-[1.45]">
             <li>Plug in your Ledger and unlock it with your PIN.</li>
             <li>
               Open the <strong>Solana</strong> app.
@@ -140,7 +140,7 @@ export function LedgerConnect() {
               {error}
             </Alert>
           )}
-          <p className="m-0 text-[12px] leading-[1.45] text-muted">Clef opened this in a full tab so the browser can ask for USB access. Only public keys are shared.</p>
+          <p className="m-0 text-xs leading-[1.45] text-muted">Clef opened this in a full tab so the browser can ask for USB access. Only public keys are shared.</p>
         </div>
       </HardwareShell>
     );
@@ -156,11 +156,11 @@ export function LedgerConnect() {
       }
     >
       <div className="flex flex-1 flex-col gap-3 px-4 pt-3.5">
-        <section className="flex items-center gap-3 rounded-[12px] border border-ok-line bg-ok-bg px-3.5 py-3">
-          <span aria-hidden="true" className="h-[18px] w-11 rounded-[4px] bg-ink" />
+        <section className="flex items-center gap-3 rounded-2xl border border-ok-line bg-ok-bg px-3.5 py-3">
+          <span aria-hidden="true" className="h-[18px] w-11 rounded-sm bg-ink" />
           <div className="flex flex-col">
-            <span className="text-[14px] font-semibold text-ok-ink">Ledger connected</span>
-            <span className="text-[12px] text-ok-ink-2">USB · Solana app open</span>
+            <span className="text-sm font-semibold text-ok-ink">Ledger connected</span>
+            <span className="text-xs text-ok-ink-2">USB · Solana app open</span>
           </div>
         </section>
         <div className="[&_button]:font-mono">
@@ -172,7 +172,7 @@ export function LedgerConnect() {
           Show more
         </Button>
         {error && <Alert severity="danger">{error}</Alert>}
-        <p className="m-0 text-[12px] leading-[1.45] text-muted">Clef re-checks each address on the device before every signature.</p>
+        <p className="m-0 text-xs leading-[1.45] text-muted">Clef re-checks each address on the device before every signature.</p>
       </div>
     </HardwareShell>
   );

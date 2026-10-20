@@ -93,17 +93,17 @@ export function SignInApproval({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <section className="flex flex-col items-center gap-2 px-5 pb-[18px] pt-7 text-center">
           <SiteMark text={host} size={56} blocked={!!phishing} />
-          <h1 className="m-0 text-[20px] font-semibold">Sign in to {host}</h1>
+          <h1 className="m-0 text-xl font-semibold">Sign in to {host}</h1>
           {account && (
-            <span className="text-[14px] text-muted">
-              as <strong className="text-ink">{account.label}</strong> <Pubkey value={account.address} className="text-[12px]" />
+            <span className="text-sm text-muted">
+              as <strong className="text-ink">{account.label}</strong> <Pubkey value={account.address} className="text-xs" />
             </span>
           )}
         </section>
 
         {choose && (
           <fieldset className="mx-4 mb-4 flex flex-col gap-1.5 border-0 p-0">
-            <legend className="px-1 pb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Sign in as</legend>
+            <legend className="px-1 pb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Sign in as</legend>
             {signable.map((a) => (
               <AccountRadio key={a.address} account={a} name="signin-account" checked={picked === a.address} onSelect={() => setPicked(a.address)} />
             ))}
@@ -118,9 +118,9 @@ export function SignInApproval({
           </div>
         )}
 
-        <section className="mx-4 overflow-hidden rounded-[12px] border border-line bg-surface">
+        <section className="mx-4 overflow-hidden rounded-2xl border border-line bg-surface">
           <CardLabel>Sign-in message</CardLabel>
-          <dl className="m-0 grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-1 text-[12px]">
+          <dl className="m-0 grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-1 text-xs">
             {rows.map(([label, value, check, ok], i) => {
               const line = i > 0 ? 'border-t border-line-soft' : '';
               return (
@@ -137,13 +137,13 @@ export function SignInApproval({
             })}
           </dl>
           {marked > 0 && (
-            <p className="m-0 border-t border-line-soft bg-warn-bg px-3 py-2 text-[12px] text-warn-ink">
+            <p className="m-0 border-t border-line-soft bg-warn-bg px-3 py-2 text-xs text-warn-ink">
               {marked} invisible or direction-changing character{marked === 1 ? ' is' : 's are'} shown as ⟨U+…⟩ so nothing is hidden.
             </p>
           )}
         </section>
 
-        <p className="mx-5 mb-0 mt-[14px] text-[12px] leading-normal text-muted">Signing in proves you own this address. It doesn’t approve any transaction.</p>
+        <p className="mx-5 mb-0 mt-[14px] text-xs leading-normal text-muted">Signing in proves you own this address. It doesn’t approve any transaction.</p>
         {phishing && (
           <div className="mx-4 mt-3">
             <PhishingAck checked={ack} onChange={setAck} />

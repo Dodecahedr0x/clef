@@ -62,10 +62,10 @@ function useSpam(portfolio: Portfolio | null) {
 function SpamRow({ count, onShow }: { count: number; onShow: () => void }) {
   if (count === 0) return null;
   return (
-    <li className="h-11 px-2 flex items-center gap-2 text-[12px] text-muted">
+    <li className="h-11 px-2 flex items-center gap-2 text-xs text-muted">
       <Icon name="eye-off" size={14} />
       <span>{count} spam token{count === 1 ? '' : 's'} hidden</span>
-      <button type="button" onClick={onShow} className="ml-auto text-[12px] text-info hover:text-info-ink bg-transparent border-0 underline">
+      <button type="button" onClick={onShow} className="ml-auto text-xs text-info hover:text-info-ink bg-transparent border-0 underline">
         Show
       </button>
     </li>
@@ -75,13 +75,13 @@ function SpamRow({ count, onShow }: { count: number; onShow: () => void }) {
 function SigningFooter({ level, expert, onOpen }: { level: Settings['detailLevel']; expert: boolean; onOpen: () => void }) {
   if (expert) {
     return (
-      <footer className="mt-auto h-10 px-4 flex items-center gap-2 border-t border-line-soft text-[12px] text-muted shrink-0">
+      <footer className="mt-auto h-10 px-4 flex items-center gap-2 border-t border-line-soft text-xs text-muted shrink-0">
         <button type="button" onClick={onOpen} className="flex items-center gap-2 bg-transparent border-0 p-0 text-muted">
           <span>Signing detail</span>
         </button>
         <span className="ml-auto text-ink font-semibold">{LEVEL_LABEL[level]}</span>
         <span>· switch network</span>
-        <kbd className="font-mono px-[5px] py-px border border-line-strong rounded-[5px] bg-surface">⌥N</kbd>
+        <kbd className="font-mono px-[5px] py-px border border-line-strong rounded-sm bg-surface">⌥N</kbd>
       </footer>
     );
   }
@@ -89,7 +89,7 @@ function SigningFooter({ level, expert, onOpen }: { level: Settings['detailLevel
     <button
       type="button"
       onClick={onOpen}
-      className="mt-auto h-11 w-full px-4 flex items-center gap-2 border-0 border-t border-solid border-line-soft bg-transparent text-[12px] text-muted shrink-0"
+      className="mt-auto h-11 w-full px-4 flex items-center gap-2 border-0 border-t border-solid border-line-soft bg-transparent text-xs text-muted shrink-0"
     >
       <Icon name="sliders" size={14} />
       <span>Signing detail</span>
@@ -103,18 +103,18 @@ function TokenRow({ h, onOpen }: { h: Holding; onOpen: () => void }) {
   const ch = h.change24h;
   return (
     <li>
-      <button type="button" onClick={onOpen} className="w-full h-14 px-2 flex items-center gap-3 rounded-[10px] bg-transparent border-0 text-left text-ink hover:bg-surface-2">
+      <button type="button" onClick={onOpen} className="w-full h-14 px-2 flex items-center gap-3 rounded-xl bg-transparent border-0 text-left text-ink hover:bg-surface-2">
         <Avatar text={h.symbol.slice(0, 1) || '?'} tone={avatarTone(h.mint)} size={34} src={h.logoUri} />
         <span className="flex flex-col flex-1 min-w-0">
-          <span className="text-[14px] font-medium truncate">{h.name || h.symbol}</span>
-          <span className="text-[12px] text-muted tabular-nums truncate">
+          <span className="text-sm font-medium truncate">{h.name || h.symbol}</span>
+          <span className="text-xs text-muted tabular-nums truncate">
             {h.uiAmount} {h.symbol}
           </span>
         </span>
         <span className="flex flex-col items-end tabular-nums">
-          <span className="text-[14px] font-medium">{h.usdValue === null ? '—' : formatUsd(h.usdValue)}</span>
+          <span className="text-sm font-medium">{h.usdValue === null ? '—' : formatUsd(h.usdValue)}</span>
           {ch !== null && (
-            <span className={`text-[12px] ${ch > 0 ? 'text-ok' : ch < 0 ? 'text-danger-text' : 'text-muted'}`}>
+            <span className={`text-xs ${ch > 0 ? 'text-ok' : ch < 0 ? 'text-danger-text' : 'text-muted'}`}>
               {formatPct(ch)}
             </span>
           )}
@@ -142,16 +142,16 @@ function ActivityTab({ owner }: { owner: Parameters<typeof useHistory>[0] }) {
         <ErrorNote text={loadErrorText(error, rpcUrl)} onRetry={retry} onRpc={() => nav.go({ name: 'settings/network' })} />
       </div>
     );
-  if (items.length === 0) return <p className="px-4 py-3 text-[12px] text-muted">No activity yet.</p>;
+  if (items.length === 0) return <p className="px-4 py-3 text-xs text-muted">No activity yet.</p>;
   return (
     <>
       {items.slice(0, 5).map((it) => (
         <li key={it.signature} className="h-14 px-2 flex items-center gap-3">
           <span className="flex flex-col flex-1 min-w-0">
-            <span className="text-[14px] font-medium truncate">{it.title}</span>
-            <span className="text-[12px] text-muted truncate">{it.blockTime ? timeAgo(it.blockTime * 1000) : it.subtitle}</span>
+            <span className="text-sm font-medium truncate">{it.title}</span>
+            <span className="text-xs text-muted truncate">{it.blockTime ? timeAgo(it.blockTime * 1000) : it.subtitle}</span>
           </span>
-          <span className="flex flex-col items-end text-[12px] tabular-nums">
+          <span className="flex flex-col items-end text-xs tabular-nums">
             {it.deltas.map((d, i) => (
               <span key={i} className={d.direction === 'in' ? 'text-ok' : 'text-danger-text'}>
                 {d.direction === 'in' ? '+' : '−'}
@@ -162,7 +162,7 @@ function ActivityTab({ owner }: { owner: Parameters<typeof useHistory>[0] }) {
         </li>
       ))}
       <li className="px-2 py-2">
-        <button type="button" onClick={() => nav.go({ name: 'history' })} className="text-[12px] text-info bg-transparent border-0 underline">
+        <button type="button" onClick={() => nav.go({ name: 'history' })} className="text-xs text-info bg-transparent border-0 underline">
           See all activity
         </button>
       </li>
@@ -176,14 +176,14 @@ function SitesTab() {
   const sites = state?.permissions ?? [];
   return (
     <>
-      {sites.length === 0 && <p className="px-4 py-3 text-[12px] text-muted">No connected sites.</p>}
+      {sites.length === 0 && <p className="px-4 py-3 text-xs text-muted">No connected sites.</p>}
       {sites.map((p) => (
-        <li key={p.origin} className="h-11 px-2 flex items-center text-[14px] truncate">
+        <li key={p.origin} className="h-11 px-2 flex items-center text-sm truncate">
           {p.origin.replace(/^https?:\/\//, '')}
         </li>
       ))}
       <li className="px-2 py-2">
-        <button type="button" onClick={() => nav.go({ name: 'settings/sites' })} className="text-[12px] text-info bg-transparent border-0 underline">
+        <button type="button" onClick={() => nav.go({ name: 'settings/sites' })} className="text-xs text-info bg-transparent border-0 underline">
           Manage connected sites
         </button>
       </li>
@@ -218,9 +218,9 @@ export function PortfolioScreen() {
 function PriceKeyHint() {
   const nav = useNav();
   return (
-    <div className="text-[12px] text-danger-text">
+    <div className="text-xs text-danger-text">
       No prices: Jupiter rejected your API key.{' '}
-      <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="text-[12px] text-info bg-transparent border-0 underline p-0">
+      <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="text-xs text-info bg-transparent border-0 underline p-0">
         Fix it in Settings
       </button>
     </div>
@@ -245,41 +245,41 @@ function BasicPortfolio() {
         <span className="flex items-center gap-2">
           <Logo size={22} staff />
           {/* The popup is too narrow for the wordmark next to the side-panel button. */}
-          <span className="font-mono font-semibold text-[18px] tracking-[-0.02em] group-has-[[data-panel-button]]:hidden">clef</span>
+          <span className="font-mono font-semibold text-lg tracking-[-0.02em] group-has-[[data-panel-button]]:hidden">clef</span>
         </span>
         <button
           type="button"
           aria-label="Switch account"
           onClick={() => nav.go({ name: 'accounts' })}
-          className="ml-1.5 flex-1 min-w-0 h-9 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
+          className="ml-1.5 flex-1 min-w-0 h-9 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-xl text-ink"
         >
           <span className="w-[18px] h-[18px] rounded-full bg-info-dot shrink-0" />
-          <span className="text-[14px] font-medium truncate">{account?.label ?? 'No account'}</span>
+          <span className="text-sm font-medium truncate">{account?.label ?? 'No account'}</span>
           {/* No room for the address in the 360px popup next to the name; the side panel and tab show it. */}
-          {account && <Pubkey value={account.address} className="max-[399px]:hidden text-[12px] text-muted whitespace-nowrap shrink-0" />}
+          {account && <Pubkey value={account.address} className="max-[399px]:hidden text-xs text-muted whitespace-nowrap shrink-0" />}
           <span className="ml-auto text-muted"><Icon name="chevron-down" size={14} /></span>
         </button>
         <TabButton />
         <PanelButton />
-        <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-9 h-11 flex-none flex items-center justify-center bg-transparent border-0 rounded-[10px] text-muted">
+        <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-9 h-11 flex-none flex items-center justify-center bg-transparent border-0 rounded-xl text-muted">
           <Icon name="settings" size={20} />
         </button>
       </header>
 
       <section className="px-5 pt-[22px] pb-[18px] flex flex-col gap-1 shrink-0">
-        <div className="flex items-center gap-2 text-[12px] text-muted">
+        <div className="flex items-center gap-2 text-xs text-muted">
           <span>Total balance</span>
           {settings && (
-            <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full bg-surface border border-line text-[12px]">
+            <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full bg-surface border border-line text-xs">
               <span className={`w-1.5 h-1.5 rounded-full ${clusterOf(settings) === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
               {networkLabel(settings)}
             </span>
           )}
         </div>
-        <div className="text-[38px] font-semibold tracking-[-0.03em] tabular-nums" data-testid="total-balance">
+        <div className="text-5xl font-semibold tracking-[-0.03em] tabular-nums" data-testid="total-balance">
           {data ? (data.totalUsd !== null ? formatUsd(data.totalUsd) : `${sol ? sol.uiAmount : '0'} SOL`) : loading ? <Spinner size={24} /> : '—'}
         </div>
-        {change && <div className={`text-[14px] tabular-nums ${change.tone === 'ok' ? 'text-ok' : change.tone === 'danger' ? 'text-danger-text' : 'text-muted'}`}>{change.text}</div>}
+        {change && <div className={`text-sm tabular-nums ${change.tone === 'ok' ? 'text-ok' : change.tone === 'danger' ? 'text-danger-text' : 'text-muted'}`}>{change.text}</div>}
         {error && <ErrorNote text={loadErrorText(error, settings?.rpcUrl)} onRetry={refresh} onRpc={() => nav.go({ name: 'settings/network' })} />}
         {data?.priceError === 'invalid-key' && <PriceKeyHint />}
       </section>
@@ -291,7 +291,7 @@ function BasicPortfolio() {
             type="button"
             onClick={() => nav.go({ name: a.route })}
             {...actionGate(a.route, viewOnly)}
-            className={`h-16 flex flex-col items-center justify-center gap-1.5 rounded-[14px] text-[12px] disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line font-medium'}`}
+            className={`h-16 flex flex-col items-center justify-center gap-1.5 rounded-3xl text-xs disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line font-medium'}`}
           >
             <Icon name={a.icon} size={18} />
             {a.label}
@@ -352,10 +352,10 @@ function ExpertPortfolio() {
           type="button"
           aria-label="Switch account"
           onClick={() => nav.go({ name: 'accounts' })}
-          className="h-9 shrink-0 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-[10px] text-ink"
+          className="h-9 shrink-0 flex items-center gap-1.5 px-2 bg-surface border border-line rounded-xl text-ink"
         >
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
-          {account ? <Pubkey value={account.address} className="text-[12px] whitespace-nowrap" /> : <span className="font-mono text-[12px]">—</span>}
+          {account ? <Pubkey value={account.address} className="text-xs whitespace-nowrap" /> : <span className="font-mono text-xs">—</span>}
         </button>
         <div className="ml-auto">
           {settings.networkSwitchInHeader && sw && <NetworkSwitch compact value={sw} onChange={(v) => void switchNetwork(v)} />}
@@ -367,7 +367,7 @@ function ExpertPortfolio() {
         </button>
       </header>
 
-      <div className="font-mono px-3.5 py-1.5 flex gap-2.5 text-[12px] text-muted bg-surface border-b border-line-soft shrink-0" data-testid="rpc-strip">
+      <div className="font-mono px-3.5 py-1.5 flex gap-2.5 text-xs text-muted bg-surface border-b border-line-soft shrink-0" data-testid="rpc-strip">
         <span className="truncate min-w-0">{settings.rpcUrl}</span>
         <span className="ml-auto whitespace-nowrap">{health.slot !== null ? `slot ${health.slot.toLocaleString('en-US')}` : 'slot —'}</span>
         <span className={`whitespace-nowrap ${health.latencyMs === null ? 'text-danger-text' : health.latencyMs < 500 ? 'text-ok' : 'text-warn'}`}>
@@ -376,11 +376,11 @@ function ExpertPortfolio() {
       </div>
 
       <section className="px-4 pt-4 pb-3 flex flex-col gap-0.5 shrink-0">
-        <span className="text-[12px] text-muted">Total balance</span>
-        <div className="text-[34px] font-semibold tracking-[-0.03em] tabular-nums" data-testid="total-balance">
+        <span className="text-xs text-muted">Total balance</span>
+        <div className="text-4xl font-semibold tracking-[-0.03em] tabular-nums" data-testid="total-balance">
           {data?.totalUsd != null ? formatUsd(data.totalUsd) : '—'}
         </div>
-        <div className="font-mono text-[12px] text-muted">
+        <div className="font-mono text-xs text-muted">
           {exactUnits(sol?.amount ?? 0n, 9)} SOL · {(sol?.amount ?? 0n).toLocaleString('en-US')} lamports
         </div>
         {error && <ErrorNote text={loadErrorText(error, settings?.rpcUrl)} onRetry={refresh} onRpc={() => nav.go({ name: 'settings/network' })} />}
@@ -394,7 +394,7 @@ function ExpertPortfolio() {
             type="button"
             onClick={() => nav.go({ name: a.route })}
             {...actionGate(a.route, viewOnly)}
-            className={`h-11 rounded-[12px] text-[12px] disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line'}`}
+            className={`h-11 rounded-2xl text-xs disabled:cursor-not-allowed disabled:opacity-45 ${i === 0 ? 'bg-primary text-white border-0 font-semibold' : 'bg-surface text-ink border border-line'}`}
           >
             {a.label}
           </button>
@@ -403,23 +403,23 @@ function ExpertPortfolio() {
       {viewOnly && <ViewOnlyHint className="px-4 -mt-2 pb-3" />}
       <RpcNotice tokensUnavailable={!!data?.tokensUnavailable} />
 
-      <div className="px-4 pb-1.5 flex items-center text-[12px] text-muted shrink-0">
+      <div className="px-4 pb-1.5 flex items-center text-xs text-muted shrink-0">
         <span className="font-semibold uppercase tracking-[0.06em]">Token accounts</span>
         <span className="ml-auto">Token + Token-2022</span>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto pb-2">
-        <ul className="list-none mx-3 my-0 p-0 bg-surface border border-line rounded-[12px] flex flex-col overflow-hidden" aria-label="Token accounts">
-          {tokens.length === 0 && <li className="px-3 py-2 text-[12px] text-muted">No token accounts</li>}
+        <ul className="list-none mx-3 my-0 p-0 bg-surface border border-line rounded-2xl flex flex-col overflow-hidden" aria-label="Token accounts">
+          {tokens.length === 0 && <li className="px-3 py-2 text-xs text-muted">No token accounts</li>}
           {tokens.map((t, i) => (
             <li key={t.tokenAccount ?? t.mint} className={`px-3 py-2 grid grid-cols-[minmax(0,1fr)_auto] gap-y-0.5 ${i ? 'border-t border-line-soft' : ''}`}>
-              <button type="button" onClick={() => nav.go({ name: 'token', mint: t.mint })} className="text-left bg-transparent border-0 p-0 text-ink text-[14px] font-medium">
-                {t.symbol} <span className="text-[12px] font-normal text-muted">{programLabel(t)}</span>
+              <button type="button" onClick={() => nav.go({ name: 'token', mint: t.mint })} className="text-left bg-transparent border-0 p-0 text-ink text-sm font-medium">
+                {t.symbol} <span className="text-xs font-normal text-muted">{programLabel(t)}</span>
               </button>
-              <span className="text-[14px] font-medium text-right tabular-nums">{t.usdValue === null ? '—' : formatUsd(t.usdValue)}</span>
-              <span className="font-mono text-[12px] text-muted truncate">
+              <span className="text-sm font-medium text-right tabular-nums">{t.usdValue === null ? '—' : formatUsd(t.usdValue)}</span>
+              <span className="font-mono text-xs text-muted truncate">
                 mint <Pubkey value={t.mint} /> · ata {t.tokenAccount ? <Pubkey value={t.tokenAccount} /> : '—'}
               </span>
-              <span className="font-mono text-[12px] text-muted text-right">
+              <span className="font-mono text-xs text-muted text-right">
                 {t.amount.toString()} · {t.decimals} dp
               </span>
             </li>

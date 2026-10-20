@@ -23,11 +23,11 @@ export function diffCounts(diffs: AccountDiffView[]) {
 
 function DiffCard({ d }: { d: AccountDiffView }) {
   return (
-    <article aria-label={d.title} className={`overflow-hidden rounded-xl bg-surface ${d.tag === 'temp' ? 'border border-dashed border-temp-line' : 'border border-line'}`}>
+    <article aria-label={d.title} className={`overflow-hidden rounded-2xl bg-surface ${d.tag === 'temp' ? 'border border-dashed border-temp-line' : 'border border-line'}`}>
       <div className="flex items-center gap-2 border-b border-line-soft bg-surface-3 px-3.5 py-2">
         <span className="text-xs font-semibold">{d.title}</span>
         <Pubkey value={d.address} className="text-xs text-muted" />
-        <span className={`ml-auto rounded-[5px] px-1.5 text-xs ${TAG_TONE[d.tag]}`}>{d.type}</span>
+        <span className={`ml-auto rounded-sm px-1.5 text-xs ${TAG_TONE[d.tag]}`}>{d.type}</span>
       </div>
       {d.lines.map((l, i) => (
         <div key={i} className={`grid grid-cols-[18px_120px_minmax(0,1fr)_auto] gap-2 px-3.5 py-0.5 font-mono text-xs leading-[18px] ${LINE_TONE[l.sign]}`}>
@@ -57,11 +57,11 @@ function RawCard({ d, owner, network, onResimulate }: { d: AccountDiffView & { u
   };
 
   return (
-    <article aria-label={d.title} className="overflow-hidden rounded-xl border border-dashed border-warn bg-surface">
+    <article aria-label={d.title} className="overflow-hidden rounded-2xl border border-dashed border-warn bg-surface">
       <div className="flex items-center gap-2 border-b border-warn-line bg-warn-bg px-3.5 py-2">
         <span className="text-xs font-semibold">{d.title}</span>
         <Pubkey value={d.address} className="text-xs text-muted" />
-        <span className="ml-auto rounded-[5px] bg-warn px-1.5 text-xs font-semibold text-white">Not decoded</span>
+        <span className="ml-auto rounded-sm bg-warn px-1.5 text-xs font-semibold text-white">Not decoded</span>
       </div>
       <div className="px-3.5 pt-2 pb-1 text-xs text-warn-ink">
         {d.type && `Owned by ${d.type} · `}
@@ -130,15 +130,15 @@ export function StateChanges(p: {
         )}
       </div>
       {p.isAll && p.batchSize > 1 && (
-        <p className="m-0 rounded-[10px] bg-info-bg px-3 py-2.5 text-xs leading-normal text-info-ink">
+        <p className="m-0 rounded-xl bg-info-bg px-3 py-2.5 text-xs leading-normal text-info-ink">
           Net effect of all {p.batchSize}, simulated back-to-back from the current state. Assumes no other transaction touches these accounts in between. Notes show which transaction last changed a value.
         </p>
       )}
       {p.diffs === null ? (
         onChain ? (
-          <p className="m-0 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-muted">Solana keeps balances for past transactions but not account data, so only balance changes are shown.</p>
+          <p className="m-0 rounded-2xl border border-line bg-surface px-3 py-2.5 text-xs text-muted">Solana keeps balances for past transactions but not account data, so only balance changes are shown.</p>
         ) : (
-          <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">No simulation result, so Clef cannot show what changes.</p>
+          <p className="m-0 rounded-2xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">No simulation result, so Clef cannot show what changes.</p>
         )
       ) : p.diffs.length === 0 ? (
         <p className="m-0 text-xs text-muted">No account changes.</p>

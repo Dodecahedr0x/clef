@@ -34,11 +34,11 @@ export function UnlockScreen() {
       <div className={`-mx-6 flex flex-none items-center justify-center ${erasing ? 'h-[120px]' : 'h-[260px]'}`}>
         <div className="w-full"><Logo size={96} staff /></div>
       </div>
-      <h1 className="m-0 font-mono text-[28px] font-semibold tracking-[-0.03em]">clef</h1>
-      <p className="mt-1.5 text-[14px] leading-normal text-muted">Know what you sign.</p>
+      <h1 className="m-0 font-mono text-3xl font-semibold tracking-[-0.03em]">clef</h1>
+      <p className="mt-1.5 text-sm leading-normal text-muted">Know what you sign.</p>
       {erasing ? (
         <div className="mt-auto flex flex-col gap-2">
-          <h2 className="m-0 text-[16px] font-semibold">Erase this wallet?</h2>
+          <h2 className="m-0 text-base font-semibold">Erase this wallet?</h2>
           <EraseWallet />
           <Button variant="ghost" block onClick={() => setErasing(false)}>
             Cancel
@@ -59,15 +59,15 @@ export function UnlockScreen() {
             You can erase this wallet and restore it from your recovery phrase with a new password. Private keys you imported separately are lost unless you have them
             elsewhere.
             {!erasing && (
-              <button type="button" onClick={() => setErasing(true)} className="mt-1.5 block border-0 bg-transparent p-0 text-[12px] font-semibold text-info underline">
+              <button type="button" onClick={() => setErasing(true)} className="mt-1.5 block border-0 bg-transparent p-0 text-xs font-semibold text-info underline">
                 Erase wallet…
               </button>
             )}
           </Alert>
         )}
-        <div className="flex items-center justify-between text-[12px] text-muted">
+        <div className="flex items-center justify-between text-xs text-muted">
           <span>Auto-locks after {state?.settings.autoLockMinutes ?? 15} min</span>
-          <button type="button" onClick={() => setForgot((f) => !f)} className="border-0 bg-transparent p-0 text-[12px] text-info hover:text-info-ink">Forgot password?</button>
+          <button type="button" onClick={() => setForgot((f) => !f)} className="border-0 bg-transparent p-0 text-xs text-info hover:text-info-ink">Forgot password?</button>
         </div>
       </form>
       )}

@@ -61,13 +61,13 @@ function TokenPicker({ holdings, onPick, onClose }: { holdings: Holding[]; onPic
       <ul className="list-none m-0 p-2 overflow-y-auto">
         {holdings.map((h) => (
           <li key={h.mint}>
-            <button type="button" onClick={() => onPick(h.mint)} className="w-full h-14 px-2 flex items-center gap-3 bg-transparent border-0 rounded-[10px] text-left text-ink hover:bg-surface-2">
+            <button type="button" onClick={() => onPick(h.mint)} className="w-full h-14 px-2 flex items-center gap-3 bg-transparent border-0 rounded-xl text-left text-ink hover:bg-surface-2">
               <Avatar text={h.symbol.slice(0, 1) || '?'} tone={avatarTone(h.mint)} size={30} src={h.logoUri} />
               <span className="flex flex-col flex-1 min-w-0">
-                <span className="text-[14px] font-medium">{h.symbol}</span>
-                <span className="text-[12px] text-muted truncate">{h.name}</span>
+                <span className="text-sm font-medium">{h.symbol}</span>
+                <span className="text-xs text-muted truncate">{h.name}</span>
               </span>
-              <span className="text-[12px] text-muted tabular-nums">{h.uiAmount}</span>
+              <span className="text-xs text-muted tabular-nums">{h.uiAmount}</span>
             </button>
           </li>
         ))}
@@ -85,7 +85,7 @@ export function TokenButton({ h, onClick, label }: { h: { symbol: string; mint: 
       className="h-10 flex items-center gap-2 pl-1.5 pr-2.5 bg-surface-2 border border-line rounded-full text-ink shrink-0"
     >
       {h && <Avatar text={h.symbol.slice(0, 1) || '?'} tone={avatarTone(h.mint)} size={26} src={h.logoUri} />}
-      <span className="text-[14px] font-medium">{h?.symbol ?? 'Select'}</span>
+      <span className="text-sm font-medium">{h?.symbol ?? 'Select'}</span>
       <span className="text-muted"><Icon name="chevron-down" size={14} /></span>
     </button>
   );
@@ -265,8 +265,8 @@ function SendForm() {
     >
       <div className="relative px-4 pt-5 flex flex-col gap-[18px]">
         <div className="flex flex-col gap-2">
-          <label htmlFor="send-amount" className="text-[12px] text-muted">Amount</label>
-          <div className="p-3.5 bg-surface border border-field-line rounded-[14px] flex flex-col gap-2.5">
+          <label htmlFor="send-amount" className="text-xs text-muted">Amount</label>
+          <div className="p-3.5 bg-surface border border-field-line rounded-3xl flex flex-col gap-2.5">
             <div className="flex items-center gap-2.5">
               <input
                 id="send-amount"
@@ -277,28 +277,28 @@ function SendForm() {
                 onChange={(e) => setAmountText(e.target.value)}
                 aria-invalid={amountError || costs?.problem ? true : undefined}
                 aria-describedby={[amountError && 'send-amount-error', costs?.problem && 'send-cost-problem'].filter(Boolean).join(' ') || undefined}
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[32px] font-semibold tracking-[-0.02em] tabular-nums"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-4xl font-semibold tracking-[-0.02em] tabular-nums"
               />
               <TokenButton h={h} label="Choose token" onClick={() => setPicking(true)} />
             </div>
-            <div className="flex items-center text-[12px] text-muted tabular-nums">
+            <div className="flex items-center text-xs text-muted tabular-nums">
               <span>{usd !== null ? `≈ ${formatUsd(usd)}` : ''}</span>
               <span className="ml-auto">Balance {h ? formatToken(h.amount, h.decimals) : '—'}</span>
-              <button type="button" onClick={max} className="ml-2 h-7 px-2.5 bg-transparent border border-line-strong rounded-full text-ink text-[12px] font-semibold">
+              <button type="button" onClick={max} className="ml-2 h-7 px-2.5 bg-transparent border border-line-strong rounded-full text-ink text-xs font-semibold">
                 MAX
               </button>
             </div>
           </div>
           {amountError && (
-            <span id="send-amount-error" role="alert" className="text-[12px] text-danger-text">
+            <span id="send-amount-error" role="alert" className="text-xs text-danger-text">
               {amountError}
             </span>
           )}
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="send-to" className="text-[12px] text-muted">To</label>
-          <div className={`h-12 px-3.5 bg-surface border rounded-[12px] flex items-center ${toText ? 'border-primary' : 'border-field-line'}`}>
+          <label htmlFor="send-to" className="text-xs text-muted">To</label>
+          <div className={`h-12 px-3.5 bg-surface border rounded-2xl flex items-center ${toText ? 'border-primary' : 'border-field-line'}`}>
             <input
               id="send-to"
               value={picked ? picked.name : toText}
@@ -311,12 +311,12 @@ function SendForm() {
               }}
               aria-invalid={toError ? true : undefined}
               aria-describedby={toError ? 'send-to-error' : undefined}
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[14px]"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-sm"
             />
             {kind === 'checking' && <Spinner size={14} />}
           </div>
           {!picked && !to && suggestions.length > 0 && (
-            <ul aria-label="Suggestions" className="list-none m-0 p-1 bg-surface border border-line rounded-[12px] flex flex-col">
+            <ul aria-label="Suggestions" className="list-none m-0 p-1 bg-surface border border-line rounded-2xl flex flex-col">
               {suggestions.map((s) => (
                 <li key={s.address}>
                   <button
@@ -325,12 +325,12 @@ function SendForm() {
                       setPicked(s);
                       setToText(s.name);
                     }}
-                    className="w-full min-h-[52px] px-2.5 flex items-center gap-2.5 bg-transparent border-0 rounded-[8px] text-left text-ink hover:bg-surface-2"
+                    className="w-full min-h-[52px] px-2.5 flex items-center gap-2.5 bg-transparent border-0 rounded-lg text-left text-ink hover:bg-surface-2"
                   >
                     <Avatar text={s.name.slice(0, 1).toUpperCase() || '?'} tone={s.source === 'Your account' ? 'info' : 'ok'} size={30} />
                     <span className="flex flex-col flex-1 min-w-0">
-                      <span className="text-[14px] font-medium truncate">{s.name}</span>
-                      <span className="font-mono text-[12px] text-muted">
+                      <span className="text-sm font-medium truncate">{s.name}</span>
+                      <span className="font-mono text-xs text-muted">
                         <Pubkey value={s.address} /> · {s.source}
                       </span>
                     </span>
@@ -340,12 +340,12 @@ function SendForm() {
             </ul>
           )}
           {picked && (
-            <span className="font-mono text-[12px] text-muted">
+            <span className="font-mono text-xs text-muted">
               <Pubkey value={picked.address} /> · {picked.source}
             </span>
           )}
           {toError && (
-            <span id="send-to-error" role="alert" className="text-[12px] text-danger-text">
+            <span id="send-to-error" role="alert" className="text-xs text-danger-text">
               {toError}
             </span>
           )}
@@ -357,10 +357,10 @@ function SendForm() {
           </Alert>
         ) : (
           // Plain help, not a warning: a warning that is always there teaches people to skip warnings.
-          !to && <p className="m-0 text-[12px] leading-[1.45] text-muted">Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</p>
+          !to && <p className="m-0 text-xs leading-[1.45] text-muted">Pasting an address? Clef warns if it is a token account or a program rather than a wallet.</p>
         )}
         {costs && h && (
-          <div className="flex flex-col gap-1 text-[12px] tabular-nums">
+          <div className="flex flex-col gap-1 text-xs tabular-nums">
             <span className="text-muted">
               Network fee {sol(costs.fee)} SOL
               {costs.deposit > 0n && ` · ${sol(costs.deposit)} SOL deposit to open their ${h.symbol} account`}

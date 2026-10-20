@@ -31,7 +31,7 @@ export function SummarySection({
   return (
     <section id="exp-summary" aria-label="Summary" className="flex scroll-mt-4 flex-col gap-3">
       <h2 className="m-0 text-lg font-semibold">Summary</h2>
-      <div className="overflow-hidden rounded-xl border border-line bg-surface text-xs">
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface text-xs">
         <div className="border-b border-line-soft bg-surface-2 px-3.5 py-1.5 font-semibold tracking-[0.06em] text-muted uppercase">
           {onChain ? 'Balance changes' : 'Simulated balance changes'}
         </div>
@@ -73,7 +73,7 @@ export function SummarySection({
         )}
       </div>
       {transfers !== null && (
-        <div className="overflow-hidden rounded-xl border border-line bg-surface text-xs">
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface text-xs">
           <div className="border-b border-line-soft bg-surface-2 px-3.5 py-1.5 font-semibold tracking-[0.06em] text-muted uppercase">SOL and token transfers</div>
           {transfers.length === 0 ? (
             <p className="m-0 px-3.5 py-2 text-muted">None</p>

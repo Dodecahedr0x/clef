@@ -22,7 +22,7 @@ function RevealPhrase() {
   if (words) {
     return (
       <div className="flex flex-col gap-2.5">
-        <ol aria-label={phrases > 1 ? `Recovery phrase ${phrase}` : 'Recovery phrase'} className="grid grid-cols-3 gap-1.5 rounded-xl border border-line bg-surface p-2.5">
+        <ol aria-label={phrases > 1 ? `Recovery phrase ${phrase}` : 'Recovery phrase'} className="grid grid-cols-3 gap-1.5 rounded-2xl border border-line bg-surface p-2.5">
           {words.map((w, i) => (
             <li key={i} className="flex gap-1.5 rounded-lg bg-surface-3 px-2 py-1.5 font-mono text-xs">
               <span className="text-muted">{i + 1}</span>
@@ -144,7 +144,7 @@ export function SecurityScreen() {
         <ListGroup>
           <div className="p-3">
             {phrases === 0 ? (
-              <p className="m-0 text-[12px] leading-[1.45] text-muted">
+              <p className="m-0 text-xs leading-[1.45] text-muted">
                 This wallet has no recovery phrase. Your imported keys are backed up only by your own copies of them. Add account → New account creates a phrase.
               </p>
             ) : (

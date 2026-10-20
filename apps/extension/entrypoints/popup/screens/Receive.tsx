@@ -44,7 +44,7 @@ export function ReceiveScreen() {
           type="button"
           aria-label="Switch account"
           onClick={() => nav.go({ name: 'accounts' })}
-          className="h-9 flex items-center gap-2 px-2.5 bg-surface border border-line rounded-full text-ink text-[12px]"
+          className="h-9 flex items-center gap-2 px-2.5 bg-surface border border-line rounded-full text-ink text-xs"
         >
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
           <span className="font-semibold">{account.label}</span>
@@ -57,11 +57,11 @@ export function ReceiveScreen() {
             Accepts SOL and any Solana token on <strong>{network}</strong>. Don’t send from other chains.
           </Alert>
           <div className="grid grid-cols-2 gap-2.5">
-            <button type="button" onClick={() => void copy()} className="h-12 flex items-center justify-center gap-2 bg-primary text-white border-0 rounded-[12px] text-[14px] font-semibold">
+            <button type="button" onClick={() => void copy()} className="h-12 flex items-center justify-center gap-2 bg-primary text-white border-0 rounded-2xl text-sm font-semibold">
               <Icon name={copied ? 'check' : 'copy'} size={16} />
               {copied ? 'Copied' : 'Copy'}
             </button>
-            <button type="button" onClick={() => void share()} className="h-12 flex items-center justify-center gap-2 bg-surface text-ink border border-line-strong rounded-[12px] text-[14px] font-medium">
+            <button type="button" onClick={() => void share()} className="h-12 flex items-center justify-center gap-2 bg-surface text-ink border border-line-strong rounded-2xl text-sm font-medium">
               <Icon name="share" size={16} />
               Share
             </button>
@@ -70,12 +70,12 @@ export function ReceiveScreen() {
       }
     >
       <div className="px-6 pt-4 flex flex-col items-center gap-4">
-        <div className="p-4 bg-surface border border-line rounded-[20px]" role="img" aria-label={`QR code of your ${account.label} account address`}>
+        <div className="p-4 bg-surface border border-line rounded-5xl" role="img" aria-label={`QR code of your ${account.label} account address`}>
           <QrCode value={account.address} size={168} logo />
         </div>
         <div className="w-full flex flex-col gap-2">
-          <span className="text-[12px] text-muted text-center">Your Solana address</span>
-          <p data-testid="address-groups" className="m-0 px-3.5 py-3 bg-surface border border-line rounded-[12px] font-mono text-[14px] leading-[1.6] text-center [word-spacing:0.2em] break-words">
+          <span className="text-xs text-muted text-center">Your Solana address</span>
+          <p data-testid="address-groups" className="m-0 px-3.5 py-3 bg-surface border border-line rounded-2xl font-mono text-sm leading-[1.6] text-center [word-spacing:0.2em] break-words">
             {groups.map((g, i) => {
               const edge = i === 0 || i === groups.length - 1;
               return (
@@ -86,7 +86,7 @@ export function ReceiveScreen() {
               );
             })}
           </p>
-          <span className="text-[12px] text-muted text-center">Check the first and last 4 characters match where you paste it.</span>
+          <span className="text-xs text-muted text-center">Check the first and last 4 characters match where you paste it.</span>
         </div>
       </div>
     </PopupScreen>

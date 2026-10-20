@@ -59,7 +59,7 @@ function Shell({ tone, icon, children }: { tone: 'neutral' | 'danger' | 'ok' | '
     tone === 'danger' ? 'bg-danger-bg border-danger-line' : tone === 'emph' ? 'bg-surface border-line-strong' : 'bg-surface border-line';
   const dot = tone === 'danger' ? 'bg-danger-bg-2' : tone === 'ok' ? 'bg-ok-bg' : tone === 'warn' ? 'bg-warn-bg' : 'bg-surface-2';
   return (
-    <div className={`border rounded-[12px] overflow-hidden ${box}`}>
+    <div className={`border rounded-2xl overflow-hidden ${box}`}>
       <div className="min-h-14 px-3 py-2.5 flex items-center gap-2.5">
         <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dot}`}>{icon}</span>
         {children}
@@ -81,18 +81,18 @@ function TxRow({ item, log, mine }: { item: HistoryItem; log?: RequestLogEntry; 
     <>
       {/* The signature names the transaction; Clef's summary of it is a hint, cut to one line (full on hover). */}
       <div className="flex flex-col flex-1 min-w-0">
-        <span className="text-[14px] font-medium font-mono truncate">{shortAddress(item.signature)}</span>
-        <span className="text-[12px] text-muted truncate" title={item.title}>{item.title}</span>
-        <span className="text-[11px] text-muted truncate">
+        <span className="text-sm font-medium font-mono truncate">{shortAddress(item.signature)}</span>
+        <span className="text-xs text-muted truncate" title={item.title}>{item.title}</span>
+        <span className="text-2xs text-muted truncate">
           {source}
           {when}
           {failed && ' · nothing moved'}
         </span>
       </div>
       {failed ? (
-        <span className="text-[12px] text-muted tabular-nums">fee {item.fee}</span>
+        <span className="text-xs text-muted tabular-nums">fee {item.fee}</span>
       ) : (
-        <div className="flex flex-col items-end text-[12px] tabular-nums">
+        <div className="flex flex-col items-end text-xs tabular-nums">
           {item.deltas.map((d, i) => (
             <span key={i} className={d.direction === 'in' ? 'text-ok' : 'text-danger-text'}>
               {d.direction === 'in' ? '+' : '−'}
@@ -125,7 +125,7 @@ function Openable({ onOpen, children }: { onOpen: () => void; children: ReactNod
           onOpen();
         }
       }}
-      className="cursor-pointer rounded-[12px] hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="cursor-pointer rounded-2xl hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       {children}
     </div>
@@ -134,24 +134,24 @@ function Openable({ onOpen, children }: { onOpen: () => void; children: ReactNod
 
 function Compared({ icon, body, cmp }: { icon: ReactNode; body: ReactNode; cmp: NonNullable<ReturnType<typeof compareSnapshot>> }) {
   return (
-    <div className="bg-surface border border-line-strong rounded-[12px] overflow-hidden" data-testid="saw-vs-happened">
+    <div className="bg-surface border border-line-strong rounded-2xl overflow-hidden" data-testid="saw-vs-happened">
       <div className="px-3 py-2.5 flex items-center gap-2.5">
         <span className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center shrink-0">{icon}</span>
         {body}
       </div>
       <div className="px-3 py-2.5 bg-surface-3 border-t border-line-soft flex flex-col gap-1.5">
-        <span className="text-[12px] font-semibold text-muted">What you saw → what happened</span>
+        <span className="text-xs font-semibold text-muted">What you saw → what happened</span>
         {cmp.lines.map((l) => (
-          <div key={l.asset} className="grid grid-cols-[minmax(0,1fr)_16px_minmax(0,1fr)] gap-1.5 items-center text-[12px] tabular-nums">
+          <div key={l.asset} className="grid grid-cols-[minmax(0,1fr)_16px_minmax(0,1fr)] gap-1.5 items-center text-xs tabular-nums">
             <span>~{l.saw}</span>
             <Icon name="chevron-right" size={14} />
             <span>{l.got}</span>
           </div>
         ))}
         {cmp.matches ? (
-          <span className="text-[12px] text-ok">✓ Matches what you approved · no other changes</span>
+          <span className="text-xs text-ok">✓ Matches what you approved · no other changes</span>
         ) : (
-          <span className="text-[12px] text-warn">
+          <span className="text-xs text-warn">
             Differs from what you approved{cmp.extra ? ` · ${cmp.extra} other change${cmp.extra === 1 ? '' : 's'}` : ''}
           </span>
         )}
@@ -168,10 +168,10 @@ function LogRow({ entry }: { entry: RequestLogEntry }) {
   return (
     <Shell tone={danger ? 'danger' : 'neutral'} icon={<Icon name={danger ? 'shield-x' : 'close'} size={16} />}>
       <div className="flex flex-col flex-1 min-w-0">
-        <span className={`text-[14px] font-medium truncate ${danger ? 'text-danger-ink' : ''}`}>
+        <span className={`text-sm font-medium truncate ${danger ? 'text-danger-ink' : ''}`}>
           {OUTCOME[entry.outcome]} · {what}
         </span>
-        <span className={`text-[12px] truncate ${danger ? 'text-danger-ink-2' : 'text-muted'}`}>
+        <span className={`text-xs truncate ${danger ? 'text-danger-ink-2' : 'text-muted'}`}>
           {originLabel(entry.origin)} · {clock(entry.at)} · not sent
         </span>
       </div>
@@ -219,7 +219,7 @@ export function HistoryScreen() {
       title="History"
       onBack={nav.back}
       scroll
-      right={account && <span className="text-[12px] text-muted">{account.label} · <Pubkey value={account.address} /></span>}
+      right={account && <span className="text-xs text-muted">{account.label} · <Pubkey value={account.address} /></span>}
     >
       <div className="px-4 py-2.5 border-b border-line-soft">
         <Chips ariaLabel="Filter" chips={FILTERS} value={filter} onChange={setFilter} />
@@ -235,7 +235,7 @@ export function HistoryScreen() {
         {!history.loading && !history.error && shown.length === 0 && <EmptyState title="Nothing here yet" />}
         {groups.map((g, gi) => (
           <section key={g.label + gi} className="flex flex-col gap-1.5">
-            <h2 className={`mx-1 mb-0.5 ${gi ? 'mt-2' : 'mt-0'} text-[12px] font-semibold text-muted uppercase tracking-[0.06em]`}>{g.label}</h2>
+            <h2 className={`mx-1 mb-0.5 ${gi ? 'mt-2' : 'mt-0'} text-xs font-semibold text-muted uppercase tracking-[0.06em]`}>{g.label}</h2>
             {g.rows.map((r) =>
               r.type === 'tx' ? <TxRow key={r.item.signature} item={r.item} log={r.log} mine={mine} /> : <LogRow key={r.entry.id} entry={r.entry} />,
             )}

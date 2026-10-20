@@ -58,7 +58,7 @@ function Derivation({ edge, account, label }: { edge: RelationEdge; account: str
 
   const same = derived && 'address' in derived && derived.address === account;
   return (
-    <section aria-label="Seeds" className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-3.5 py-3">
+    <section aria-label="Seeds" className="flex flex-col gap-2 rounded-2xl border border-line bg-surface px-3.5 py-3">
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">Seeds</span>
         <span className="min-w-0 truncate text-xs text-muted">

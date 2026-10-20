@@ -77,7 +77,7 @@ export function NetworkRpcScreen() {
           return (
             <label
               key={r.network}
-              className={`flex cursor-pointer items-center gap-2.5 rounded-xl bg-surface px-3 py-2.5 ${active ? 'border-[1.5px] border-primary' : 'border border-line'}`}
+              className={`flex cursor-pointer items-center gap-2.5 rounded-2xl bg-surface px-3 py-2.5 ${active ? 'border-[1.5px] border-primary' : 'border border-line'}`}
             >
               <input
                 type="radio"
@@ -102,7 +102,7 @@ export function NetworkRpcScreen() {
             {s.network === 'custom' ? 'Edit custom RPC' : '+ Add custom RPC'}
           </button>
         ) : (
-          <section aria-label="Custom RPC" className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3">
+          <section aria-label="Custom RPC" className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3">
             <TextField
               label="Custom RPC URL"
               mono
@@ -116,7 +116,7 @@ export function NetworkRpcScreen() {
                 setUrlError(null);
               }}
             />
-            <p className="m-0 text-[12px] leading-normal text-muted">
+            <p className="m-0 text-xs leading-normal text-muted">
               Paste the URL from your RPC provider. Free tiers from Helius or QuickNode are enough for one wallet and unlock token holdings and full history on mainnet.
             </p>
             <Segmented<Cluster>

@@ -65,7 +65,7 @@ export function ConnectedSitesScreen() {
           {sites.length === 0 ? (
             <EmptyState title="No connected sites" body="Sites you connect to appear here." />
           ) : (
-            <ul className="mx-3 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Connected sites">
+            <ul className="mx-3 overflow-hidden rounded-2xl border border-line bg-surface" aria-label="Connected sites">
               {sites.map((p, i) => {
                 const h = host(p.origin);
                 return (

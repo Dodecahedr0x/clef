@@ -121,14 +121,14 @@ export function KeystoneConnect() {
         }
       >
         <div className="flex flex-1 flex-col gap-3 px-4 pt-3.5">
-          <section className="flex items-center gap-3 rounded-[12px] border border-ok-line bg-ok-bg px-3.5 py-3">
-            <span aria-hidden="true" className="h-[30px] w-5 rounded-[4px] bg-ink" />
+          <section className="flex items-center gap-3 rounded-2xl border border-ok-line bg-ok-bg px-3.5 py-3">
+            <span aria-hidden="true" className="h-[30px] w-5 rounded-sm bg-ink" />
             <div className="flex flex-col">
-              <span className="text-[14px] font-semibold text-ok-ink">{synced?.device ?? 'Keystone'} synced</span>
-              <span className="font-mono text-[12px] text-ok-ink-2">Fingerprint {synced?.xfp}</span>
+              <span className="text-sm font-semibold text-ok-ink">{synced?.device ?? 'Keystone'} synced</span>
+              <span className="font-mono text-xs text-ok-ink-2">Fingerprint {synced?.xfp}</span>
             </div>
           </section>
-          <div className="mx-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Accounts on this Keystone</div>
+          <div className="mx-1 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Accounts on this Keystone</div>
           <CandidateList
             items={items}
             selected={selected}
@@ -143,7 +143,7 @@ export function KeystoneConnect() {
             added={added}
           />
           {error && <Alert severity="danger">{error}</Alert>}
-          <p className="m-0 text-[12px] leading-[1.45] text-muted">Clef shows each signature as a QR code for your Keystone to sign.</p>
+          <p className="m-0 text-xs leading-[1.45] text-muted">Clef shows each signature as a QR code for your Keystone to sign.</p>
         </div>
       </HardwareShell>
     );
@@ -163,22 +163,22 @@ export function KeystoneConnect() {
         <div
           role="img"
           aria-label="Camera preview, waiting for Keystone sync QR"
-          className="relative flex h-[240px] flex-none items-center justify-center overflow-hidden rounded-[16px] bg-camera"
+          className="relative flex h-[240px] flex-none items-center justify-center overflow-hidden rounded-4xl bg-camera"
         >
           <video ref={video} muted playsInline className="absolute inset-0 size-full object-cover" />
           <div className="relative size-40">
-            <span className={`${corner} left-0 top-0 rounded-tl-[8px] border-l-[3px] border-t-[3px]`} />
-            <span className={`${corner} right-0 top-0 rounded-tr-[8px] border-r-[3px] border-t-[3px]`} />
-            <span className={`${corner} bottom-0 left-0 rounded-bl-[8px] border-b-[3px] border-l-[3px]`} />
-            <span className={`${corner} bottom-0 right-0 rounded-br-[8px] border-b-[3px] border-r-[3px]`} />
+            <span className={`${corner} left-0 top-0 rounded-tl-lg border-l-[3px] border-t-[3px]`} />
+            <span className={`${corner} right-0 top-0 rounded-tr-lg border-r-[3px] border-t-[3px]`} />
+            <span className={`${corner} bottom-0 left-0 rounded-bl-lg border-b-[3px] border-l-[3px]`} />
+            <span className={`${corner} bottom-0 right-0 rounded-br-lg border-b-[3px] border-r-[3px]`} />
             <span className="absolute left-3 right-3 top-[72px] h-0.5 bg-primary-line" />
           </div>
-          <span className="absolute bottom-2.5 left-3 inline-flex items-center gap-1.5 text-[12px] text-white">
+          <span className="absolute bottom-2.5 left-3 inline-flex items-center gap-1.5 text-xs text-white">
             <span className="size-[7px] rounded-full bg-danger" />
             Camera on
           </span>
           {pct > 0 && (
-            <span className="absolute bottom-2.5 right-3 text-[12px] font-medium text-white tabular-nums">Scanning {pct}%</span>
+            <span className="absolute bottom-2.5 right-3 text-xs font-medium text-white tabular-nums">Scanning {pct}%</span>
           )}
           {pct > 0 && (
             <span className="absolute inset-x-0 bottom-0 h-1 bg-white/20">
@@ -186,7 +186,7 @@ export function KeystoneConnect() {
             </span>
           )}
         </div>
-        <ol className="m-0 flex flex-col gap-2 pl-5 text-[14px] leading-[1.45]">
+        <ol className="m-0 flex flex-col gap-2 pl-5 text-sm leading-[1.45]">
           <li>
             On Keystone, open <strong>Connect software wallet</strong> and choose <strong>Solana</strong>.
           </li>
@@ -201,7 +201,7 @@ export function KeystoneConnect() {
             </button>
           </Alert>
         )}
-        <p className="m-0 text-[12px] leading-[1.45] text-muted">Clef opened this in a full tab so it can use the camera. Only public keys are shared — never secrets.</p>
+        <p className="m-0 text-xs leading-[1.45] text-muted">Clef opened this in a full tab so it can use the camera. Only public keys are shared — never secrets.</p>
       </div>
     </HardwareShell>
   );

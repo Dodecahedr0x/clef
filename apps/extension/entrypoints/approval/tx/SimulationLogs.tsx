@@ -93,7 +93,7 @@ export function SimulationLogs({ groups, separators, meta }: { groups: Group[]; 
         </div>
       </div>
       <span className="font-mono text-xs text-muted">{meta}</span>
-      <ol className="m-0 list-none overflow-hidden rounded-xl border border-line bg-surface p-0 py-1.5 font-mono text-xs leading-[22px]">{rows}</ol>
+      <ol className="m-0 list-none overflow-hidden rounded-2xl border border-line bg-surface p-0 py-1.5 font-mono text-xs leading-[22px]">{rows}</ol>
     </section>
   );
 }

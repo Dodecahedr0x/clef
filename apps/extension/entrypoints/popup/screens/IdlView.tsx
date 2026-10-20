@@ -36,7 +36,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
       <h2 className="m-0 px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">
         {title} · {count}
       </h2>
-      {count === 0 ? <p className="m-0 px-1 text-xs text-muted">None declared.</p> : <div className="overflow-hidden rounded-xl border border-line bg-surface">{children}</div>}
+      {count === 0 ? <p className="m-0 px-1 text-xs text-muted">None declared.</p> : <div className="overflow-hidden rounded-2xl border border-line bg-surface">{children}</div>}
     </section>
   );
 }
@@ -44,8 +44,8 @@ function Section({ title, count, children }: { title: string; count: number; chi
 function Item({ title, meta, children, first }: { title: string; meta?: string; children?: ReactNode; first: boolean }) {
   const head = (
     <span className="flex min-w-0 items-baseline gap-2">
-      <span className="truncate font-mono text-[13px] font-semibold text-ink">{title}</span>
-      {meta && <span className="ml-auto flex-none font-mono text-[11px] text-muted">{meta}</span>}
+      <span className="truncate font-mono text-sm font-semibold text-ink">{title}</span>
+      {meta && <span className="ml-auto flex-none font-mono text-2xs text-muted">{meta}</span>}
     </span>
   );
   if (!children) return <div className={`px-3 py-2 ${first ? '' : 'border-t border-line-soft'}`}>{head}</div>;
@@ -141,7 +141,7 @@ export function IdlViewScreen() {
   return (
     <PopupScreen title={title} onBack={nav.back} scroll>
       <div className="flex flex-col gap-4 px-4 py-3">
-        <dl className="m-0 grid grid-cols-[88px_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs">
+        <dl className="m-0 grid grid-cols-[88px_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-2xl border border-line bg-surface px-3 py-2.5 text-xs">
           <dt className="text-muted">Program</dt>
           <dd className="m-0"><Pubkey value={route.programId} /></dd>
           <dt className="text-muted">Source</dt>

@@ -73,7 +73,7 @@ export function ImportScreen() {
     <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
       <header className="flex h-14 flex-none items-center gap-1 pl-1.5 pr-3">
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
-        <h1 className="m-0 text-[18px] font-semibold">Import a wallet</h1>
+        <h1 className="m-0 text-lg font-semibold">Import a wallet</h1>
       </header>
       <div className="mx-4">
         <Segmented
@@ -184,7 +184,7 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
   return (
     <>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pt-4">
-        <label htmlFor="import-phrase" className="text-[12px] text-muted">Recovery phrase (12 or 24 words)</label>
+        <label htmlFor="import-phrase" className="text-xs text-muted">Recovery phrase (12 or 24 words)</label>
         <textarea
           id="import-phrase"
           rows={3}
@@ -192,25 +192,25 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
           onChange={(e) => setText(e.target.value)}
           autoComplete="off"
           spellCheck={false}
-          className={`resize-none rounded-[12px] border bg-surface p-3 font-mono text-[14px] leading-normal text-ink outline-none ${valid ? 'border-primary' : 'border-field-line focus:border-primary'} ${shown ? '' : 'blur-[3px] focus:blur-none'}`}
+          className={`resize-none rounded-2xl border bg-surface p-3 font-mono text-sm leading-normal text-ink outline-none ${valid ? 'border-primary' : 'border-field-line focus:border-primary'} ${shown ? '' : 'blur-[3px] focus:blur-none'}`}
         />
-        <div className="flex items-center text-[12px]">
+        <div className="flex items-center text-xs">
           {status && <span className={status.tone}>{status.text}</span>}
-          <button type="button" onClick={() => setShown((s) => !s)} className="ml-auto min-h-8 border-0 bg-transparent text-[12px] text-info">
+          <button type="button" onClick={() => setShown((s) => !s)} className="ml-auto min-h-8 border-0 bg-transparent text-xs text-info">
             {shown ? 'Hide' : 'Show'}
           </button>
         </div>
 
         {valid && (
           <>
-            <div className="mt-1.5 flex items-center text-[12px] text-muted">
+            <div className="mt-1.5 flex items-center text-xs text-muted">
               <span className="font-semibold uppercase tracking-[0.06em]">Accounts found</span>
               <span className="ml-auto font-mono">{SCHEME_LABEL[scheme]}</span>
             </div>
             {scanError ? (
-              <p className="text-[12px] text-danger-text">{scanError}</p>
+              <p className="text-xs text-danger-text">{scanError}</p>
             ) : (
-              <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-line bg-surface p-0">
+              <ul className="m-0 list-none overflow-hidden rounded-2xl border border-line bg-surface p-0">
                 {found.map((a, i) => {
                   const b = balances[a.address];
                   const empty = b !== undefined && b !== 'error' && b.sol === 0n && b.tokens === 0;
@@ -223,9 +223,9 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
                           onChange={(e) => setChecked((c) => ({ ...c, [a.address]: e.target.checked }))}
                           className="m-0 size-[18px] accent-primary"
                         />
-                        <span className="font-mono text-[12px] text-muted">#{a.index}</span>
-                        <span className={`flex-1 text-[14px] ${empty ? 'text-muted' : ''}`}><Pubkey value={a.address} /></span>
-                        <span className={`text-[12px] ${empty ? 'text-muted' : ''}`}>{balanceText(b)}</span>
+                        <span className="font-mono text-xs text-muted">#{a.index}</span>
+                        <span className={`flex-1 text-sm ${empty ? 'text-muted' : ''}`}><Pubkey value={a.address} /></span>
+                        <span className={`text-xs ${empty ? 'text-muted' : ''}`}>{balanceText(b)}</span>
                       </label>
                     </li>
                   );
@@ -233,14 +233,14 @@ function PhraseTab({ hasVault, busy, error, run, ensureVault, rpc }: {
               </ul>
             )}
             <div className="flex items-center gap-4">
-              <button type="button" onClick={() => setScheme((s) => (s === 'standard' ? 'legacy' : 'standard'))} className="min-h-8 border-0 bg-transparent p-0 text-[12px] text-info">
+              <button type="button" onClick={() => setScheme((s) => (s === 'standard' ? 'legacy' : 'standard'))} className="min-h-8 border-0 bg-transparent p-0 text-xs text-info">
                 {scheme === 'standard' ? 'Use a different derivation path' : 'Use the standard derivation path'}
               </button>
-              <button type="button" onClick={() => setCount((c) => c + PAGE)} className="ml-auto min-h-8 border-0 bg-transparent p-0 text-[12px] text-info">Show more</button>
+              <button type="button" onClick={() => setCount((c) => c + PAGE)} className="ml-auto min-h-8 border-0 bg-transparent p-0 text-xs text-info">Show more</button>
             </div>
           </>
         )}
-        {error && <p className="text-[12px] text-danger-text">{error}</p>}
+        {error && <p className="text-xs text-danger-text">{error}</p>}
       </div>
       <div className="px-4 pb-4 pt-3">
         <Button block disabled={!valid || selected.length === 0 || busy} onClick={submit}>
@@ -302,24 +302,24 @@ function KeyTab({ busy, error, onImport }: { busy: boolean; error: string | null
         />
         <label
           data-testid="key-drop"
-          className={`flex cursor-pointer flex-col items-center gap-1 rounded-[12px] border border-dashed px-3 py-3.5 text-center text-[12px] ${over ? 'border-primary bg-primary-bg text-primary' : 'border-line-strong bg-surface text-muted'}`}
+          className={`flex cursor-pointer flex-col items-center gap-1 rounded-2xl border border-dashed px-3 py-3.5 text-center text-xs ${over ? 'border-primary bg-primary-bg text-primary' : 'border-line-strong bg-surface text-muted'}`}
         >
           <Icon name="key" size={18} />
           <span className="font-medium text-ink">{file ? `Loaded ${file.name}` : 'Drop a keypair file here, or choose one'}</span>
           <span>{file ? <>Address <Pubkey value={file.address} /></> : 'Solana CLI keypair .json, or a text file with a base58 key'}</span>
           <input type="file" accept=".json,.txt,application/json,text/plain" className="sr-only" onChange={(e) => void load(e.target.files?.[0])} aria-label="Choose a keypair file" />
         </label>
-        {fileError && <p role="alert" className="m-0 text-[12px] text-danger-text">{fileError}</p>}
+        {fileError && <p role="alert" className="m-0 text-xs text-danger-text">{fileError}</p>}
         {popup && (
-          <p className="m-0 text-[12px] leading-[1.45] text-muted">
+          <p className="m-0 text-xs leading-[1.45] text-muted">
             The toolbar popup closes when you switch to Finder.{' '}
-            <button type="button" onClick={() => void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#import-key' as '/popup.html') })} className="border-0 bg-transparent p-0 text-[12px] text-info underline">
+            <button type="button" onClick={() => void browser.tabs.create({ url: browser.runtime.getURL('/popup.html#import-key' as '/popup.html') })} className="border-0 bg-transparent p-0 text-xs text-info underline">
               Open in a tab
             </button>{' '}
             to drop a file, or use the side panel.
           </p>
         )}
-        <p className="text-[12px] leading-[1.45] text-muted">A 64-byte secret key, as exported by Phantom or the Solana CLI. It is encrypted with your password and never leaves this device.</p>
+        <p className="text-xs leading-[1.45] text-muted">A 64-byte secret key, as exported by Phantom or the Solana CLI. It is encrypted with your password and never leaves this device.</p>
       </div>
       <div className="px-4 pb-4 pt-3">
         <Button block disabled={!key.trim() || busy} onClick={() => onImport(key.trim())}>{busy ? 'Importing…' : 'Import account'}</Button>
@@ -338,8 +338,8 @@ function WatchTab({ busy, error, onWatch }: { busy: boolean; error: string | nul
       <div className="flex flex-1 flex-col gap-3 px-4 pt-4">
         <TextField label="Address" mono value={address} onChange={(e) => setAddress(e.target.value)} error={bad ? 'Not a Solana address' : null} />
         <TextField label="Name" value={label} maxLength={32} onChange={(e) => setLabel(e.target.value)} placeholder="Watch" />
-        <p className="text-[12px] leading-[1.45] text-muted">See balances and preview requests. Clef can’t sign for this address.</p>
-        {error && <p className="text-[12px] text-danger-text">{error}</p>}
+        <p className="text-xs leading-[1.45] text-muted">See balances and preview requests. Clef can’t sign for this address.</p>
+        {error && <p className="text-xs text-danger-text">{error}</p>}
       </div>
       <div className="px-4 pb-4 pt-3">
         <Button block disabled={!a || bad || busy} onClick={() => onWatch(a, label.trim() || 'Watch')}>{busy ? 'Adding…' : 'Watch address'}</Button>

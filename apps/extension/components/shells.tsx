@@ -30,7 +30,7 @@ export function PopupScreen({
           {onClose && !onBack && <IconButton label="Close" icon="close" onClick={onClose} className="text-ink" />}
           {title !== undefined && (
             // Takes focus when the screen opens (lib/a11y focusScreen); not a stop in the tab order.
-            <h1 tabIndex={-1} className="m-0 truncate text-[18px] font-semibold outline-none">
+            <h1 tabIndex={-1} className="m-0 truncate text-lg font-semibold outline-none">
               {title}
             </h1>
           )}
@@ -80,7 +80,7 @@ export function ApprovalFrame({
   const name = siteName(site.origin);
   const internal = site.origin.startsWith(INTERNAL_SITE_PREFIX);
   const mark = (
-    <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-[7px] border border-line bg-surface-2 text-[13px] font-semibold text-primary">
+    <span className="flex size-7 flex-none items-center justify-center overflow-hidden rounded-md border border-line bg-surface-2 text-sm font-semibold text-primary">
       {internal ? <Logo size={20} /> : site.icon ? <img src={site.icon} alt="" className="size-full object-cover" /> : <span aria-hidden="true">{name.charAt(0).toUpperCase() || '?'}</span>}
     </span>
   );
@@ -102,8 +102,8 @@ export function ApprovalHeader({ mark, title, subtitle, right, onBack }: { mark:
       {onBack && <IconButton label="Back" icon="back" onClick={onBack} className="-mr-1 text-ink" />}
       {mark}
       <div className="flex min-w-0 flex-1 basis-28 flex-col">
-        <span className="truncate text-[13px] leading-tight font-semibold">{title}</span>
-        <span className="truncate text-[11px] leading-tight text-muted">{subtitle}</span>
+        <span className="truncate text-sm leading-tight font-semibold">{title}</span>
+        <span className="truncate text-2xs leading-tight text-muted">{subtitle}</span>
       </div>
       {right && <div className="ml-auto flex flex-none items-center gap-2">{right}</div>}
     </header>
@@ -151,7 +151,7 @@ export function NetworkEdge({ cluster, tint }: { cluster: 'mainnet' | 'devnet' |
   return (
     <div data-testid="network-edge" className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center">
       {tint && <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-warn" />}
-      <span role="note" aria-label={`Test network: ${name}`} className="relative rounded-b-[6px] bg-warn px-1.5 text-[10px] leading-[12px] font-semibold tracking-[0.06em] text-white uppercase">
+      <span role="note" aria-label={`Test network: ${name}`} className="relative rounded-b-md bg-warn px-1.5 text-3xs leading-[12px] font-semibold tracking-[0.06em] text-white uppercase">
         {name}
       </span>
     </div>
@@ -162,7 +162,7 @@ export function NetworkEdge({ cluster, tint }: { cluster: 'mainnet' | 'devnet' |
 export function NetworkChip({ cluster }: { cluster: 'mainnet' | 'devnet' | 'localnet' }) {
   const name = cluster === 'mainnet' ? 'Mainnet' : cluster === 'devnet' ? 'Devnet' : 'Localnet';
   return (
-    <span role="img" aria-label={`Network: ${name}`} className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-line bg-surface px-2 text-[12px] text-ink">
+    <span role="img" aria-label={`Network: ${name}`} className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-line bg-surface px-2 text-xs text-ink">
       <span aria-hidden="true" className={`size-1.5 rounded-full ${cluster === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
       <span aria-hidden="true">{name}</span>
     </span>

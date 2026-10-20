@@ -156,44 +156,44 @@ function LedgerSign({ signer, label, payloads, payloadKind, onSigned, onCancel }
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto px-5 pt-6">
-        <div aria-hidden="true" className="box-border flex h-16 w-[220px] items-center gap-[14px] self-center rounded-[14px] bg-ink px-[14px]">
-          <div className="flex h-9 flex-1 items-center justify-center rounded-[4px] bg-[#2A2F3A] font-mono text-[12px] text-white">
+        <div aria-hidden="true" className="box-border flex h-16 w-[220px] items-center gap-[14px] self-center rounded-3xl bg-ink px-[14px]">
+          <div className="flex h-9 flex-1 items-center justify-center rounded-sm bg-[#2A2F3A] font-mono text-xs text-white">
             {payloadKind === 'transaction' ? 'Review transaction' : 'Sign message'}
           </div>
           <span className="h-[18px] w-[18px] rounded-full border-2 border-faint" />
         </div>
-        <h1 className="m-0 text-center text-[20px] font-semibold">Confirm on your Ledger</h1>
+        <h1 className="m-0 text-center text-xl font-semibold">Confirm on your Ledger</h1>
 
         {needDevice && (
-          <button type="button" className="h-12 cursor-pointer rounded-[12px] border-0 bg-primary text-[14px] font-semibold text-white" onClick={() => void flow(() => LedgerDevice.request())}>
+          <button type="button" className="h-12 cursor-pointer rounded-2xl border-0 bg-primary text-sm font-semibold text-white" onClick={() => void flow(() => LedgerDevice.request())}>
             Connect Ledger
           </button>
         )}
 
-        <ol className="m-0 flex list-none flex-col rounded-[12px] border border-line bg-surface px-[14px] py-1 text-[14px]">
+        <ol className="m-0 flex list-none flex-col rounded-2xl border border-line bg-surface px-[14px] py-1 text-sm">
           <Step first mark={mark(0, connected)}>
             Connected over USB
           </Step>
-          <Step mark={mark(1, app !== null)} right={app && <span className="text-[12px] text-muted">{`v${app}`}</span>}>
+          <Step mark={mark(1, app !== null)} right={app && <span className="text-xs text-muted">{`v${app}`}</span>}>
             Solana app open
           </Step>
-          <Step mark={mark(2, addressOk)} right={<span className="font-mono text-[12px] text-muted">{signer.path}</span>}>
+          <Step mark={mark(2, addressOk)} right={<span className="font-mono text-xs text-muted">{signer.path}</span>}>
             {`Address matches ${label}`}
           </Step>
           {addressOk && (
-            <Step mark={done ? 'done' : failedAt === 3 ? 'failed' : 'active'} right={multiple && index !== null && <span className="text-[12px] text-muted">{`${index + 1} of ${payloads.length}`}</span>}>
+            <Step mark={done ? 'done' : failedAt === 3 ? 'failed' : 'active'} right={multiple && index !== null && <span className="text-xs text-muted">{`${index + 1} of ${payloads.length}`}</span>}>
               {done ? 'Signed' : 'Waiting for approval on device…'}
             </Step>
           )}
         </ol>
 
         {error && title && (
-          <section role="alert" className="flex flex-col gap-2 rounded-[12px] border border-danger-line bg-danger-bg px-[14px] py-3 text-[12px] leading-[1.45] text-danger-ink">
-            <strong className="text-[14px] text-danger-ink-2">{title}</strong>
+          <section role="alert" className="flex flex-col gap-2 rounded-2xl border border-danger-line bg-danger-bg px-[14px] py-3 text-xs leading-[1.45] text-danger-ink">
+            <strong className="text-sm text-danger-ink-2">{title}</strong>
             <span>{error === 'wrong-address' ? `${detail} Expected ${shortAddress(signer.address)}.` : detail}</span>
             <button
               type="button"
-              className="h-9 cursor-pointer self-start rounded-[10px] border border-line-strong bg-surface px-4 text-[14px] font-medium text-ink"
+              className="h-9 cursor-pointer self-start rounded-xl border border-line-strong bg-surface px-4 text-sm font-medium text-ink"
               onClick={() => void flow(() => LedgerDevice.reconnect())}
             >
               Retry
@@ -202,10 +202,10 @@ function LedgerSign({ signer, label, payloads, payloadKind, onSigned, onCancel }
         )}
 
         {signing && payloadKind === 'transaction' && hash && (
-          <section className="flex flex-col gap-1.5 rounded-[12px] border border-warn-line bg-warn-bg px-[14px] py-3 text-[12px] leading-[1.45] text-warn-ink">
-            <strong className="text-[14px]">Your Ledger may show a hash, not the details</strong>
+          <section className="flex flex-col gap-1.5 rounded-2xl border border-warn-line bg-warn-bg px-[14px] py-3 text-xs leading-[1.45] text-warn-ink">
+            <strong className="text-sm">Your Ledger may show a hash, not the details</strong>
             <span>If the Ledger can’t decode this transaction, blind signing must be on. Check the device shows this hash:</span>
-            <span className="font-mono text-[14px] tracking-[0.02em] text-ink">{hash}</span>
+            <span className="font-mono text-sm tracking-[0.02em] text-ink">{hash}</span>
           </section>
         )}
       </div>
@@ -275,11 +275,11 @@ function KeystoneSign({ signer, payloads, payloadKind, origin, onSigned, onCance
     };
   }, [phase, attempt, error, scanner, request, payloads.length]);
 
-  const stepClass = (active: boolean) => `rounded-[10px] px-[10px] py-2 ${active ? 'bg-ink font-semibold text-white' : 'border border-line bg-surface text-muted'}`;
+  const stepClass = (active: boolean) => `rounded-xl px-[10px] py-2 ${active ? 'bg-ink font-semibold text-white' : 'border border-line bg-surface text-muted'}`;
 
   return (
     <>
-      <ol className="m-0 grid list-none grid-cols-2 gap-2 px-4 pt-[14px] text-[12px]">
+      <ol className="m-0 grid list-none grid-cols-2 gap-2 px-4 pt-[14px] text-xs">
         <li aria-current={phase === 'show' ? 'step' : undefined} className={stepClass(phase === 'show')}>
           1 · Keystone scans this
         </li>
@@ -289,30 +289,30 @@ function KeystoneSign({ signer, payloads, payloadKind, origin, onSigned, onCance
       </ol>
 
       <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto px-5 pt-5">
-        {payloads.length > 1 && <span className="text-[12px] text-muted">{`${payloadKind === 'transaction' ? 'Transaction' : 'Message'} ${index + 1} of ${payloads.length}`}</span>}
+        {payloads.length > 1 && <span className="text-xs text-muted">{`${payloadKind === 'transaction' ? 'Transaction' : 'Message'} ${index + 1} of ${payloads.length}`}</span>}
         {phase === 'show' ? (
           <>
-            <div className="rounded-[18px] border border-line bg-surface p-[14px]">
+            <div className="rounded-4xl border border-line bg-surface p-[14px]">
               <AnimatedQr frames={request.frames} size={232} />
             </div>
-            <p className="mb-0 mt-1 text-center text-[14px] leading-normal">
+            <p className="mb-0 mt-1 text-center text-sm leading-normal">
               On your Keystone, open the Solana wallet and tap <strong>Scan</strong>. Check what it shows matches this request.
             </p>
-            <p className="m-0 text-center text-[12px] leading-normal text-muted">
+            <p className="m-0 text-center text-xs leading-normal text-muted">
               Clef then checks the returned signature against this {payloadKind} and your Keystone’s public key before using it.
             </p>
           </>
         ) : (
           <>
-            <div className="rounded-[18px] border border-line bg-surface p-[14px]">
-              <video ref={video} aria-label="Camera preview" muted playsInline className="block h-[232px] w-[232px] rounded-[8px] bg-ink object-cover" />
+            <div className="rounded-4xl border border-line bg-surface p-[14px]">
+              <video ref={video} aria-label="Camera preview" muted playsInline className="block h-[232px] w-[232px] rounded-lg bg-ink object-cover" />
             </div>
             {error ? (
-              <section role="alert" className="flex w-full flex-col gap-2 rounded-[12px] border border-danger-line bg-danger-bg px-[14px] py-3 text-[12px] leading-[1.45] text-danger-ink">
+              <section role="alert" className="flex w-full flex-col gap-2 rounded-2xl border border-danger-line bg-danger-bg px-[14px] py-3 text-xs leading-[1.45] text-danger-ink">
                 <span>{error}</span>
                 <button
                   type="button"
-                  className="h-9 cursor-pointer self-start rounded-[10px] border border-line-strong bg-surface px-4 text-[14px] font-medium text-ink"
+                  className="h-9 cursor-pointer self-start rounded-xl border border-line-strong bg-surface px-4 text-sm font-medium text-ink"
                   onClick={() => {
                     setProgress(0);
                     setError(null);
@@ -323,7 +323,7 @@ function KeystoneSign({ signer, payloads, payloadKind, origin, onSigned, onCance
                 </button>
               </section>
             ) : (
-              <p className="m-0 text-center text-[14px] leading-normal">
+              <p className="m-0 text-center text-sm leading-normal">
                 {progress > 0 ? `Scanning… ${Math.round(progress * 100)}%` : 'Hold the signature QR on your Keystone up to the camera.'}
               </p>
             )}

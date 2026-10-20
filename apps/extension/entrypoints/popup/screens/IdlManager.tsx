@@ -100,7 +100,7 @@ function AddIdlForm({
   };
 
   return (
-    <section aria-label={editing ? `Edit ${editing.name}` : 'Add IDL'} className="mx-3 mt-2.5 flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3">
+    <section aria-label={editing ? `Edit ${editing.name}` : 'Add IDL'} className="mx-3 mt-2.5 flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3">
       <TextField label="Program ID" mono spellCheck={false} autoComplete="off" value={programId} onChange={(e) => setProgramId(e.target.value)} />
       <Segmented<IdlNetwork>
         ariaLabel="IDL network"
@@ -118,7 +118,7 @@ function AddIdlForm({
       <label className="flex flex-col gap-1 text-xs font-medium text-muted">
         IDL JSON
         <textarea
-          className={`${editing ? 'h-56' : 'h-24'} resize-y rounded-[10px] border border-field-line bg-surface p-2 font-mono text-xs text-ink`}
+          className={`${editing ? 'h-56' : 'h-24'} resize-y rounded-xl border border-field-line bg-surface p-2 font-mono text-xs text-ink`}
           spellCheck={false}
           value={json}
           onChange={(e) => setJson(e.target.value)}
@@ -220,7 +220,7 @@ export function IdlManagerScreen() {
         <input
           id="idl-q"
           placeholder="Search by name or program ID"
-          className="h-10 rounded-[10px] border border-field-line bg-surface px-3 text-sm text-ink outline-none"
+          className="h-10 rounded-xl border border-field-line bg-surface px-3 text-sm text-ink outline-none"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -244,7 +244,7 @@ export function IdlManagerScreen() {
       {visible.length === 0 ? (
         <EmptyState title="No programs match" />
       ) : (
-        <ul aria-label="Programs" className="mx-3 mb-3 mt-2.5 overflow-hidden rounded-xl border border-line bg-surface">
+        <ul aria-label="Programs" className="mx-3 mb-3 mt-2.5 overflow-hidden rounded-2xl border border-line bg-surface">
           {visible.map((r, i) => (
             <li key={`${r.tier}:${r.programId}:${r.network}`} className={`flex min-h-14 items-center gap-2.5 px-3 py-2 ${i ? 'border-t border-line-soft' : ''}`}>
               <button

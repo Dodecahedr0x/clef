@@ -46,7 +46,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`${fill ? 'grid' : 'inline-flex'} rounded-[10px] bg-surface-2 p-[3px] ${bordered ? 'border border-line' : ''}`}
+      className={`${fill ? 'grid' : 'inline-flex'} rounded-xl bg-surface-2 p-[3px] ${bordered ? 'border border-line' : ''}`}
       style={fill ? { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` } : undefined}
     >
       {options.map((o, i) => {
@@ -62,7 +62,7 @@ export function Segmented<T extends string>({
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(o.value)}
             onKeyDown={onKeyDown}
-            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] border-0 text-[12px] ${size === 'md' ? 'h-9 px-3' : 'h-[30px] px-[9px]'} ${on ? `bg-surface font-semibold text-ink ${THUMB_SHADOW}` : 'bg-transparent text-muted hover:text-ink'}`}
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border-0 text-xs ${size === 'md' ? 'h-9 px-3' : 'h-[30px] px-[9px]'} ${on ? `bg-surface font-semibold text-ink ${THUMB_SHADOW}` : 'bg-transparent text-muted hover:text-ink'}`}
           >
             {o.label}
           </button>
@@ -96,7 +96,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, ariaLabel, panel
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(t.id)}
             onKeyDown={onKeyDown}
-            className={`-mb-px h-10 border-0 border-b-2 bg-transparent px-2.5 text-[14px] ${on ? 'border-primary font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}
+            className={`-mb-px h-10 border-0 border-b-2 bg-transparent px-2.5 text-sm ${on ? 'border-primary font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}
           >
             {t.label}
           </button>
@@ -117,7 +117,7 @@ export function Chips<T extends string>({ chips, value, onChange, ariaLabel }: {
             type="button"
             aria-pressed={on}
             onClick={() => onChange(c.id)}
-            className={`h-8 rounded-full px-3 text-[12px] ${on ? 'border border-transparent bg-ink font-semibold text-white' : 'border border-line bg-surface text-ink hover:border-line-strong'}`}
+            className={`h-8 rounded-full px-3 text-xs ${on ? 'border border-transparent bg-ink font-semibold text-white' : 'border border-line bg-surface text-ink hover:border-line-strong'}`}
           >
             {c.label}
           </button>
@@ -130,10 +130,10 @@ export function Chips<T extends string>({ chips, value, onChange, ariaLabel }: {
 export function Toggle({ label, description, checked, onChange }: { label: ReactNode; description?: ReactNode; checked: boolean; onChange: (v: boolean) => void }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex min-h-11 cursor-pointer items-center gap-2 px-3 py-1.5 text-[14px]">
+    <label htmlFor={id} className="flex min-h-11 cursor-pointer items-center gap-2 px-3 py-1.5 text-sm">
       <span className="flex min-w-0 flex-1 flex-col">
         <span>{label}</span>
-        {description && <span className="text-[12px] text-muted">{description}</span>}
+        {description && <span className="text-xs text-muted">{description}</span>}
       </span>
       <input id={id} type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} className="m-0 size-5 flex-none accent-primary" />
     </label>
@@ -150,9 +150,9 @@ export function TextField({ label, error, hint, trailing, mono = false, id, clas
   const hintId = `${inputId}-hint`;
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      <label htmlFor={inputId} className="text-[12px] text-muted">{label}</label>
+      <label htmlFor={inputId} className="text-xs text-muted">{label}</label>
       <div
-        className={`flex h-12 items-center rounded-[12px] border bg-surface pl-3.5 ${trailing ? 'pr-1' : 'pr-3.5'} ${error ? 'border-danger' : 'border-field-line focus-within:border-primary'}`}
+        className={`flex h-12 items-center rounded-2xl border bg-surface pl-3.5 ${trailing ? 'pr-1' : 'pr-3.5'} ${error ? 'border-danger' : 'border-field-line focus-within:border-primary'}`}
       >
         <input
           id={inputId}
@@ -160,15 +160,15 @@ export function TextField({ label, error, hint, trailing, mono = false, id, clas
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
-          className={`min-w-0 flex-1 border-0 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint ${mono ? 'font-mono' : ''}`}
+          className={`min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-faint ${mono ? 'font-mono' : ''}`}
           {...props}
         />
         {trailing}
       </div>
       {error ? (
-        <span id={errorId} className="text-[12px] text-danger-text">{error}</span>
+        <span id={errorId} className="text-xs text-danger-text">{error}</span>
       ) : (
-        hint && <span id={hintId} className="text-[12px] text-muted">{hint}</span>
+        hint && <span id={hintId} className="text-xs text-muted">{hint}</span>
       )}
     </div>
   );

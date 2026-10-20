@@ -13,10 +13,10 @@ const VARIANT: Record<Variant, string> = {
 };
 
 const SIZE: Record<Size, string> = {
-  lg: 'h-12 px-4 gap-2 text-[14px] rounded-[12px]',
-  md: 'h-11 px-4 gap-2 text-[14px] rounded-[12px]',
-  sm: 'h-9 px-3 gap-1.5 text-[12px] rounded-[10px]',
-  xs: 'h-[30px] px-2.5 gap-1.5 text-[12px] rounded-[8px]',
+  lg: 'h-12 px-4 gap-2 text-sm rounded-2xl',
+  md: 'h-11 px-4 gap-2 text-sm rounded-2xl',
+  sm: 'h-9 px-3 gap-1.5 text-xs rounded-xl',
+  xs: 'h-[30px] px-2.5 gap-1.5 text-xs rounded-lg',
 };
 
 const DISABLED = 'disabled:bg-surface-2 disabled:text-faint disabled:border-dashed disabled:border-line-strong disabled:font-medium disabled:cursor-not-allowed disabled:hover:brightness-100';
@@ -55,7 +55,7 @@ export function IconButton({
     <button
       type={type}
       aria-label={label}
-      className={`inline-flex flex-none items-center justify-center rounded-[10px] border-0 bg-transparent hover:bg-surface-2 ${/\btext-/.test(className) ? '' : 'text-muted hover:text-ink'} disabled:opacity-50 ${size === 44 ? 'size-11' : 'size-10'} ${className}`}
+      className={`inline-flex flex-none items-center justify-center rounded-xl border-0 bg-transparent hover:bg-surface-2 ${/\btext-/.test(className) ? '' : 'text-muted hover:text-ink'} disabled:opacity-50 ${size === 44 ? 'size-11' : 'size-10'} ${className}`}
       {...props}
     >
       <Icon name={icon} size={20} />

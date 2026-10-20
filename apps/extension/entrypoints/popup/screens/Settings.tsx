@@ -145,7 +145,7 @@ export function SettingsScreen() {
         {error && <Alert severity="danger">{error}</Alert>}
 
         <SectionLabel>Signing detail</SectionLabel>
-        <section className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5">
+        <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-2.5">
           <Segmented<DetailLevel>
             ariaLabel="Signing detail level"
             fill
@@ -203,7 +203,7 @@ export function SettingsScreen() {
             value={
               <>
                 <span className="max-w-[140px] truncate font-mono text-xs text-muted">{rpcHost(s.rpcUrl)}</span>
-                {das && <span className="rounded bg-ok-bg px-1.5 py-px text-xs text-ok-ink">DAS</span>}
+                {das && <span className="rounded-sm bg-ok-bg px-1.5 py-px text-xs text-ok-ink">DAS</span>}
               </>
             }
             onClick={() => nav.go({ name: 'settings/network' })}
@@ -227,7 +227,7 @@ export function SettingsScreen() {
         <div id="settings-swaps" className="mt-4 scroll-mt-2">
           <SectionLabel>Swaps</SectionLabel>
         </div>
-        <section className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5">
+        <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-2.5">
           <TextField
             id="jupiter-key"
             label="Jupiter API key"

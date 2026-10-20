@@ -15,7 +15,7 @@ const FRAMES = Array.from({ length: 8 }, (_, i) => `UR:SOL-SIGN-REQUEST/${i + 1}
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="m-0 border-b border-line-soft pb-1 font-mono text-[14px] font-semibold">{title}</h2>
+      <h2 className="m-0 border-b border-line-soft pb-1 font-mono text-sm font-semibold">{title}</h2>
       <div className="flex flex-wrap items-start gap-4">{children}</div>
     </section>
   );
@@ -32,10 +32,10 @@ export function KitchenSink() {
 
   return (
     <div className="flex flex-col gap-8 bg-bg p-8 font-sans text-ink">
-      <h1 className="m-0 flex items-center gap-2 font-mono text-[28px] font-semibold tracking-[-0.03em]"><Logo size={28} />clef components</h1>
+      <h1 className="m-0 flex items-center gap-2 font-mono text-3xl font-semibold tracking-[-0.03em]"><Logo size={28} />clef components</h1>
 
       <Section title="Icon">
-        {ICONS.map((n) => <span key={n} className="flex w-20 flex-col items-center gap-1 text-[12px] text-muted"><Icon name={n} className="text-ink" />{n}</span>)}
+        {ICONS.map((n) => <span key={n} className="flex w-20 flex-col items-center gap-1 text-xs text-muted"><Icon name={n} className="text-ink" />{n}</span>)}
       </Section>
 
       <Section title="Logo">
@@ -76,15 +76,15 @@ export function KitchenSink() {
           <CardHeader title="Balance changes" right="Simulated just now" />
           <div className="flex items-center gap-3 px-3.5 py-3">
             <Avatar text="Solana" tone="violet" size={32} />
-            <span className="flex-1 text-[14px]">Solana</span>
+            <span className="flex-1 text-sm">Solana</span>
             <Amount direction="out">{'−1.5000 SOL'}</Amount>
           </div>
         </Card>
-        <Card tone="warn" dashed padded className="w-[300px]"><span className="text-[12px] text-warn-ink">Dashed warn card, padded</span></Card>
+        <Card tone="warn" dashed padded className="w-[300px]"><span className="text-xs text-warn-ink">Dashed warn card, padded</span></Card>
         <div className="flex w-[336px] flex-col gap-1.5">
           <SectionLabel right="2">Recovery phrase</SectionLabel>
           <ListGroup>
-            <ListRow title="Main" subtitle={<AddressText address={ADDR} />} leading={<Avatar text="M" tone="info" size={24} />} trailing={<><span className="text-[14px] text-ink">$1,284.52</span><span>{'✓ selected'}</span></>} selected onClick={() => undefined} />
+            <ListRow title="Main" subtitle={<AddressText address={ADDR} />} leading={<Avatar text="M" tone="info" size={24} />} trailing={<><span className="text-sm text-ink">$1,284.52</span><span>{'✓ selected'}</span></>} selected onClick={() => undefined} />
             <ListRow title="Connected sites" trailing="3" chevron onClick={() => undefined} />
             <ListRow title="Static row" />
           </ListGroup>
@@ -106,8 +106,8 @@ export function KitchenSink() {
       <Section title="Avatar / AddressText / Amount">
         <Avatar text="Solana" tone="violet" /><Avatar text="USD Coin" tone="info" /><Avatar text="Jupiter" tone="primary" /><Avatar text="jup.ag" square size={32} />
         <AddressText address={ADDR} />
-        <span className="w-[300px] text-[14px]"><AddressText address={ADDR} mode="groups" /></span>
-        <span className="w-[300px] text-[12px]"><AddressText address={ADDR} mode="full" /></span>
+        <span className="w-[300px] text-sm"><AddressText address={ADDR} mode="groups" /></span>
+        <span className="w-[300px] text-xs"><AddressText address={ADDR} mode="full" /></span>
         <Amount direction="in">+212.40 USDC</Amount><Amount direction="out">{'−1.5000 SOL'}</Amount><Amount>0.000105 SOL</Amount>
       </Section>
 
@@ -117,20 +117,20 @@ export function KitchenSink() {
           <TextField label="Amount" error="More than your balance" defaultValue="99" trailing={<Button variant="ghost" size="xs">Max</Button>} />
           <PasswordField label="Password" defaultValue="correct-horse" />
         </div>
-        <div className="w-[320px] rounded-[12px] border border-line bg-surface">
+        <div className="w-[320px] rounded-2xl border border-line bg-surface">
           <Toggle label="Hide spam tokens" checked={spam} onChange={setSpam} />
           <Toggle label="Error reports" description="Send scrubbed crash details" checked={false} onChange={() => undefined} />
         </div>
       </Section>
 
       <Section title="QrCode / AnimatedQr / StepDots / Spinner / Tooltip">
-        <div className="rounded-[20px] border border-line bg-surface p-4"><QrCode value={ADDR} size={184} logo /></div>
-        <div className="rounded-[18px] border border-line bg-surface p-3.5"><AnimatedQr frames={FRAMES} size={232} /></div>
+        <div className="rounded-5xl border border-line bg-surface p-4"><QrCode value={ADDR} size={184} logo /></div>
+        <div className="rounded-4xl border border-line bg-surface p-3.5"><AnimatedQr frames={FRAMES} size={232} /></div>
         <StepDots total={3} current={1} />
         <StepDots total={3} current={2} />
         <Spinner />
         <Tooltip tip="Account relationships">
-          <a href="#rel" aria-label="Account relationships" className="flex size-10 items-center justify-center rounded-[10px] bg-surface-2 text-ink"><Icon name="relations" /></a>
+          <a href="#rel" aria-label="Account relationships" className="flex size-10 items-center justify-center rounded-xl bg-surface-2 text-ink"><Icon name="relations" /></a>
         </Tooltip>
       </Section>
 
@@ -155,7 +155,7 @@ export function KitchenSink() {
             site={{ origin: 'https://airdrop-claim.example' }}
             subtitle="Requests signature · Main"
             headerRight={<DetailLevelSwitch compact value={level} onChange={setLevel} />}
-            banner={<div className="flex items-center gap-2 bg-danger-bg-2 px-4 py-2.5 text-[12px] text-danger-ink-2"><Icon name="danger" size={16} className="text-danger" />This site is on a phishing list</div>}
+            banner={<div className="flex items-center gap-2 bg-danger-bg-2 px-4 py-2.5 text-xs text-danger-ink-2"><Icon name="danger" size={16} className="text-danger" />This site is on a phishing list</div>}
             footer={
               <DecisionFooter
                 dangerPrimary
@@ -163,12 +163,12 @@ export function KitchenSink() {
                 onReject={() => undefined}
                 onApprove={() => undefined}
                 approveLabel="Sign anyway"
-                extra={<label className="flex min-h-11 items-center gap-2.5 text-[14px]"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="size-5 accent-danger" />I understand I may lose these funds</label>}
+                extra={<label className="flex min-h-11 items-center gap-2.5 text-sm"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="size-5 accent-danger" />I understand I may lose these funds</label>}
               />
             }
           >
             <div className="flex flex-col gap-3.5 px-4 pt-5">
-              <h1 className="m-0 text-[24px] font-semibold leading-tight tracking-[-0.02em]">Give away control of your USDC account</h1>
+              <h1 className="m-0 text-2xl font-semibold leading-tight tracking-[-0.02em]">Give away control of your USDC account</h1>
               <Alert severity="danger" label="DANGER" title="Owner change">Token Program · SetAuthority makes a new address the owner of your USDC account.</Alert>
             </div>
           </ApprovalFrame>

@@ -13,7 +13,7 @@ export function StaleBackgroundBanner() {
   }, []);
   if (!stale) return null;
   return (
-    <div role="alert" className="border-b border-warn-line bg-warn-bg px-4 py-2 text-[12px] leading-snug text-warn-ink">
+    <div role="alert" className="border-b border-warn-line bg-warn-bg px-4 py-2 text-xs leading-snug text-warn-ink">
       <strong>Reload Clef.</strong> It was updated but its background still runs the old version: open your browser's extensions page and click
       Clef's reload button.
     </div>

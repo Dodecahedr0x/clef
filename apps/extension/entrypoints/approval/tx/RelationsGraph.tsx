@@ -327,7 +327,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
         </label>
       </div>
       {nodes.length > 0 && asList ? (
-        <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-line bg-surface text-left text-xs">
+        <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-2xl border border-line bg-surface text-left text-xs">
           <caption className="sr-only">Links between the accounts in this request</caption>
           <thead className="bg-surface-3 text-muted">
             <tr>
@@ -352,7 +352,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
           </tbody>
         </table>
       ) : nodes.length === 0 ? (
-        <p className="m-0 rounded-xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
+        <p className="m-0 rounded-2xl border border-line bg-surface px-3.5 py-3 text-xs text-muted">No relationships between accounts in this request.</p>
       ) : (
         <div className="relative">
           <div role="group" aria-label="Graph view" className="absolute bottom-3 left-2 z-[3] flex gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-sm">
@@ -365,7 +365,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             )}
           </div>
           {/* Scrolls both ways; Ctrl/⌘ + wheel zooms. Nodes can be dragged to untangle edges. */}
-          <div ref={viewport} className="overflow-auto rounded-xl border border-line bg-surface" style={{ height: Math.min(contentH * zoom + CONTROLS_ROOM, 620) + 2 }}>
+          <div ref={viewport} className="overflow-auto rounded-2xl border border-line bg-surface" style={{ height: Math.min(contentH * zoom + CONTROLS_ROOM, 620) + 2 }}>
             <div className="relative" style={{ width: contentW * zoom, height: contentH * zoom + CONTROLS_ROOM }}>
               <div className="absolute top-0 left-0 origin-top-left" style={{ width: contentW, height: contentH, transform: `scale(${zoom})` }}>
                 <svg aria-hidden="true" width={contentW} height={contentH} viewBox={`0 0 ${contentW} ${contentH}`} className="absolute inset-0">
@@ -458,7 +458,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                         setPicked(n.address);
                       }}
                       style={{ left: n.x, top: n.y, width: GRAPH.nodeW, height: GRAPH.nodeH, opacity: dim(n) ? 0.6 : 1, touchAction: 'none', zIndex: moved[n.address] ? 2 : 1 }}
-                      className={`absolute box-border flex cursor-grab flex-col items-start justify-center rounded-[10px] px-2.5 py-1.5 text-left text-ink active:cursor-grabbing ${
+                      className={`absolute box-border flex cursor-grab flex-col items-start justify-center rounded-xl px-2.5 py-1.5 text-left text-ink active:cursor-grabbing ${
                         on
                           ? 'border-2 border-primary'
                           : n.external
@@ -471,7 +471,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                       } ${n.external ? 'bg-surface-4' : mine ? 'bg-info-tint' : program ? 'bg-primary-bg' : 'bg-surface'}`}
                     >
                       {badge && (
-                        <span className={`absolute -top-2 right-2 rounded-full px-1.5 text-[10px] leading-4 font-semibold uppercase ${badge === 'new' ? 'bg-ok text-white' : 'bg-danger-text text-white'}`}>{badge}</span>
+                        <span className={`absolute -top-2 right-2 rounded-full px-1.5 text-3xs leading-4 font-semibold uppercase ${badge === 'new' ? 'bg-ok text-white' : 'bg-danger-text text-white'}`}>{badge}</span>
                       )}
                       {/* Unnamed accounts are titled by their key, not repeated below. A click selects the node (its key
                           is copyable in the panel below): at small zoom a copy target here would swallow the clicks. */}
@@ -486,7 +486,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
                           {kind && <span className="w-full truncate text-xs text-muted">{kind}</span>}
                         </>
                       )}
-                      {owner && !program && <span className="w-full truncate text-[11px] text-muted">owner · {owner}</span>}
+                      {owner && !program && <span className="w-full truncate text-2xs text-muted">owner · {owner}</span>}
                     </button>
                   );
                 })}
@@ -504,7 +504,7 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
             <div
               id="clef-graph-card"
               role="tooltip"
-              className="pointer-events-none absolute z-[4] w-[260px] rounded-xl border border-line bg-surface px-3 py-2.5 shadow-lg"
+              className="pointer-events-none absolute z-[4] w-[260px] rounded-2xl border border-line bg-surface px-3 py-2.5 shadow-lg"
               style={cardPosition(hovered, zoom, viewport.current)}
             >
               <AccountCard title={hovered.title} address={hovered.address} fact={factFor(input, hovered.address, tab)} transfers={transfers} label={label} program={input.programs.has(hovered.address)} compact />
@@ -514,13 +514,13 @@ export function RelationsGraph({ input, tab, batchSize }: { input: GraphInput; t
       )}
       {input.transfersPartial && <span className="text-xs text-muted">The RPC didn't report what the called programs moved: only transfers the instructions make themselves are drawn.</span>}
       {selected && (
-        <section role="group" aria-label="Selected account details" aria-live="polite" className="rounded-xl border border-line bg-surface px-3.5 py-3">
+        <section role="group" aria-label="Selected account details" aria-live="polite" className="rounded-2xl border border-line bg-surface px-3.5 py-3">
           <AccountCard title={selected.title} address={selected.address} fact={factFor(input, selected.address, tab)} transfers={transfers} label={label} program={input.programs.has(selected.address)} />
         </section>
       )}
       {selected && <SeedPanel account={selected.address} edges={input.edges} label={label} />}
       {selected && (
-        <section role="group" aria-label="Selected account" className="grid grid-cols-2 gap-4 rounded-xl border border-line bg-surface px-3.5 py-3">
+        <section role="group" aria-label="Selected account" className="grid grid-cols-2 gap-4 rounded-2xl border border-line bg-surface px-3.5 py-3">
           <RelationRows title={`${selected.title} · in the request`} rows={inRows} />
           <RelationRows title="Outside the request" rows={outRows} />
         </section>

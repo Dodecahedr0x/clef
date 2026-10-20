@@ -37,7 +37,7 @@ export function EraseWallet() {
         void erase();
       }}
     >
-      <p className="m-0 text-[12px] leading-[1.45] text-muted">
+      <p className="m-0 text-xs leading-[1.45] text-muted">
         Erasing deletes this wallet from this browser: recovery phrases, imported keys, accounts, contacts, IDLs, connected sites and settings. Your funds stay on chain:
         restore the accounts afterwards from your recovery phrase. Private keys you imported separately are lost unless you have them elsewhere.
       </p>

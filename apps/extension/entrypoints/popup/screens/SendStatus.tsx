@@ -76,14 +76,14 @@ export function SendStatus({
             <span className="flex flex-col items-center gap-1">
               <span>{what}</span>
               <span>{words.body}</span>
-              {signature && <Pubkey value={signature} className="text-[12px] text-muted" />}
+              {signature && <Pubkey value={signature} className="text-xs text-muted" />}
             </span>
           }
           action={
             <span className="flex flex-col items-center gap-2">
               {phase === 'expired' ? <Button onClick={onRetry}>Try again</Button> : <Button onClick={onDone}>Done</Button>}
               {explorer && (
-                <button type="button" onClick={() => void browser.tabs.create({ url: explorer })} className="border-0 bg-transparent p-0 text-[12px] font-semibold text-info underline">
+                <button type="button" onClick={() => void browser.tabs.create({ url: explorer })} className="border-0 bg-transparent p-0 text-xs font-semibold text-info underline">
                   View on explorer
                 </button>
               )}

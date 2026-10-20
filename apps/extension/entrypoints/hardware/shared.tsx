@@ -11,7 +11,7 @@ export const closeTab = () => window.close();
 export function HardwareShell(p: { title: string; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg">
-      <div className="overflow-hidden rounded-[20px] border border-line-soft shadow-[0_8px_30px_rgba(20,23,31,0.08)]">
+      <div className="overflow-hidden rounded-5xl border border-line-soft shadow-[0_8px_30px_rgba(20,23,31,0.08)]">
         <PopupScreen title={p.title} onBack={closeTab} footer={p.footer} scroll={p.scroll}>
           {p.children}
         </PopupScreen>
@@ -63,7 +63,7 @@ export function CandidateList(p: {
   added: Set<string>;
 }) {
   return (
-    <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-line bg-surface p-0 [&>li+li]:border-t [&>li+li]:border-line-soft">
+    <ul className="m-0 list-none overflow-hidden rounded-2xl border border-line bg-surface p-0 [&>li+li]:border-t [&>li+li]:border-line-soft">
       {p.items.map((c) => {
         const already = p.added.has(c.address);
         return (
@@ -77,11 +77,11 @@ export function CandidateList(p: {
                 onChange={() => p.onToggle(c)}
                 aria-label={`${c.index} ${shortAddress(c.address)}`}
               />
-              <span className="w-6 font-mono text-[12px] text-muted">{c.index}</span>
-              <span className="flex-1 text-[14px]">
+              <span className="w-6 font-mono text-xs text-muted">{c.index}</span>
+              <span className="flex-1 text-sm">
                 <Pubkey value={c.address} />
               </span>
-              <span className="text-[12px]">{already ? <span className="text-muted">added</span> : balanceText(p.balances[c.address])}</span>
+              <span className="text-xs">{already ? <span className="text-muted">added</span> : balanceText(p.balances[c.address])}</span>
             </label>
           </li>
         );
@@ -98,10 +98,10 @@ export function AddedView(p: { count: number; device: string }) {
       <span className="flex size-12 items-center justify-center rounded-full bg-ok-bg text-ok">
         <Icon name="check" size={24} />
       </span>
-      <p className="m-0 text-[18px] font-semibold">
+      <p className="m-0 text-lg font-semibold">
         {p.count} account{p.count === 1 ? '' : 's'} added
       </p>
-      <p className="m-0 text-[14px] leading-[1.45] text-muted">Your {p.device} accounts are in Clef. Open the Clef popup to use them.</p>
+      <p className="m-0 text-sm leading-[1.45] text-muted">Your {p.device} accounts are in Clef. Open the Clef popup to use them.</p>
     </div>
   );
 }

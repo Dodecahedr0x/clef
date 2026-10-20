@@ -54,6 +54,32 @@
   --color-edge: #7A8190; /* a relations-graph link: 3:1 or more on the surface */
   --color-temp-line: #9CB4E8; /* the dashed border of an account that only lives during the transaction */
   --color-camera: #1E222B; /* behind a camera preview */
+  /*
+   * Type and radius scales: the only sizes in use. A size sets the font size alone and inherits the line height, so
+   * leading-* stays the one way to change it. Arbitrary text-[…px] and rounded-[…px] are refused by test/tokens.test.ts.
+   */
+  --text-*: initial;
+  --text-3xs: 10px; /* pills and badges */
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+  --text-4xl: 32px; /* amounts being typed or shown large */
+  --text-5xl: 38px;
+  --radius-*: initial;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px; /* controls */
+  --radius-2xl: 12px; /* cards */
+  --radius-3xl: 14px;
+  --radius-4xl: 16px;
+  --radius-5xl: 20px;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }

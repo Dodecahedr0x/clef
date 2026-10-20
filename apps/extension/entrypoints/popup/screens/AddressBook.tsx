@@ -34,7 +34,7 @@ function ContactForm({ kind, draft, onDone, onCancel }: { kind: Kind; draft: Dra
   };
 
   return (
-    <section aria-label={draft.existing ? 'Edit entry' : 'New entry'} className="mx-3 mt-3 flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3">
+    <section aria-label={draft.existing ? 'Edit entry' : 'New entry'} className="mx-3 mt-3 flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3">
       <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} />
       <TextField
         label="Address"
@@ -119,7 +119,7 @@ export function AddressBookScreen() {
       {list.length === 0 ? (
         <EmptyState title={tab === 'contact' ? 'No contacts yet' : 'No labels yet'} body="Add one with the + button." />
       ) : (
-        <ul aria-label={tab === 'contact' ? 'Contacts' : 'Account labels'} className="m-3 overflow-hidden rounded-xl border border-line bg-surface">
+        <ul aria-label={tab === 'contact' ? 'Contacts' : 'Account labels'} className="m-3 overflow-hidden rounded-2xl border border-line bg-surface">
           {list.map((c, i) => (
             <li key={c.address} className={i ? 'border-t border-line-soft' : ''}>
               <button

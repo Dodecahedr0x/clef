@@ -77,7 +77,7 @@ export function WarningsTable({ warnings }: { warnings: Warning[] }) {
   const dangers = sorted.filter((w) => w.severity === 'danger').length;
   const shown = all ? sorted : sorted.slice(0, dangers + WARN_VISIBLE);
   return (
-    <section aria-label={dangers ? 'Danger and warnings' : 'Warnings'} className="overflow-hidden rounded-[10px] border border-line bg-surface">
+    <section aria-label={dangers ? 'Danger and warnings' : 'Warnings'} className="overflow-hidden rounded-xl border border-line bg-surface">
       <table className="w-full border-collapse text-xs leading-[1.45]">
         <tbody>
           {shown.map((w, i) => {
@@ -85,7 +85,7 @@ export function WarningsTable({ warnings }: { warnings: Warning[] }) {
             return (
               <tr key={i} className={`border-t border-line-soft first:border-t-0 ${danger ? 'bg-danger-bg text-danger-ink' : 'text-ink'}`}>
                 <td className="w-px py-1.5 pr-2 pl-2.5 align-top">
-                  <span className={`inline-block rounded-full px-1.5 text-[10px] leading-4 font-semibold tracking-[0.04em] whitespace-nowrap text-white ${PILL[w.severity].className}`}>{PILL[w.severity].text}</span>
+                  <span className={`inline-block rounded-full px-1.5 text-3xs leading-4 font-semibold tracking-[0.04em] whitespace-nowrap text-white ${PILL[w.severity].className}`}>{PILL[w.severity].text}</span>
                 </td>
                 <td className="py-1.5 pr-2.5 align-top [overflow-wrap:anywhere]">
                   {danger && <strong className="font-semibold text-danger-ink-2">{ruleTitle(w.rule)}. </strong>}
@@ -132,7 +132,7 @@ export const WarnCards = WarningsTable;
 export function AllClear({ compact }: { compact?: boolean }) {
   if (compact) {
     return (
-      <section className="flex items-center gap-2 rounded-[10px] border border-ok-line bg-ok-bg px-3 py-[9px] text-xs text-ok-ink">
+      <section className="flex items-center gap-2 rounded-xl border border-ok-line bg-ok-bg px-3 py-[9px] text-xs text-ok-ink">
         <span className="text-ok">
           <Icon name="shield-check" size={16} />
         </span>
@@ -141,7 +141,7 @@ export function AllClear({ compact }: { compact?: boolean }) {
     );
   }
   return (
-    <section className="flex items-center gap-2.5 rounded-xl border border-ok-line bg-ok-bg px-3.5 py-3">
+    <section className="flex items-center gap-2.5 rounded-2xl border border-ok-line bg-ok-bg px-3.5 py-3">
       <span className="text-ok">
         <Icon name="shield-check" size={20} />
       </span>
@@ -177,7 +177,7 @@ export function Acknowledge({ checked, onChange, dangers = [] }: { checked: bool
 
 export function IncompleteNotice({ dependentSteps }: { dependentSteps: number[] }) {
   return (
-    <section role="note" aria-label="Incomplete simulation" className="flex flex-col gap-1 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs leading-[1.45] text-warn-ink">
+    <section role="note" aria-label="Incomplete simulation" className="flex flex-col gap-1 rounded-2xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs leading-[1.45] text-warn-ink">
       <span className="font-semibold">Combined view is incomplete</span>
       <span>
         {dependentSteps.length
@@ -213,7 +213,7 @@ export function TxTabs({ titles, value, onChange }: { titles: string[]; value: T
             tabIndex={on ? 0 : -1}
             onKeyDown={onKeyDown}
             onClick={() => onChange(t.id)}
-            className={`flex h-[34px] items-center gap-1.5 rounded-[9px] px-3 text-xs font-semibold ${on ? 'bg-ink text-white' : 'border border-line-strong bg-surface text-ink'}`}
+            className={`flex h-[34px] items-center gap-1.5 rounded-lg px-3 text-xs font-semibold ${on ? 'bg-ink text-white' : 'border border-line-strong bg-surface text-ink'}`}
           >
             {t.label}
           </button>

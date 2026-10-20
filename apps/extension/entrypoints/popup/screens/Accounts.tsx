@@ -67,7 +67,7 @@ function AccountOptions({ account, onDone }: { account: PublicAccount; onDone: (
         </Button>
       </form>
       {confirm ? (
-        <div role="alert" className="flex flex-col gap-2 rounded-[10px] border border-danger-line bg-danger-bg p-2.5 text-[12px] text-danger-ink">
+        <div role="alert" className="flex flex-col gap-2 rounded-xl border border-danger-line bg-danger-bg p-2.5 text-xs text-danger-ink">
           <span>
             <strong>Remove {account.label}?</strong> {REMOVE_NOTE[account.kind]}
           </span>
@@ -86,7 +86,7 @@ function AccountOptions({ account, onDone }: { account: PublicAccount; onDone: (
         </Button>
       )}
       {error && (
-        <p role="alert" className="m-0 text-[12px] text-danger-text">
+        <p role="alert" className="m-0 text-xs text-danger-text">
           {error}
         </p>
       )}
@@ -175,8 +175,8 @@ export function AccountsScreen() {
     <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
       <header className="flex h-14 flex-none items-center gap-1 border-b border-line-soft pl-1.5 pr-3">
         <IconButton label="Close" icon="close" onClick={nav.back} className="text-ink" />
-        <h1 className="m-0 text-[18px] font-semibold">Accounts</h1>
-        <span className="ml-auto text-[12px] text-muted">Total {total === null ? '…' : formatUsd(total)}</span>
+        <h1 className="m-0 text-lg font-semibold">Accounts</h1>
+        <span className="ml-auto text-xs text-muted">Total {total === null ? '…' : formatUsd(total)}</span>
       </header>
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-2">
         {groups.map((g) => {
@@ -184,8 +184,8 @@ export function AccountsScreen() {
           if (!items.length) return null;
           return (
             <section key={g.title}>
-              <h2 className="mx-1.5 mb-1 mt-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{g.title}</h2>
-              <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-line bg-surface p-0">
+              <h2 className="mx-1.5 mb-1 mt-2.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">{g.title}</h2>
+              <ul className="m-0 list-none overflow-hidden rounded-2xl border border-line bg-surface p-0">
                 {items.map((a, i) => {
                   const current = a.address === state?.activeAccount;
                   const value = a.address in usd ? formatUsd(usd[a.address] ?? null) : '…';
@@ -198,14 +198,14 @@ export function AccountsScreen() {
                         onClick={() => void select(a.address)}
                         className="flex min-h-[50px] min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent px-3 text-left text-ink"
                       >
-                        <span className={`size-6 flex-none ${a.kind === 'squads' ? 'rounded-[6px]' : 'rounded-full'} ${SWATCH[a.kind]}`} />
+                        <span className={`size-6 flex-none ${a.kind === 'squads' ? 'rounded-md' : 'rounded-full'} ${SWATCH[a.kind]}`} />
                         <span className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-[14px] font-medium">{a.label}</span>
-                          <span className="font-mono text-[12px] text-muted">{shortAddress(a.address)}</span>
+                          <span className="truncate text-sm font-medium">{a.label}</span>
+                          <span className="font-mono text-xs text-muted">{shortAddress(a.address)}</span>
                         </span>
                         <span className="flex flex-col items-end">
-                          <span className="text-[14px] tabular-nums">{value}</span>
-                          <span className="text-[12px] text-muted">{tag(a)}</span>
+                          <span className="text-sm tabular-nums">{value}</span>
+                          <span className="text-xs text-muted">{tag(a)}</span>
                         </span>
                       </button>
                       {a.kind === 'squads' && a.multisig && (
@@ -227,7 +227,7 @@ export function AccountsScreen() {
             </section>
           );
         })}
-        {error && <p className="mt-2 text-[12px] text-danger-text">{error}</p>}
+        {error && <p className="mt-2 text-xs text-danger-text">{error}</p>}
       </div>
       <div className="px-4 pb-4 pt-3">
         <Button block variant="secondary" icon="plus" className="font-semibold" onClick={() => nav.go({ name: 'accounts/add' })}>Add account</Button>

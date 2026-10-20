@@ -94,19 +94,19 @@ export function SquadsApproval({
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-[18px]">
-        <h1 className="mx-1 my-0 text-[20px] font-semibold tracking-[-0.01em]">{title}</h1>
+        <h1 className="mx-1 my-0 text-xl font-semibold tracking-[-0.01em]">{title}</h1>
 
         {failed && <DangerBox title="Clef could not explain this proposal">{explained.error}. Treat it as dangerous unless you know exactly what it does.</DangerBox>}
         {dangers.map((w: Warning) => (
           <DangerBox key={w.rule} title={w.message} />
         ))}
 
-        <section className="overflow-hidden rounded-[12px] border border-line bg-surface">
+        <section className="overflow-hidden rounded-2xl border border-line bg-surface">
           <CardLabel>When executed, the vault will</CardLabel>
-          <div className="flex flex-col gap-1.5 px-3 py-[10px] text-[14px]">
-            {explained.status === 'loading' && <span className="text-[12px] text-muted">Simulating…</span>}
-            {combined && combined.balanceChanges === null && <span className="text-[12px] text-warn-ink">Balance changes unknown — the simulation did not run.</span>}
-            {combined?.balanceChanges?.length === 0 && <span className="text-[12px] text-muted">No balance changes</span>}
+          <div className="flex flex-col gap-1.5 px-3 py-[10px] text-sm">
+            {explained.status === 'loading' && <span className="text-xs text-muted">Simulating…</span>}
+            {combined && combined.balanceChanges === null && <span className="text-xs text-warn-ink">Balance changes unknown — the simulation did not run.</span>}
+            {combined?.balanceChanges?.length === 0 && <span className="text-xs text-muted">No balance changes</span>}
             {combined?.balanceChanges?.map((c: ChangeView, i: number) => (
               <div key={i} className="flex">
                 <span>{accountName(state, c.owner)}</span>
@@ -116,16 +116,16 @@ export function SquadsApproval({
             {combined?.warnings
               .filter((w: Warning) => w.severity !== 'danger')
               .map((w: Warning) => (
-                <div key={w.rule} className="text-[12px] text-warn-ink">
+                <div key={w.rule} className="text-xs text-warn-ink">
                   {w.message}
                 </div>
               ))}
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[12px] border border-line bg-surface">
+        <section className="overflow-hidden rounded-2xl border border-line bg-surface">
           <CardLabel>What you sign now</CardLabel>
-          <ol className="m-0 py-[10px] pl-8 pr-3 font-mono text-[12px] leading-[1.8]">
+          <ol className="m-0 py-[10px] pl-8 pr-3 font-mono text-xs leading-[1.8]">
             {signs.map((ix) => (
               <li key={ix}>
                 <span>{ix}</span>
@@ -133,7 +133,7 @@ export function SquadsApproval({
               </li>
             ))}
           </ol>
-          <div className="flex flex-col gap-1 border-t border-line-soft px-3 py-2 text-[12px]">
+          <div className="flex flex-col gap-1 border-t border-line-soft px-3 py-2 text-xs">
             {outer > 1 && <p className="m-0 text-muted">{`You sign ${outer} transactions, sent one after another.`}</p>}
             {closesStale && <p className="m-0 text-muted">Clef first closes a transaction buffer an earlier attempt left behind; its rent comes back to you.</p>}
             {!resumes && signs.some((n) => n.startsWith('transaction_buffer_create')) && (
@@ -158,24 +158,24 @@ export function SquadsApproval({
         </section>
 
         {info && (
-          <section className="flex flex-col gap-[10px] rounded-[12px] border border-line bg-surface p-3">
-            <div className="flex items-center text-[12px]">
+          <section className="flex flex-col gap-[10px] rounded-2xl border border-line bg-surface p-3">
+            <div className="flex items-center text-xs">
               <span className="font-semibold uppercase tracking-[0.06em] text-muted">Approvals</span>
               <span className="ml-auto">{`${Math.min(1, info.threshold)} of ${info.threshold} after you sign`}</span>
             </div>
             <div aria-hidden="true" className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.max(1, info.threshold)}, minmax(0, 1fr))` }}>
               {Array.from({ length: info.threshold }, (_, i) => (
-                <span key={i} className={`h-1.5 rounded-[3px] ${i === 0 ? 'bg-primary' : 'bg-line'}`} />
+                <span key={i} className={`h-1.5 rounded-xs ${i === 0 ? 'bg-primary' : 'bg-line'}`} />
               ))}
             </div>
-            <ul aria-label="Members" className="m-0 flex list-none flex-col gap-1.5 p-0 text-[14px]">
+            <ul aria-label="Members" className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm">
               {info.members.map((m, i) => {
                 const me = m.key === request.member;
                 return (
                   <li key={m.key} className="flex items-center gap-2">
                     <span aria-hidden="true" className={`h-5 w-5 rounded-full ${MEMBER_DOTS[i % MEMBER_DOTS.length]}`} />
                     <span>{me ? `${member} (you)` : accountName(state, m.key)}</span>
-                    <span className={`ml-auto text-[12px] ${me ? 'text-primary' : 'text-muted'}`}>{me ? 'approves now' : m.vote ? 'pending' : 'cannot vote'}</span>
+                    <span className={`ml-auto text-xs ${me ? 'text-primary' : 'text-muted'}`}>{me ? 'approves now' : m.vote ? 'pending' : 'cannot vote'}</span>
                   </li>
                 );
               })}

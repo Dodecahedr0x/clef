@@ -113,28 +113,28 @@ function Picker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name or symbol"
-            className="w-full h-11 px-3 bg-surface border border-field-line rounded-[12px] text-[14px] outline-none"
+            className="w-full h-11 px-3 bg-surface border border-field-line rounded-2xl text-sm outline-none"
           />
         </div>
       )}
       <ul className="list-none m-0 p-2 overflow-y-auto">
         {list.map((t) => (
           <li key={t.mint}>
-            <button type="button" onClick={() => onPick(t)} className="w-full h-14 px-2 flex items-center gap-3 bg-transparent border-0 rounded-[10px] text-left text-ink hover:bg-surface-2">
+            <button type="button" onClick={() => onPick(t)} className="w-full h-14 px-2 flex items-center gap-3 bg-transparent border-0 rounded-xl text-left text-ink hover:bg-surface-2">
               <Avatar text={t.symbol.slice(0, 1) || '?'} tone={avatarTone(t.mint)} size={30} src={t.logoUri} />
               <span className="flex flex-col flex-1 min-w-0">
-                <span className="text-[14px] font-medium">
+                <span className="text-sm font-medium">
                   {t.symbol}
                   {t.verified !== undefined && (
-                    <span className={`ml-1.5 text-[12px] font-normal ${t.verified ? 'text-ok' : 'text-warn'}`}>{t.verified ? '✓ Verified' : 'Unverified'}</span>
+                    <span className={`ml-1.5 text-xs font-normal ${t.verified ? 'text-ok' : 'text-warn'}`}>{t.verified ? '✓ Verified' : 'Unverified'}</span>
                   )}
                 </span>
-                <span className="text-[12px] text-muted truncate">
+                <span className="text-xs text-muted truncate">
                   {t.name}
                   {t.verified === false && ` · ${shortAddress(t.mint)}`}
                 </span>
               </span>
-              {t.balance !== undefined && <span className="text-[12px] text-muted tabular-nums">{t.balance}</span>}
+              {t.balance !== undefined && <span className="text-xs text-muted tabular-nums">{t.balance}</span>}
             </button>
           </li>
         ))}
@@ -316,7 +316,7 @@ function SwapForm() {
           type="button"
           aria-label={`Slippage settings, currently ${(slippageBps / 100).toFixed(1)}%`}
           onClick={() => setSlippageOpen((o) => !o)}
-          className="h-9 flex items-center gap-1.5 px-3 bg-surface border border-line rounded-full text-ink text-[12px]"
+          className="h-9 flex items-center gap-1.5 px-3 bg-surface border border-line rounded-full text-ink text-xs"
         >
           <Icon name="sliders" size={14} />
           <span>{(slippageBps / 100).toFixed(1)}%</span>
@@ -327,14 +327,14 @@ function SwapForm() {
           <Button block size="lg" disabled={!ready || !quote || tooMuch || busy} onClick={() => void review()}>
             {busy ? 'Waiting for approval…' : 'Review swap'}
           </Button>
-          <span className="text-[12px] text-muted text-center">You’ll see what the transaction does before signing</span>
+          <span className="text-xs text-muted text-center">You’ll see what the transaction does before signing</span>
         </div>
       }
     >
       <div className="relative px-4 pt-4 flex flex-col flex-1">
         {slippageOpen && (
-          <div className="mb-3 p-3 bg-surface border border-line rounded-[14px] flex flex-col gap-2">
-            <span className="text-[12px] text-muted">Max slippage</span>
+          <div className="mb-3 p-3 bg-surface border border-line rounded-3xl flex flex-col gap-2">
+            <span className="text-xs text-muted">Max slippage</span>
             <Segmented
               ariaLabel="Max slippage"
               fill
@@ -351,11 +351,11 @@ function SwapForm() {
         {!supported && settings && <Alert severity="info">Swaps use Jupiter and are only available on Mainnet.</Alert>}
 
         <div className="relative flex flex-col gap-1.5">
-          <section className="p-3.5 bg-surface border border-field-line rounded-[14px] flex flex-col gap-2">
-            <div className="flex items-center text-[12px] text-muted">
+          <section className="p-3.5 bg-surface border border-field-line rounded-3xl flex flex-col gap-2">
+            <div className="flex items-center text-xs text-muted">
               <label htmlFor="swap-pay">You pay</label>
               <span className="ml-auto tabular-nums">Balance {inHolding ? formatToken(inHolding.amount, inHolding.decimals) : '0'}</span>
-              <button type="button" onClick={max} className="ml-2 h-7 px-2.5 bg-transparent border border-line-strong rounded-full text-ink text-[12px] font-semibold">
+              <button type="button" onClick={max} className="ml-2 h-7 px-2.5 bg-transparent border border-line-strong rounded-full text-ink text-xs font-semibold">
                 MAX
               </button>
             </div>
@@ -369,34 +369,34 @@ function SwapForm() {
                 onChange={(e) => setAmountText(e.target.value)}
                 aria-invalid={tooMuch || undefined}
                 aria-describedby={tooMuch ? 'swap-pay-error' : undefined}
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-[30px] font-semibold tracking-[-0.02em] tabular-nums"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ink text-4xl font-semibold tracking-[-0.02em] tabular-nums"
               />
               <TokenButton h={inMeta} label="Choose token to pay" onClick={() => setPicking('in')} />
             </div>
-            <span className="text-[12px] text-muted tabular-nums">{inUsd !== null ? `≈ ${formatUsd(inUsd)}` : ' '}</span>
+            <span className="text-xs text-muted tabular-nums">{inUsd !== null ? `≈ ${formatUsd(inUsd)}` : ' '}</span>
           </section>
 
           <button
             type="button"
             aria-label="Switch tokens"
             onClick={flip}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-surface border border-line-strong rounded-[12px] shadow-[0_0_0_4px_var(--color-bg)] z-[1]"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-surface border border-line-strong rounded-2xl shadow-[0_0_0_4px_var(--color-bg)] z-[1]"
           >
             <Icon name="swap" size={16} />
           </button>
 
-          <section className="p-3.5 bg-surface border border-line rounded-[14px] flex flex-col gap-2">
-            <div className="flex items-center text-[12px] text-muted">
+          <section className="p-3.5 bg-surface border border-line rounded-3xl flex flex-col gap-2">
+            <div className="flex items-center text-xs text-muted">
               <span>You receive</span>
               <span className="ml-auto tabular-nums">Balance {holding(outMint) ? formatToken(holding(outMint)!.amount, holding(outMint)!.decimals) : '0'}</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <span data-testid="swap-out" className="flex-1 min-w-0 text-[30px] font-semibold tracking-[-0.02em] tabular-nums truncate">
+              <span data-testid="swap-out" className="flex-1 min-w-0 text-4xl font-semibold tracking-[-0.02em] tabular-nums truncate">
                 {quote && outMeta ? formatToken(quote.outAmount, outMeta.decimals) : quoting ? <Spinner size={20} /> : '0'}
               </span>
               <TokenButton h={outMeta} label="Choose token to receive" onClick={() => setPicking('out')} />
             </div>
-            <span className="text-[12px] text-muted tabular-nums">
+            <span className="text-xs text-muted tabular-nums">
               {quote ? (
                 <>
                   {outUsd !== null && `≈ ${formatUsd(outUsd)} · `}
@@ -418,7 +418,7 @@ function SwapForm() {
         )}
 
         {tooMuch && (
-          <span id="swap-pay-error" role="alert" className="mt-2 text-[12px] text-danger-text">
+          <span id="swap-pay-error" role="alert" className="mt-2 text-xs text-danger-text">
             More than your balance
           </span>
         )}
@@ -428,7 +428,7 @@ function SwapForm() {
             {err.jupiterKey ? (
               <Alert severity="warn" title={err.title}>
                 {err.body}
-                <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-[12px]">
+                <button type="button" onClick={() => nav.go({ name: 'settings', section: 'swaps' })} className="block mt-1 p-0 bg-transparent border-0 text-info underline text-xs">
                   Open swap settings
                 </button>
               </Alert>
@@ -439,7 +439,7 @@ function SwapForm() {
         )}
 
         {quote && inMeta && outMeta && (
-          <dl className="mt-3.5 mb-0 mx-0 px-3.5 py-3 bg-surface border border-line rounded-[14px] grid grid-cols-[minmax(0,1fr)_auto] gap-y-2 gap-x-3 text-[12px] tabular-nums">
+          <dl className="mt-3.5 mb-0 mx-0 px-3.5 py-3 bg-surface border border-line rounded-3xl grid grid-cols-[minmax(0,1fr)_auto] gap-y-2 gap-x-3 text-xs tabular-nums">
             <dt className="text-muted">Rate</dt>
             <dd className="m-0 text-right">
               1 {inMeta.symbol} = {rate !== null ? fmtRate(rate) : '—'} {outMeta.symbol}
@@ -463,13 +463,13 @@ function SwapForm() {
           <button
             type="button"
             onClick={() => setNonce((n) => n + 1)}
-            className="mt-auto pt-3 flex items-center gap-2 bg-transparent border-0 p-0 text-[12px] text-muted text-left"
+            className="mt-auto pt-3 flex items-center gap-2 bg-transparent border-0 p-0 text-xs text-muted text-left"
           >
             <Icon name="refresh" size={14} />
             <span>Quote refreshes in {secs} s</span>
           </button>
         )}
-        {!quote && <span className="mt-auto pt-3 text-[12px] text-muted">Quotes by Jupiter</span>}
+        {!quote && <span className="mt-auto pt-3 text-xs text-muted">Quotes by Jupiter</span>}
       </div>
       {picking && (
         <Picker

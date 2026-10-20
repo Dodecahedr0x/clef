@@ -33,7 +33,7 @@ export function RpcNotice({ tokensUnavailable = false, className = '' }: { token
     }
   };
   return (
-    <div role="note" className={`${className} mx-4 mb-3 rounded-[12px] border border-info-bg bg-info-bg px-3 py-2.5 text-[12px] leading-normal text-info-ink`}>
+    <div role="note" className={`${className} mx-4 mb-3 rounded-2xl border border-info-bg bg-info-bg px-3 py-2.5 text-xs leading-normal text-info-ink`}>
       <p className="m-0">
         {tokensUnavailable
           ? 'This RPC would not list your tokens, so only SOL is shown.'
@@ -41,11 +41,11 @@ export function RpcNotice({ tokensUnavailable = false, className = '' }: { token
         Add your own provider URL (a free Helius or QuickNode key works) for the full picture.
       </p>
       <div className="mt-1.5 flex gap-3">
-        <button type="button" onClick={() => nav.go({ name: 'settings/network' })} className="border-0 bg-transparent p-0 text-[12px] font-semibold text-info-ink underline">
+        <button type="button" onClick={() => nav.go({ name: 'settings/network' })} className="border-0 bg-transparent p-0 text-xs font-semibold text-info-ink underline">
           Add a provider
         </button>
         {!tokensUnavailable && (
-          <button type="button" onClick={dismiss} className="border-0 bg-transparent p-0 text-[12px] text-info-ink">
+          <button type="button" onClick={dismiss} className="border-0 bg-transparent p-0 text-xs text-info-ink">
             Not now
           </button>
         )}

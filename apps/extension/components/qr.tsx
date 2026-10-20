@@ -27,7 +27,7 @@ export function QrCode({ value, size, logo = false, label = 'QR code' }: { value
       {logo && (
         <span
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[10px] bg-surface shadow-[0_0_0_4px_#FFFFFF]"
+          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl bg-surface shadow-[0_0_0_4px_#FFFFFF]"
           style={{ width: badge, height: badge }}
         >
           <svg width={badge * 0.72} height={badge * 0.72} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.8} strokeLinecap="round">
@@ -62,10 +62,10 @@ export function AnimatedQr({ frames, size, intervalMs = 250, label = 'Animated Q
   return (
     <div className="flex flex-col items-center gap-3">
       <QrMatrix data={current} size={size} label={label} />
-      <div className="flex items-center gap-2 text-[12px] text-muted">
+      <div className="flex items-center gap-2 text-xs text-muted">
         {total <= MAX_DOTS && (
           <div aria-hidden="true" className="flex gap-1">
-            {frames.map((_, i) => <span key={i} className={`h-1 w-3.5 rounded-[2px] ${i <= index ? 'bg-primary' : 'bg-line-strong'}`} />)}
+            {frames.map((_, i) => <span key={i} className={`h-1 w-3.5 rounded-xs ${i <= index ? 'bg-primary' : 'bg-line-strong'}`} />)}
           </div>
         )}
         <span aria-live="off" data-frame={index}>{`Part ${index + 1} of ${total}${total > 1 ? ' · looping' : ''}`}</span>

@@ -51,9 +51,9 @@ export function StrengthMeter({ password }: { password: string }) {
   return (
     <div className="flex items-center gap-2">
       <div aria-hidden="true" className="grid flex-1 grid-cols-4 gap-1">
-        {[1, 2, 3, 4].map((i) => <span key={i} className={`h-1 rounded-[2px] ${i <= Math.max(score, 1) ? s.color : 'bg-line-strong'}`} />)}
+        {[1, 2, 3, 4].map((i) => <span key={i} className={`h-1 rounded-xs ${i <= Math.max(score, 1) ? s.color : 'bg-line-strong'}`} />)}
       </div>
-      <span className={`text-[12px] ${s.text}`}>{s.label}</span>
+      <span className={`text-xs ${s.text}`}>{s.label}</span>
     </div>
   );
 }
@@ -77,8 +77,8 @@ export function CreatePasswordScreen() {
   return (
     <OnboardingFrame>
       <OnboardingHeader step={1} />
-      <h1 className="mt-3 text-[24px] font-semibold tracking-[-0.02em]">Set a password</h1>
-      <p className="mt-2 text-[14px] leading-normal text-muted">It unlocks Clef on this device. It can’t be recovered — your recovery phrase can.</p>
+      <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em]">Set a password</h1>
+      <p className="mt-2 text-sm leading-normal text-muted">It unlocks Clef on this device. It can’t be recovered — your recovery phrase can.</p>
       <form
         className="mt-6 flex flex-col gap-2"
         onSubmit={(e) => {
@@ -92,7 +92,7 @@ export function CreatePasswordScreen() {
           <PasswordField label="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         </div>
         {confirm.length > 0 &&
-          (match ? <span className="text-[12px] text-ok">✓ Passwords match</span> : <span className="text-[12px] text-danger-text">Passwords don’t match</span>)}
+          (match ? <span className="text-xs text-ok">✓ Passwords match</span> : <span className="text-xs text-danger-text">Passwords don’t match</span>)}
         <button type="submit" hidden />
       </form>
       <Button block className="mt-auto" disabled={!valid} onClick={submit}>Continue</Button>

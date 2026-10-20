@@ -27,27 +27,27 @@ export function RecoveryPhraseScreen() {
   return (
     <OnboardingFrame>
       {adding ? <OnboardingHeader step={1} total={2} /> : <OnboardingHeader step={2} />}
-      <h1 className="mt-2 text-[24px] font-semibold tracking-[-0.02em]">Your recovery phrase</h1>
-      <p className="mt-2 text-[14px] leading-normal text-muted">
+      <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">Your recovery phrase</h1>
+      <p className="mt-2 text-sm leading-normal text-muted">
         {adding
           ? `New accounts come from this phrase. Write these ${words.length || 12} words on paper, in order: they’re the only way to recover those accounts if you lose this device.`
           : `Write these ${words.length || 12} words on paper, in order. They’re the only way back in if you lose this device.`}
       </p>
       {words.length === 0 ? (
-        <div className="mt-[18px] flex h-[236px] items-center justify-center rounded-[14px] border border-line bg-surface">
-          {error ? <span className="text-[12px] text-danger-text">{error}</span> : <Spinner />}
+        <div className="mt-[18px] flex h-[236px] items-center justify-center rounded-3xl border border-line bg-surface">
+          {error ? <span className="text-xs text-danger-text">{error}</span> : <Spinner />}
         </div>
       ) : (
-        <ol className="m-0 mt-[18px] grid list-none grid-cols-2 gap-x-3 gap-y-2 rounded-[14px] border border-line bg-surface p-3 font-mono text-[14px]">
+        <ol className="m-0 mt-[18px] grid list-none grid-cols-2 gap-x-3 gap-y-2 rounded-3xl border border-line bg-surface p-3 font-mono text-sm">
           {words.map((w, i) => (
-            <li key={i} className="flex h-8 items-center gap-2.5 rounded-[8px] bg-surface-3 px-2.5">
-              <span className="w-[18px] text-right text-[12px] text-muted">{i + 1}</span>
+            <li key={i} className="flex h-8 items-center gap-2.5 rounded-lg bg-surface-3 px-2.5">
+              <span className="w-[18px] text-right text-xs text-muted">{i + 1}</span>
               {w}
             </li>
           ))}
         </ol>
       )}
-      <div className="mt-3 flex gap-2.5 rounded-[12px] border border-danger-line bg-danger-bg px-3 py-2.5 text-[12px] leading-[1.45] text-danger-ink">
+      <div className="mt-3 flex gap-2.5 rounded-2xl border border-danger-line bg-danger-bg px-3 py-2.5 text-xs leading-[1.45] text-danger-ink">
         <span className="mt-px flex-none text-danger"><Icon name="danger" size={16} /></span>
         <span>Anyone with these words owns your funds. Clef will never ask for them — not in a site, popup or message.</span>
       </div>

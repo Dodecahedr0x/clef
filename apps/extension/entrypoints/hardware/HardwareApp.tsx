@@ -7,7 +7,7 @@ export function HardwareApp({ kind }: { kind: 'ledger' | 'keystone' }) {
   if (!HARDWARE_ENABLED) {
     return (
       <HardwareShell title="Connect device">
-        <p className="m-0 p-4 text-[14px] text-muted">Hardware wallets are not available in this version of Clef yet.</p>
+        <p className="m-0 p-4 text-sm text-muted">Hardware wallets are not available in this version of Clef yet.</p>
       </HardwareShell>
     );
   }
@@ -15,7 +15,7 @@ export function HardwareApp({ kind }: { kind: 'ledger' | 'keystone' }) {
   if (kind === 'keystone') return <KeystoneConnect />;
   return (
     <HardwareShell title="Connect device">
-      <p className="m-0 p-4 text-[14px] text-muted">Unknown device. Open this page from Clef's Add account menu.</p>
+      <p className="m-0 p-4 text-sm text-muted">Unknown device. Open this page from Clef's Add account menu.</p>
     </HardwareShell>
   );
 }

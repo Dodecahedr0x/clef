@@ -22,7 +22,7 @@ function InstructionCard({ ix }: { ix: InstructionView }) {
   const name = `${ix.program} · ${ix.name}`;
   if (!args.length && !ix.accounts.length) {
     return (
-      <article aria-label={name} className="flex min-h-11 items-center gap-2.5 rounded-xl border border-line bg-surface px-3">
+      <article aria-label={name} className="flex min-h-11 items-center gap-2.5 rounded-2xl border border-line bg-surface px-3">
         <span className="font-mono text-xs text-muted">{ix.index + 1}</span>
         <span className="text-sm">
           <span className="text-muted">{ix.program} ·</span> {ix.name}
@@ -37,7 +37,7 @@ function InstructionCard({ ix }: { ix: InstructionView }) {
   }
   const accounts = all ? ix.accounts : ix.accounts.slice(0, SHOWN_ACCOUNTS);
   return (
-    <article aria-label={name} className="overflow-hidden rounded-xl border border-line-strong bg-surface">
+    <article aria-label={name} className="overflow-hidden rounded-2xl border border-line-strong bg-surface">
       <div className="flex items-center gap-2.5 border-b border-line-soft p-3">
         <span className="font-mono text-xs text-muted">{ix.index + 1}</span>
         <span className="text-sm font-semibold">
@@ -110,7 +110,7 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
   const c = view.combined;
   return (
     <>
-      <section className="overflow-hidden rounded-xl border border-line bg-surface">
+      <section className="overflow-hidden rounded-2xl border border-line bg-surface">
         <div className="flex border-b border-line-soft bg-surface-3 px-3 py-2 text-xs text-muted">
           <span className="font-semibold tracking-[0.06em] uppercase">All {n} together</span>
           <span className="ml-auto">{view.mode === 'sequential' ? 'Simulated in order' : 'Simulated one by one'}</span>
@@ -148,7 +148,7 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
           const st = stepStatusLabel[s.status] ?? { text: s.status, tone: 'muted' };
           return (
             <li key={s.index}>
-              <button type="button" onClick={() => onPick(s.index)} className="flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-left">
+              <button type="button" onClick={() => onPick(s.index)} className="flex min-h-[52px] w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-3 py-2 text-left">
                 <span className="flex size-[22px] flex-none items-center justify-center rounded-full bg-surface-2 font-mono text-xs">{s.index + 1}</span>
                 <span className="flex-1 text-sm">{s.title}</span>
                 <span className={`text-xs ${st.tone === 'ok' ? 'text-ok' : st.tone === 'warn' ? 'text-warn' : st.tone === 'danger' ? 'text-danger-text' : 'text-muted'}`}>{st.text}</span>
@@ -158,7 +158,7 @@ function StepList({ view, onPick }: { view: BatchView<'intermediate'>; onPick: (
           );
         })}
       </ol>
-      <section className="flex items-start gap-2.5 rounded-xl border border-info/25 bg-info-bg px-3 py-2.5 text-xs leading-[1.45] text-info-ink">
+      <section className="flex items-start gap-2.5 rounded-2xl border border-info/25 bg-info-bg px-3 py-2.5 text-xs leading-[1.45] text-info-ink">
         <span className="rounded-full bg-info px-[7px] py-px text-xs font-semibold text-white">INFO</span>
         <span>All {n === 2 ? 'both' : n} are signed together. If one fails on-chain, the dApp decides what happens to the others.</span>
       </section>
@@ -188,7 +188,7 @@ export function IntermediateBody({ view, tab, onTab, warnings }: { view: BatchVi
         <Deltas changes={changes} fee={fee} deposits={deposits} />
       </section>
       {dangers.length || others.length ? <WarningsTable warnings={[...dangers, ...others]} /> : <AllClear compact />}
-      {step && !sv && <p className="m-0 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">Clef could not explain this transaction.</p>}
+      {step && !sv && <p className="m-0 rounded-2xl border border-warn-line bg-warn-bg px-3 py-2.5 text-xs text-warn-ink">Clef could not explain this transaction.</p>}
       {sv ? <StepDetail view={sv} /> : !step && <StepList view={view} onPick={onTab} />}
       </div>
     </div>

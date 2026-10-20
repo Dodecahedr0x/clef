@@ -73,8 +73,8 @@ export function ProposalsScreen() {
     <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
       <header className="flex h-14 flex-none items-center gap-1 border-b border-line-soft pl-1.5 pr-3">
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
-        <h1 className="m-0 truncate text-[18px] font-semibold">{account?.label ?? 'Multisig'}</h1>
-        {info && <span className="ml-auto rounded-[6px] border border-line-strong px-2 py-0.5 text-[12px] text-muted">Squads {info.threshold} of {info.members.length}</span>}
+        <h1 className="m-0 truncate text-lg font-semibold">{account?.label ?? 'Multisig'}</h1>
+        {info && <span className="ml-auto rounded-md border border-line-strong px-2 py-0.5 text-xs text-muted">Squads {info.threshold} of {info.members.length}</span>}
       </header>
       <div className="px-4">
         <Tabs
@@ -89,7 +89,7 @@ export function ProposalsScreen() {
         />
       </div>
       <div {...tabPanelProps('proposals-panel', tab)} className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
-        {error && <p className="text-[12px] text-danger-text">{error}</p>}
+        {error && <p className="text-xs text-danger-text">{error}</p>}
         {!account && <EmptyState title="Multisig not found" body="Add it from Accounts first." />}
         {account && proposals === null && <div className="flex justify-center py-8"><Spinner /></div>}
         {account && proposals && shown.length === 0 && <EmptyState title={tab === 'active' ? 'No active proposals' : 'Nothing executed yet'} />}
@@ -107,18 +107,18 @@ export function ProposalsScreen() {
           else if (mine) line += ` · you approved${waiting.length ? ` · waiting for ${waiting.join(' or ')}` : ''}`;
           else line += ' · you rejected';
           return (
-            <article key={String(p.index)} className={`flex flex-col gap-2 rounded-[12px] border bg-surface p-3 ${needsVote ? 'border-warn-line' : 'border-line'}`}>
+            <article key={String(p.index)} className={`flex flex-col gap-2 rounded-2xl border bg-surface p-3 ${needsVote ? 'border-warn-line' : 'border-line'}`}>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[12px] text-muted">#{String(p.index)}</span>
-                <span className="text-[14px] font-semibold">Vault transaction</span>
+                <span className="font-mono text-xs text-muted">#{String(p.index)}</span>
+                <span className="text-sm font-semibold">Vault transaction</span>
               </div>
               {!needsVote && threshold > 0 && (
                 <div aria-hidden="true" className="grid gap-1" style={{ gridTemplateColumns: `repeat(${threshold}, minmax(0, 1fr))` }}>
-                  {Array.from({ length: threshold }, (_, i) => <span key={i} className={`h-[5px] rounded-[3px] ${i < n ? 'bg-primary' : 'bg-line'}`} />)}
+                  {Array.from({ length: threshold }, (_, i) => <span key={i} className={`h-[5px] rounded-xs ${i < n ? 'bg-primary' : 'bg-line'}`} />)}
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <span className={`text-[12px] ${ready && p.status !== 'executed' ? 'text-ok' : 'text-muted'}`}>{line}</span>
+                <span className={`text-xs ${ready && p.status !== 'executed' ? 'text-ok' : 'text-muted'}`}>{line}</span>
                 {needsVote && (
                   <>
                     <Button size="sm" variant="secondary" className="ml-auto font-normal" disabled={busy !== null} onClick={() => void submit(p, 'reject')}>Reject</Button>

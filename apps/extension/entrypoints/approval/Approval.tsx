@@ -221,7 +221,7 @@ export function Approval({ id, onClose }: { id?: string; onClose?: () => void } 
     return (
       <Centered>
         <div className="flex flex-col items-center gap-4 text-center">
-          <p className="text-[14px] text-muted">This request is no longer available. It may have been answered or the site closed it.</p>
+          <p className="text-sm text-muted">This request is no longer available. It may have been answered or the site closed it.</p>
           <Button variant="secondary" onClick={() => (onClose ? onClose() : window.close())}>
             Close
           </Button>

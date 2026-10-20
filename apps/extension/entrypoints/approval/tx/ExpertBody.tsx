@@ -231,7 +231,7 @@ export function ExpertBody(p: {
                   aria-label={tip}
                   aria-current={on ? 'location' : undefined}
                   onClick={go(r.id)}
-                  className={`relative flex size-10 items-center justify-center rounded-[10px] no-underline ${on ? 'bg-primary-bg text-primary' : 'bg-transparent text-muted'}`}
+                  className={`relative flex size-10 items-center justify-center rounded-xl no-underline ${on ? 'bg-primary-bg text-primary' : 'bg-transparent text-muted'}`}
                 >
                   <Icon name={r.icon} size={20} />
                   {r.id === 'changes' && diffs !== null && (
@@ -266,7 +266,7 @@ export function ExpertBody(p: {
           />
           <section id="exp-details" aria-label="Transaction details" className="flex scroll-mt-4 flex-col gap-3">
             <h2 className="m-0 text-lg font-semibold">{isAll && n > 1 ? 'Request details' : n > 1 ? `Transaction ${(tab as number) + 1} details` : 'Transaction details'}</h2>
-            <dl className="m-0 grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] rounded-xl border border-line bg-surface px-3.5 py-1.5 font-mono text-xs">
+            <dl className="m-0 grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] rounded-2xl border border-line bg-surface px-3.5 py-1.5 font-mono text-xs">
               {detailRows(view, isAll ? 'all' : tab, state).map((r, i) => (
                 <div key={r.k} className="contents">
                   <dt className={`py-[9px] pr-2 font-sans text-muted [overflow-wrap:anywhere] ${i ? 'border-t border-line-soft' : ''}`}>{r.k}</dt>

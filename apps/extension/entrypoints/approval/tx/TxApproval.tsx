@@ -297,7 +297,7 @@ export function TxApproval({
         {body}
         {idlAsk && (
           <div className={`flex flex-col gap-2 pt-3 ${expert ? 'px-5' : 'px-4'}`}>
-            <section role="alertdialog" aria-label="Add an IDL" className="flex flex-col gap-2.5 rounded-xl border border-warn-line bg-warn-bg px-3 py-2.5 text-sm text-warn-ink">
+            <section role="alertdialog" aria-label="Add an IDL" className="flex flex-col gap-2.5 rounded-2xl border border-warn-line bg-warn-bg px-3 py-2.5 text-sm text-warn-ink">
               <p className="m-0">
                 Only add an IDL from a source you trust, never one the site asking you to sign gave you. An IDL names what a program does; it can make a harmful request look ordinary.
               </p>
@@ -315,7 +315,7 @@ export function TxApproval({
         {(error || danger) && (
           <div className={`mt-auto flex flex-col gap-2 pt-3 ${expert ? 'px-5' : 'px-4'}`}>
             {error && (
-              <p role="alert" className="m-0 rounded-xl border border-danger-line bg-danger-bg px-3 py-2.5 text-sm text-danger-ink">
+              <p role="alert" className="m-0 rounded-2xl border border-danger-line bg-danger-bg px-3 py-2.5 text-sm text-danger-ink">
                 {error}
               </p>
             )}

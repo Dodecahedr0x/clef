@@ -22,7 +22,7 @@ export function PanelButton({ className = '' }: { className?: string }) {
     }, () => {});
   };
   return (
-    <button type="button" data-panel-button aria-label="Keep Clef open in the side panel" title="Keep Clef open in the side panel" onClick={open} className={`flex h-11 w-8 flex-none items-center justify-center rounded-[10px] border-0 bg-transparent text-muted ${className}`}>
+    <button type="button" data-panel-button aria-label="Keep Clef open in the side panel" title="Keep Clef open in the side panel" onClick={open} className={`flex h-11 w-8 flex-none items-center justify-center rounded-xl border-0 bg-transparent text-muted ${className}`}>
       <Icon name="panel" size={20} />
     </button>
   );
@@ -38,7 +38,7 @@ export function TabButton({ className = '' }: { className?: string }) {
     }, () => {});
   };
   return (
-    <button type="button" data-tab-button aria-label="Open Clef in a tab" title="Open Clef in a tab" onClick={open} className={`flex h-11 w-8 flex-none items-center justify-center rounded-[10px] border-0 bg-transparent text-muted ${className}`}>
+    <button type="button" data-tab-button aria-label="Open Clef in a tab" title="Open Clef in a tab" onClick={open} className={`flex h-11 w-8 flex-none items-center justify-center rounded-xl border-0 bg-transparent text-muted ${className}`}>
       <Icon name="tab" size={20} />
     </button>
   );
