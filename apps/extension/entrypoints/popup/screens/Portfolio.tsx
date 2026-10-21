@@ -9,6 +9,7 @@ import { showSpamForSession, useActiveAccount, useHealth, useHistory, usePortfol
 import { useNav } from '../../../lib/nav';
 import { clusterOf, networkLabel } from '../../../lib/network';
 import { NetworkPicker } from './NetworkPicker';
+import { rpcHost } from './Settings';
 import { PanelButton, TabButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
 import { actionGate, ViewOnlyHint } from './ViewOnly';
@@ -367,7 +368,8 @@ function ExpertPortfolio() {
       </header>
 
       <div className="font-mono px-3.5 py-1.5 flex gap-2.5 text-xs text-muted bg-surface border-b border-line-soft shrink-0" data-testid="rpc-strip">
-        <span className="truncate min-w-0">{settings.rpcUrl}</span>
+        {/* Host only: providers put the API key in the path or query. */}
+        <span className="truncate min-w-0">{rpcHost(settings.rpcUrl)}</span>
         <span className="ml-auto whitespace-nowrap">{health.slot !== null ? `slot ${health.slot.toLocaleString('en-US')}` : 'slot —'}</span>
         <span className={`whitespace-nowrap ${health.latencyMs === null ? 'text-danger-text' : health.latencyMs < 500 ? 'text-ok' : 'text-warn'}`}>
           {health.latencyMs !== null ? `${health.latencyMs} ms` : 'offline'}

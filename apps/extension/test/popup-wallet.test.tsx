@@ -288,7 +288,8 @@ describe('Portfolio', () => {
     render(<PortfolioScreen />);
 
     const strip = screen.getByTestId('rpc-strip');
-    expect(within(strip).getByText('https://rpc.example/key')).toBeTruthy();
+    expect(within(strip).getByText('rpc.example')).toBeTruthy();
+    expect(within(strip).queryByText(/key/)).toBeNull();
     expect(within(strip).getByText('slot 287,412,903')).toBeTruthy();
     expect(within(strip).getByText('84 ms')).toBeTruthy();
     expect(screen.getByText('6.210400000 SOL · 6,210,400,000 lamports')).toBeTruthy();
