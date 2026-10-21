@@ -99,6 +99,23 @@ describe('KitChainReader (offline)', () => {
     expect(await reader.getTransaction('sig3')).toBeNull();
   });
 
+  it("asks the slot's block time when the transaction's is before Solana existed", async () => {
+    const tx = (slot: bigint, blockTime: bigint) => ({ slot, blockTime, transaction: [btoa('x'), 'base64'], meta: null });
+    const responses = [tx(31n, 1792568n), tx(32n, 1792568n)];
+    const asked: bigint[] = [];
+    const times = [1792568653n, null];
+    const reader = new KitChainReader(
+      fakeRpc({
+        getTransaction: () => reply(responses.shift()),
+        getBlockTime: (slot: bigint) => (asked.push(slot), reply(times.shift())),
+      }),
+    );
+    expect((await reader.getTransaction('a'))?.blockTime).toBe(1792568653n);
+    // No better answer: an unknown time, not 1970.
+    expect((await reader.getTransaction('b'))?.blockTime).toBeNull();
+    expect(asked).toEqual([31n, 32n]);
+  });
+
   it('caches confirmed transactions per endpoint and retries an HTTP 429', async () => {
     const tx = { slot: 7n, blockTime: null, transaction: [btoa('y'), 'base64'], meta: null };
     let calls = 0;

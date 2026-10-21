@@ -137,6 +137,9 @@ function resolvedInner(list: readonly RpcInner[]): InnerInstructions<InnerInstru
   }));
 }
 
+/** Mainnet's first block, 2020-03-16, in Unix seconds. */
+const SOLANA_GENESIS = 1_584_368_940n;
+
 export class KitChainReader implements ChainReader, TransactionSender {
   private readonly rpc: Rpc<SolanaRpcApi>;
   private readonly url: string | null;
@@ -242,7 +245,7 @@ export class KitChainReader implements ChainReader, TransactionSender {
     const fetched: FetchedTransaction = {
       wire: new Uint8Array(getBase64Encoder().encode(res.transaction[0])),
       slot: BigInt(res.slot),
-      blockTime: res.blockTime === null ? null : BigInt(res.blockTime),
+      blockTime: await this.blockTimeOf(res.blockTime === null ? null : BigInt(res.blockTime), BigInt(res.slot)),
       meta: m && {
         err: m.err,
         fee: BigInt(m.fee),
@@ -264,6 +267,21 @@ export class KitChainReader implements ChainReader, TransactionSender {
       TX_CACHE.set(key, fetched);
     }
     return fetched;
+  }
+
+  /**
+   * A transaction's block time, in seconds. One from before Solana's first block can't be real: surfpool 1.4's
+   * getTransaction returns it divided by 1000, which shows as January 1970. The slot's own block time is asked instead,
+   * and an unknown time beats a wrong one.
+   */
+  private async blockTimeOf(reported: bigint | null, slot: bigint): Promise<bigint | null> {
+    if (reported === null || reported >= SOLANA_GENESIS) return reported;
+    try {
+      const t = await this.rpc.getBlockTime(slot).send();
+      return t !== null && BigInt(t) >= SOLANA_GENESIS ? BigInt(t) : null;
+    } catch {
+      return null;
+    }
   }
 
   async simulate(wire: Uint8Array, addresses: readonly Address[], options: SimulateOptions = {}): Promise<SimulationResult> {

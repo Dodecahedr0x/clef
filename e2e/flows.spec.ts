@@ -234,6 +234,8 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await row.click();
   const detail = popup;
   await expect(detail.getByText(/^Confirmed · /)).toBeVisible({ timeout: 30_000 });
+  // The real date, not 1970 (surfpool's getTransaction reports block time divided by 1000).
+  await expect(detail.getByText(new RegExp(`^Confirmed · .*${new Date().getFullYear()}`))).toBeVisible();
   await expect(detail.getByText(/0\.5 SOL/).first()).toBeVisible();
   await expect(detail.getByRole('button', { name: /^Sign/ })).toHaveCount(0);
   await detail.getByRole('radio', { name: /Expert/ }).click();
