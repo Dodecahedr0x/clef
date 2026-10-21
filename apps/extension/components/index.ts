@@ -6,4 +6,4 @@ export { Card, CardHeader, SectionLabel, ListGroup, ListRow, Pill, Alert, Avatar
 export { QrCode, AnimatedQr } from './qr';
 export { ErrorNote } from './error-note';
 export { Sheet } from './sheet';
-export { PopupScreen, ApprovalFrame, ApprovalHeader, DetailLevelSwitch, NetworkSwitch, NetworkEdge, NetworkChip, DecisionFooter, siteName } from './shells';
+export { PopupScreen, ScreenActions, ScreenActionsSlot, ApprovalFrame, ApprovalHeader, DetailLevelSwitch, NetworkSwitch, NetworkEdge, NetworkChip, DecisionFooter, siteName } from './shells';

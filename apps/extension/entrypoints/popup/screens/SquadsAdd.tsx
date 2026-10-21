@@ -1,7 +1,7 @@
 import { fetchMultisig, vaultPda, type MultisigInfo } from '@clef/squads';
 import { isAddress, type Address } from '@solana/kit';
 import { useEffect, useState } from 'react';
-import { Button, IconButton, TextField, Pubkey } from '../../../components';
+import { Button, IconButton, TextField, Pubkey, ScreenActionsSlot } from '../../../components';
 import { call } from '../../../lib/api';
 import { formatToken, shortAddress } from '../../../lib/format';
 import { useClients, useWallet } from '../../../lib/hooks';
@@ -74,6 +74,7 @@ export function SquadsAddScreen() {
       <header className="flex h-14 flex-none items-center gap-1 border-b border-line-soft pl-1.5 pr-3">
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
         <h1 className="m-0 text-lg font-semibold">Add Squads multisig</h1>
+        <ScreenActionsSlot className="ml-auto" />
       </header>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pt-3.5">
         <TextField label="Multisig address" mono value={input} onChange={(e) => setInput(e.target.value)} error={fieldError} />

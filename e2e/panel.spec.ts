@@ -91,3 +91,38 @@ test('a keypair file chosen in the side panel imports that account', async ({ co
     return r.value.accounts.map((a) => a.address);
   }).toContain(address);
 });
+
+test('Continue in a browser tab opens the same screen with what was typed', async ({ context, popup, extensionId, stubRpc }) => {
+  await context.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (r) => r.abort());
+  await popup.evaluate((rpcUrl) => chrome.runtime.sendMessage({ channel: 'internal', call: { type: 'settings:update', patch: { network: 'localnet', rpcUrl } } }), stubRpc);
+  await popup.reload();
+  await popup.getByRole('button', { name: 'I already have a wallet' }).click();
+  await popup.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await popup.getByLabel('Confirm password', { exact: true }).fill(PASSWORD);
+  await popup.getByRole('button', { name: 'Continue' }).click();
+  await popup.getByLabel('Recovery phrase (12 or 24 words)').fill(ABANDON);
+  await popup.getByRole('button', { name: 'Import 1 account' }).click();
+  await expect(popup.getByText('HAgk…Kpqk').first()).toBeVisible();
+
+  // From the side panel (here in a tab: the same page), which stays open.
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByRole('button', { name: 'Send', exact: true }).click();
+  const to = 'Ct4mVq1nZr8sYw3kXe6hJp2dLb9gTf5cMa7uNo4iQ8xe';
+  await panel.getByRole('textbox', { name: 'To' }).fill(to);
+  const opened = context.waitForEvent('page');
+  await panel.getByRole('button', { name: 'Continue in a browser tab' }).click();
+  const tab = await opened;
+  await tab.waitForLoadState();
+  expect(tab.url()).toMatch(new RegExp(`^chrome-extension://${extensionId}/popup\\.html#tab&continue=`));
+  await expect(tab.getByRole('heading', { name: 'Send' })).toBeVisible();
+  await expect(tab.getByRole('textbox', { name: 'To' })).toHaveValue(to);
+  await expect(tab.getByRole('button', { name: 'Continue in a browser tab' })).toHaveCount(0);
+  // Back goes where it would have in the panel; a reload starts fresh, at home.
+  await expect(tab).toHaveURL(/#tab$/);
+  await tab.getByRole('button', { name: 'Back' }).click();
+  await expect(tab.getByRole('button', { name: 'Switch account' })).toBeVisible();
+  await tab.reload();
+  await expect(tab.getByRole('button', { name: 'Switch account' })).toBeVisible();
+  expect(panel.isClosed()).toBe(false);
+});

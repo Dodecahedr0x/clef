@@ -1,8 +1,9 @@
-import { useEffect, type JSX } from 'react';
-import { Alert, NetworkEdge, Spinner } from '../../components';
+import { useEffect, useState, type JSX } from 'react';
+import { Alert, NetworkEdge, ScreenActions, Spinner } from '../../components';
 import type { FullState } from '../../lib/api';
+import { takeHandoff } from '../../lib/handoff';
 import { useWallet } from '../../lib/hooks';
-import { NavProvider, useNav } from '../../lib/nav';
+import { NavProvider, useNav, type NavSnapshot } from '../../lib/nav';
 import { clusterOf } from '../../lib/network';
 import { StaleBackgroundBanner } from '../../lib/stale-banner';
 import type { Route, RouteName } from './routes';
@@ -17,6 +18,7 @@ import { IdlManagerScreen } from './screens/IdlManager';
 import { IdlViewScreen } from './screens/IdlView';
 import { ImportScreen } from './screens/Import';
 import { NetworkRpcScreen } from './screens/NetworkRpc';
+import { TabButton } from './screens/PanelButton';
 import { PortfolioScreen } from './screens/Portfolio';
 import { ProposalsScreen } from './screens/Proposals';
 import { ReceiveScreen } from './screens/Receive';
@@ -92,8 +94,22 @@ function Router() {
   return <Screen key={JSON.stringify(route)} />;
 }
 
+/** Only screens a wallet that exists can show: onboarding is never continued in a tab. */
+const continuable = (name: unknown) => typeof name === 'string' && name in SCREENS && !ONBOARDING.has(name as RouteName);
+
+/** The screen and drafts the popup handed to this tab; undefined while reading, null when there is none. */
+function useHandoff(): NavSnapshot | null | undefined {
+  const [handoff, setHandoff] = useState<NavSnapshot | null | undefined>(() => (location.hash.includes('&continue=') ? undefined : null));
+  useEffect(() => {
+    if (handoff !== undefined) return;
+    takeHandoff(continuable).then(setHandoff, () => setHandoff(null));
+  }, [handoff]);
+  return handoff;
+}
+
 export function App() {
   const { state, error } = useWallet();
+  const handoff = useHandoff();
   if (error) {
     return (
       <div className="flex h-full items-center p-4">
@@ -103,7 +119,7 @@ export function App() {
       </div>
     );
   }
-  if (!state) {
+  if (!state || handoff === undefined) {
     return (
       <div className="flex h-full items-center justify-center bg-bg">
         <Spinner />
@@ -111,13 +127,15 @@ export function App() {
     );
   }
   return (
-    <NavProvider initial={entryRoute(state)}>
+    <NavProvider initial={entryRoute(state)} restore={state.hasVault ? handoff : null}>
       <Guard state={state} />
       <div className="flex h-full flex-col">
         <NetworkEdge cluster={clusterOf(state.settings)} tint={state.settings.devnetTint} />
         <StaleBackgroundBanner />
         <div className="min-h-0 flex-1">
-          <Router />
+          <ScreenActions.Provider value={<TabButton />}>
+            <Router />
+          </ScreenActions.Provider>
         </div>
       </div>
     </NavProvider>

@@ -34,6 +34,12 @@ export function useNav(): Nav {
 type DraftStore = { values: Map<string, unknown>; keeping: { current: boolean } };
 const DraftStoreContext = createContext<DraftStore | null>(null);
 
+/** Where the user is and what they typed, to continue in another page (a browser tab). */
+export type NavSnapshot = { stack: Route[]; drafts: [string, unknown][] };
+const SnapshotContext = createContext<(() => NavSnapshot) | null>(null);
+/** Null outside a NavProvider. */
+export const useNavSnapshot = () => useContext(SnapshotContext);
+
 /**
  * `useState` whose value outlives the screen while it is suspended (an auto-lock): the form comes back as it was
  * after unlocking. Leaving the screen any other way forgets it. Held in memory only, never in storage.
@@ -63,8 +69,12 @@ export function useOnboardingDraft(): OnboardingDraft {
 
 type FocusIntent = { kind: 'forward' } | { kind: 'back'; opener: Opener };
 
-export function NavProvider({ initial, children }: { initial: Route; children: ReactNode }) {
-  const [stack, setStack] = useState<Route[]>(() => [initial]);
+/**
+ * `restore`: a snapshot to continue from. Opened on the lock screen, it is suspended there and comes back on unlock.
+ */
+export function NavProvider({ initial, restore, children }: { initial: Route; restore?: NavSnapshot | null; children: ReactNode }) {
+  const locked = initial.name === 'unlock';
+  const [stack, setStack] = useState<Route[]>(() => (restore && !locked ? restore.stack : [initial]));
   // openers[i]: where focus was when stack[i + 1] was opened, to return there on Back.
   const openers = useRef<Opener[]>([]);
   const depth = useRef(1);
@@ -73,8 +83,9 @@ export function NavProvider({ initial, children }: { initial: Route; children: R
   const [secrets, setSecrets] = useState<{ password: string | null; mnemonic: string | null }>({ password: null, mnemonic: null });
   const stackRef = useRef(stack);
   stackRef.current = stack;
-  const suspended = useRef<Route[] | null>(null);
-  const drafts = useMemo<DraftStore>(() => ({ values: new Map(), keeping: { current: false } }), []);
+  const suspended = useRef<Route[] | null>(restore && locked ? restore.stack : null);
+  const [drafts] = useState<DraftStore>(() => ({ values: new Map(restore?.drafts), keeping: { current: Boolean(restore && locked) } }));
+  const snapshot = useCallback((): NavSnapshot => ({ stack: stackRef.current, drafts: [...drafts.values] }), [drafts]);
 
   const go = useCallback((r: Route) => {
     openers.current.push(describeFocus());
@@ -137,7 +148,9 @@ export function NavProvider({ initial, children }: { initial: Route; children: R
   return (
     <NavContext.Provider value={nav}>
       <DraftContext.Provider value={draft}>
-        <DraftStoreContext.Provider value={drafts}>{children}</DraftStoreContext.Provider>
+        <DraftStoreContext.Provider value={drafts}>
+          <SnapshotContext.Provider value={snapshot}>{children}</SnapshotContext.Provider>
+        </DraftStoreContext.Provider>
       </DraftContext.Provider>
     </NavContext.Provider>
   );

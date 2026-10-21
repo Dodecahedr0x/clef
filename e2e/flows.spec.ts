@@ -238,6 +238,7 @@ test('Send SOL from the popup: approval window, then a confirmed signature on th
   await expect(detail.getByText(new RegExp(`^Confirmed · .*${new Date().getFullYear()}`))).toBeVisible();
   await expect(detail.getByText(/0\.5 SOL/).first()).toBeVisible();
   await expect(detail.getByRole('button', { name: /^Sign/ })).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'Continue in a browser tab' })).toBeVisible();
   await detail.getByRole('radio', { name: /Expert/ }).click();
   await expect(detail.getByRole('heading', { name: 'Transaction logs' })).toBeVisible();
   await detail.getByRole('button', { name: 'Back' }).click();

@@ -1,7 +1,7 @@
 import type { BatchView, DetailLevel, Warning } from '@clef/explain';
 import { useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ApprovalFrame, Button, DetailLevelSwitch, Spinner, Pubkey, siteName } from '../../../components';
+import { ApprovalFrame, Button, DetailLevelSwitch, Spinner, Pubkey, siteName, ScreenActionsSlot } from '../../../components';
 import type { FullState } from '../../../lib/api';
 import { shortAddress } from '../../../lib/format';
 import { useAddressLookup, useExplainLanded, useWallet } from '../../../lib/hooks';
@@ -99,7 +99,12 @@ function Detail({ state, signature, origin, onBack }: { state: FullState; signat
         site={{ origin: origin ?? 'Transaction' }}
         title={<Pubkey value={signature} />}
         subtitle={subtitle}
-        headerRight={<DetailLevelSwitch value={level} onChange={changeLevel} compact />}
+        headerRight={
+          <>
+            <DetailLevelSwitch value={level} onChange={changeLevel} compact />
+            <ScreenActionsSlot />
+          </>
+        }
         width="fill"
         onBack={onBack}
         footer={

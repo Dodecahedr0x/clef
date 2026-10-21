@@ -3,7 +3,7 @@ import { loadPortfolio } from '@clef/portfolio';
 import { fetchMultisig } from '@clef/squads';
 import type { Address } from '@solana/kit';
 import { useEffect, useState } from 'react';
-import { Button, IconButton, TextField } from '../../../components';
+import { Button, IconButton, TextField, ScreenActionsSlot } from '../../../components';
 import { useCopy } from '../../../lib/a11y';
 import { call } from '../../../lib/api';
 import { formatUsd, shortAddress } from '../../../lib/format';
@@ -177,6 +177,7 @@ export function AccountsScreen() {
         <IconButton label="Close" icon="close" onClick={nav.back} className="text-ink" />
         <h1 className="m-0 text-lg font-semibold">Accounts</h1>
         <span className="ml-auto text-xs text-muted">Total {total === null ? '…' : formatUsd(total)}</span>
+        <ScreenActionsSlot className="ml-2" />
       </header>
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-2">
         {groups.map((g) => {

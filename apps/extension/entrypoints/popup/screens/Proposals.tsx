@@ -1,7 +1,7 @@
 import { buildExecuteTransaction, buildVoteTransaction, fetchMultisig, listProposals, type MultisigInfo, type ProposalInfo } from '@clef/squads';
 import type { Address } from '@solana/kit';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, EmptyState, IconButton, Spinner, Tabs, tabPanelProps } from '../../../components';
+import { Button, EmptyState, IconButton, Spinner, Tabs, tabPanelProps, ScreenActionsSlot } from '../../../components';
 import { call } from '../../../lib/api';
 import { useClients, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
@@ -75,6 +75,7 @@ export function ProposalsScreen() {
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
         <h1 className="m-0 truncate text-lg font-semibold">{account?.label ?? 'Multisig'}</h1>
         {info && <span className="ml-auto rounded-md border border-line-strong px-2 py-0.5 text-xs text-muted">Squads {info.threshold} of {info.members.length}</span>}
+        <ScreenActionsSlot className={info ? 'ml-2' : 'ml-auto'} />
       </header>
       <div className="px-4">
         <Tabs

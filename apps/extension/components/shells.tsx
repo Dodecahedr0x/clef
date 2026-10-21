@@ -1,8 +1,17 @@
 import type { DetailLevel } from '@clef/explain';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { Button, IconButton } from './buttons';
 import { Segmented } from './controls';
 import { Icon, Logo } from './icons';
+
+/** Controls every popup screen shows at the right of its header (the popup supplies "Continue in a browser tab"). */
+export const ScreenActions = createContext<ReactNode>(null);
+
+/** The screen actions, for a screen that draws its own header instead of PopupScreen's. */
+export function ScreenActionsSlot({ className = '' }: { className?: string }) {
+  const actions = useContext(ScreenActions);
+  return actions ? <div className={`flex items-center ${className}`}>{actions}</div> : null;
+}
 
 export function PopupScreen({
   title,
@@ -21,6 +30,7 @@ export function PopupScreen({
   footer?: ReactNode;
   scroll?: boolean;
 }) {
+  const actions = useContext(ScreenActions);
   const header = title !== undefined || onBack || onClose || right;
   return (
     <div className="flex h-(--popup-h) w-(--popup-w) flex-col overflow-hidden bg-bg font-sans text-ink">
@@ -34,7 +44,12 @@ export function PopupScreen({
               {title}
             </h1>
           )}
-          {right && <div className="ml-auto flex items-center gap-2">{right}</div>}
+          {(right || actions) && (
+            <div className="ml-auto flex items-center gap-2">
+              {right}
+              {actions}
+            </div>
+          )}
         </header>
       )}
       <main className={`flex min-h-0 flex-1 flex-col ${scroll ? 'overflow-y-auto' : 'overflow-hidden'}`}>{children}</main>

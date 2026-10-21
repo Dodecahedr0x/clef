@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { browser } from 'wxt/browser';
-import { Button, Icon, IconButton } from '../../../components';
+import { Button, Icon, IconButton, ScreenActionsSlot } from '../../../components';
 import { call } from '../../../lib/api';
 import { HARDWARE_ENABLED } from '../../../lib/features';
 import { useWallet } from '../../../lib/hooks';
@@ -67,6 +67,7 @@ export function AddAccountScreen() {
       <header className="flex h-14 flex-none items-center gap-1 border-b border-line-soft pl-1.5 pr-3">
         <IconButton label="Back" icon="back" onClick={nav.back} className="text-ink" />
         <h1 className="m-0 text-lg font-semibold">Add account</h1>
+        <ScreenActionsSlot className="ml-auto" />
       </header>
       {choosing ? (
         <div className="flex flex-1 flex-col gap-3 px-4 pt-4">
