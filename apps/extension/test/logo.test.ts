@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ICON } from '../lib/icon';
+import { ICON, ICON_SVG } from '../lib/icon';
 import { LOGO_INK, LOGO_KEY, LOGO_TILE } from '../lib/logo';
 
 describe('Clef mark', () => {
@@ -14,5 +14,9 @@ describe('Clef mark', () => {
     const theme = readFileSync(join(__dirname, '..', 'assets', 'tailwind.css'), 'utf8');
     expect(theme).toContain(`--color-primary: ${LOGO_INK};`);
     expect(theme).toContain(`--color-primary-bg: ${LOGO_TILE};`);
+  });
+
+  it('is the logo the README shows', () => {
+    expect(readFileSync(join(__dirname, '..', '..', '..', 'docs', 'logo.svg'), 'utf8')).toBe(`${ICON_SVG}\n`);
   });
 });

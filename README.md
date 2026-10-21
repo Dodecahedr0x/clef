@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.svg" width="96" height="96" alt="Clef logo: a green key on a light green tile"></p>
+
 # Clef
 
 Clef is a Solana wallet for Chrome that explains a transaction before you sign it. It decodes the transaction (legacy, v0 with address lookup tables, and v1), names every instruction from IDLs it resolves through a prioritized chain (your own IDLs, curated bundled IDLs, Program Metadata, on-chain Anchor IDLs), independently verifies account relationships (PDA seeds, Anchor `has_one`, token ownership, ATAs), simulates it to compute balance and state changes, and runs risk rules over all of it. You choose how much you see: Basic, Intermediate or Expert (account-by-account state diffs, simulation logs, the relationship graph, raw data). Requests with several transactions are simulated in sequence when the RPC supports `simulateBundle`, and shown one by one or combined.
