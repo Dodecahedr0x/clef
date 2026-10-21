@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { LOGO_KEY } from '../lib/logo';
 
 export type IconName = 'back' | 'panel' | 'tab' | 'close' | 'settings' | 'send' | 'receive' | 'swap' | 'history' | 'eye' | 'eye-off' | 'copy' | 'share' | 'lock' | 'check'
   | 'info' | 'warn' | 'danger' | 'shield-check' | 'shield-x' | 'chevron-down' | 'chevron-right' | 'chevron-up' | 'plus' | 'refresh' | 'sliders' | 'filter'
@@ -88,10 +89,10 @@ export function Icon({ name, size = 20, className }: { name: IconName; size?: nu
 export function Logo({ size = 22, staff = false }: { size?: number; staff?: boolean }) {
   if (!staff) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="text-primary" role="img" aria-label="Clef">
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={LOGO_KEY.strokeWidth} strokeLinecap="round" className="text-primary" role="img" aria-label="Clef">
         <path d="M3 7h18M3 12h18M3 17h18" strokeOpacity="0.35" />
-        <circle cx="9" cy="12" r="3.2" />
-        <path d="M12.2 12H20M17 12v3M20 12v2" />
+        <circle {...LOGO_KEY.circle} />
+        <path d={LOGO_KEY.shaft} />
       </svg>
     );
   }
