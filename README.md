@@ -30,7 +30,7 @@ Workspace packages export TypeScript source directly; there is no build step exc
 
 ## Develop
 
-Requires Node 20+, pnpm 10, and [surfpool](https://solana.com/docs/tools/surfpool) for local-validator tests.
+Requires Node 20+, pnpm 10, and [surfpool](https://solana.com/docs/tools/surfpool) 1.6 or later for local-validator tests.
 
 ```bash
 pnpm install

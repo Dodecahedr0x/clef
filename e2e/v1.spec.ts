@@ -11,6 +11,7 @@ import {
   getTransactionDecoder,
   getBase64Encoder,
   pipe,
+  setTransactionMessageConfig,
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   verifySignature,
@@ -44,6 +45,8 @@ async function bigV1(validator: string, recipients: number): Promise<Uint8Array>
     (m) => setTransactionMessageFeePayer(A, m),
     (m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: value.blockhash as Blockhash, lastValidBlockHeight: BigInt(value.lastValidBlockHeight) }, m),
     (m) => appendTransactionMessageInstructions(to.map((d) => getTransferSolInstruction({ source: createNoopSigner(A), destination: d, amount: 1_000_000n })), m),
+    // A v1 transaction states its own limits: one left unset is 0 (SIMD-0385), and the transaction can't run.
+    (m) => setTransactionMessageConfig({ computeUnitLimit: 200_000, loadedAccountsDataSizeLimit: 1_000_000 }, m),
   );
   return new Uint8Array(getBase64Encoder().encode(getBase64EncodedWireTransaction(compileTransaction(msg))));
 }
@@ -73,22 +76,20 @@ async function approve(context: BrowserContext, dapp: Page, action: string) {
   const result = run(dapp, action);
   const approval = await nextApproval(context);
   await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
-  // Surfpool can't simulate this (see below): Clef still decodes all 55 transfers and says the balance changes are unknown.
+  // All 55 transfers decoded and simulated: 55 × 0.001 SOL out, plus the fee.
   await expect(approval.getByRole('heading', { name: '55 instructions' })).toBeVisible();
-  await expect(approval.getByText(/balance changes are unknown/i).first()).toBeVisible();
-  const ack = approval.getByLabel(/I understand/);
-  if (await ack.count()) await ack.check();
+  await expect(approval.getByRole('heading', { name: 'Send 0.055 SOL' })).toBeVisible();
+  await expect(approval.getByText('−0.055005 SOL').first()).toBeVisible();
+  await expect(approval.getByText('No warnings').first()).toBeVisible();
   const closed = approval.waitForEvent('close');
-  await approval.getByRole('button', { name: /^Sign( anyway)?$/ }).click({ noWaitAfter: true }).catch(() => {});
+  await approval.getByRole('button', { name: 'Sign', exact: true }).click({ noWaitAfter: true }).catch(() => {});
   await closed;
   return result;
 }
 
-// Surfpool can't simulate this transaction: 1.4 can't parse v1 at all, and 1.6 runs a v1 transaction that leaves its
-// compute-unit and loaded-data limits to the defaults with both at zero. So this checks decoding, the approval and
-// signing; simulation and sending of large v1 transactions are covered against devnet by
-// packages/explain/test/v1.live.test.ts.
-test('a v1 transaction over the legacy size limit is decoded, approved and signed', async ({ context, popup, dapp, base, validator }) => {
+// Needs surfpool 1.6 or later (1.4 can't parse v1). Checks decoding, simulation, the approval and signing; sending a
+// large v1 transaction is covered against devnet by packages/explain/test/v1.live.test.ts.
+test('a v1 transaction over the legacy size limit is decoded, simulated, approved and signed', async ({ context, popup, dapp, base, validator }) => {
   await setup(context, popup, dapp, base, validator);
   const wire = await bigV1(validator, 55);
   expect(wire.length).toBeGreaterThan(1232);
