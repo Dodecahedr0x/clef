@@ -205,7 +205,7 @@ describe('Portfolio', () => {
     render(<PortfolioScreen />);
     expect(screen.getByText('$1,284.52')).toBeTruthy();
     expect(screen.getByText(/\+\$18\.20 · 1\.4% today/)).toBeTruthy();
-    expect((screen.getByRole('combobox', { name: 'Network' }) as HTMLSelectElement).value).toBe('mainnet');
+    expect(screen.getByRole('button', { name: 'Network: Mainnet' })).toBeTruthy();
     expect(screen.getByText('Main')).toBeTruthy();
     expect(screen.getByText('7xKp…3fQa')).toBeTruthy();
     expect(screen.getByText('Solana')).toBeTruthy();
@@ -304,7 +304,8 @@ describe('Portfolio', () => {
     expect(screen.getByText('Expert')).toBeTruthy();
     expect(screen.getByText('⌥N')).toBeTruthy();
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Network' }), { target: { value: 'devnet' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Network: / }));
+    fireEvent.click(within(screen.getByRole('listbox', { name: 'Network' })).getByRole('option', { name: /Devnet/ }));
     await waitFor(() =>
       expect(m.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { network: 'devnet', rpcUrl: 'https://api.devnet.solana.com' } }),
     );
@@ -325,16 +326,38 @@ describe('Portfolio', () => {
       m.call.mockClear();
       m.state.settings = settings({ detailLevel, network: 'custom', customRpcs });
       const { unmount } = render(<PortfolioScreen />);
-      const picker = screen.getByRole('combobox', { name: 'Network' }) as HTMLSelectElement;
-      expect(picker.value).toBe('custom:https://rpc.example/key');
-      expect([...picker.options].map((o) => o.textContent)).toEqual(['Mainnet', 'Devnet', 'Localnet', 'rpc.example · Mainnet', 'dev.helius.example · Devnet']);
-      fireEvent.change(picker, { target: { value: 'custom:https://dev.helius.example/?api-key=secret' } });
+      const chip = screen.getByRole('button', { name: 'Network: Mainnet · custom RPC' });
+      expect(chip.getAttribute('aria-expanded')).toBe('false');
+      fireEvent.click(chip);
+      const list = screen.getByRole('listbox', { name: 'Network' });
+      expect(within(list).getAllByRole('option').map((o) => o.textContent)).toEqual([
+        'Mainnetsolana-rpc.publicnode.com',
+        'Devnetapi.devnet.solana.com',
+        'Localnet127.0.0.1:8899',
+        'rpc.exampleMainnet',
+        'dev.helius.exampleDevnet',
+      ]);
+      expect(within(list).getByRole('option', { name: /rpc\.example/, selected: true })).toBeTruthy();
+      expect(list.textContent).not.toContain('secret');
+      // Keyboard: the list has focus, Down moves to the next row, Enter picks it.
+      expect(document.activeElement).toBe(list);
+      fireEvent.keyDown(list, { key: 'ArrowDown' });
+      fireEvent.keyDown(list, { key: 'Enter' });
+      expect(screen.queryByRole('listbox')).toBeNull();
+      expect(document.activeElement).toBe(chip);
       await waitFor(() =>
         expect(m.call).toHaveBeenCalledWith({
           type: 'settings:update',
           patch: { network: 'custom', rpcUrl: 'https://dev.helius.example/?api-key=secret', customCluster: 'devnet' },
         }),
       );
+      // Escape closes without picking; the footer link manages the list.
+      fireEvent.click(chip);
+      fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+      expect(screen.queryByRole('listbox')).toBeNull();
+      fireEvent.click(chip);
+      fireEvent.click(screen.getByRole('button', { name: 'Add or manage RPCs' }));
+      expect(m.go).toHaveBeenLastCalledWith({ name: 'settings/network' });
       unmount();
     }
   });
@@ -342,7 +365,7 @@ describe('Portfolio', () => {
   it('without the header picker, the network is a plain label', () => {
     m.state.settings = settings({ networkSwitchInHeader: false });
     render(<PortfolioScreen />);
-    expect(screen.queryByRole('combobox', { name: 'Network' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Network: / })).toBeNull();
     expect(screen.getByText('Mainnet')).toBeTruthy();
   });
 });

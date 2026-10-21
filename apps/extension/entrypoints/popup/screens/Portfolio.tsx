@@ -359,7 +359,7 @@ function ExpertPortfolio() {
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
           {account ? <Pubkey value={account.address} className="text-xs whitespace-nowrap" /> : <span className="font-mono text-xs">—</span>}
         </button>
-        <div className="ml-auto flex flex-none justify-end">{settings.networkSwitchInHeader && <NetworkPicker compact settings={settings} />}</div>
+        <div className="ml-auto flex flex-none justify-end">{settings.networkSwitchInHeader && <NetworkPicker compact align="end" settings={settings} />}</div>
         <TabButton />
         <PanelButton />
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-10 h-11 flex items-center justify-center bg-transparent border-0 text-muted">

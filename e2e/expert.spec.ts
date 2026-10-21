@@ -54,20 +54,38 @@ test('the header network picker moves between networks and saved custom RPCs', a
   expect(r.ok).toBe(true);
   await popup.reload();
 
-  const net = popup.getByRole('combobox', { name: 'Network' });
-  await expect(net).toHaveValue('mainnet');
-  await expect(net.locator('option')).toHaveText(['Mainnet', 'Devnet', 'Localnet', 'rpc.clef-custom.test · Devnet']);
+  const chip = popup.getByRole('button', { name: /^Network: / });
+  const list = popup.getByRole('listbox', { name: 'Network' });
+  const pick = async (name: RegExp) => {
+    await chip.click();
+    await list.getByRole('option', { name }).click();
+    await expect(list).toHaveCount(0);
+  };
+  await expect(chip).toHaveAccessibleName('Network: Mainnet');
+  await chip.click();
+  await expect(list.getByRole('option')).toHaveCount(4);
+  await expect(list.getByRole('option', { name: /rpc\.clef-custom\.test/ })).toContainText('Devnet');
+  await expect(list).not.toContainText('secret');
+  await popup.screenshot({ path: process.env.SHOT_OUT ? `${process.env.SHOT_OUT}/picker-expert.png` : test.info().outputPath('picker.png') });
+  await popup.keyboard.press('Escape');
+  await expect(list).toHaveCount(0);
+  await expect(chip).toBeFocused();
 
-  await net.selectOption('devnet');
-  await expect(net).toHaveValue('devnet');
+  await pick(/^Devnet/);
+  await expect(chip).toHaveAccessibleName('Network: Devnet');
   expect((await settingsOf(popup)).network).toBe('devnet');
 
-  await net.selectOption({ label: 'rpc.clef-custom.test · Devnet' });
-  await expect(net).toHaveValue('custom:https://rpc.clef-custom.test/?api-key=secret');
+  await pick(/rpc\.clef-custom\.test/);
+  await expect(chip).toHaveAccessibleName('Network: Devnet · custom RPC');
   expect(await settingsOf(popup)).toMatchObject({ network: 'custom', rpcUrl: 'https://rpc.clef-custom.test/?api-key=secret' });
 
-  await net.selectOption('mainnet');
-  await expect(net).toHaveValue('mainnet');
+  // Keyboard: open with Down, move with the arrows, pick with Enter.
+  await chip.focus();
+  await popup.keyboard.press('ArrowDown');
+  await expect(list).toBeFocused();
+  await popup.keyboard.press('Home');
+  await popup.keyboard.press('Enter');
+  await expect(chip).toHaveAccessibleName('Network: Mainnet');
   expect((await settingsOf(popup)).network).toBe('mainnet');
 });
 
