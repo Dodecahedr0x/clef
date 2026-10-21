@@ -44,28 +44,30 @@ async function importWallet(popup: Page, rpcUrl: string) {
   await expect(popup.getByText('HAgk…Kpqk').first()).toBeVisible();
 }
 
-test('expert header network switch moves between mainnet and devnet', async ({ context, popup, stubRpc }) => {
+test('the header network picker moves between networks and saved custom RPCs', async ({ context, popup, stubRpc }) => {
   await offline(context);
   await importWallet(popup, stubRpc);
   // Mainnet requires an https RPC: its public default, aborted by the offline route.
-  const r = await internal(popup, { type: 'settings:update', patch: { network: 'mainnet', detailLevel: 'expert', networkSwitchInHeader: true } });
+  let r = await internal(popup, { type: 'settings:update', patch: { network: 'custom', rpcUrl: 'https://rpc.clef-custom.test/?api-key=secret', customCluster: 'devnet' } });
+  expect(r.ok).toBe(true);
+  r = await internal(popup, { type: 'settings:update', patch: { network: 'mainnet', detailLevel: 'expert', networkSwitchInHeader: true } });
   expect(r.ok).toBe(true);
   await popup.reload();
 
-  const net = popup.getByRole('radiogroup', { name: 'Network' });
-  const main = net.getByRole('radio', { name: 'Mainnet' });
-  const dev = net.getByRole('radio', { name: 'Devnet' });
-  await expect(main).toHaveAttribute('aria-checked', 'true');
-  await expect(dev).toHaveAttribute('aria-checked', 'false');
+  const net = popup.getByRole('combobox', { name: 'Network' });
+  await expect(net).toHaveValue('mainnet');
+  await expect(net.locator('option')).toHaveText(['Mainnet', 'Devnet', 'Localnet', 'rpc.clef-custom.test · Devnet']);
 
-  await dev.click();
-  await expect(dev).toHaveAttribute('aria-checked', 'true');
-  await expect(main).toHaveAttribute('aria-checked', 'false');
+  await net.selectOption('devnet');
+  await expect(net).toHaveValue('devnet');
   expect((await settingsOf(popup)).network).toBe('devnet');
 
-  await main.click();
-  await expect(main).toHaveAttribute('aria-checked', 'true');
-  await expect(dev).toHaveAttribute('aria-checked', 'false');
+  await net.selectOption({ label: 'rpc.clef-custom.test · Devnet' });
+  await expect(net).toHaveValue('custom:https://rpc.clef-custom.test/?api-key=secret');
+  expect(await settingsOf(popup)).toMatchObject({ network: 'custom', rpcUrl: 'https://rpc.clef-custom.test/?api-key=secret' });
+
+  await net.selectOption('mainnet');
+  await expect(net).toHaveValue('mainnet');
   expect((await settingsOf(popup)).network).toBe('mainnet');
 });
 

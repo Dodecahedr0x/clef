@@ -2,11 +2,14 @@ import type { KeyValueStore } from '@clef/vault';
 
 export type Network = 'mainnet' | 'devnet' | 'localnet' | 'custom';
 export type Cluster = 'mainnet' | 'devnet';
+export type CustomRpc = { url: string; cluster: Cluster };
 export type Settings = {
   network: Network;
   rpcUrl: string;
   /** Which cluster the custom RPC URL serves. */
   customCluster: Cluster;
+  /** Every custom RPC the user added, the one in use included, to switch between them. */
+  customRpcs: CustomRpc[];
   autoLockMinutes: number;
   detailLevel: 'basic' | 'intermediate' | 'expert';
   hideSpam: boolean;
@@ -35,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   network: 'mainnet',
   rpcUrl: DEFAULT_RPC.mainnet,
   customCluster: 'mainnet',
+  customRpcs: [],
   autoLockMinutes: 15,
   detailLevel: 'intermediate',
   hideSpam: true,
@@ -50,6 +54,8 @@ export const chainFor = (s: Pick<Settings, 'network' | 'customCluster'>): 'solan
 
 const KEY = 'settings';
 const MAX_AUTO_LOCK_MINUTES = 24 * 60;
+/** Saved custom RPCs; adding one more forgets the oldest that isn't in use. */
+export const MAX_CUSTOM_RPCS = 10;
 const LEVELS = ['basic', 'intermediate', 'expert'];
 const BOOLEANS = ['hideSpam', 'networkSwitchInHeader', 'devnetTint', 'errorReports'] as const;
 export const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
@@ -79,7 +85,27 @@ function migrate(stored: Partial<Settings>): Settings {
   if (s.network === 'mainnet' && s.rpcUrl.replace(/\/+$/, '') === BROWSER_BLOCKED_MAINNET) s.rpcUrl = DEFAULT_RPC.mainnet;
   const url = parseUrl(s.rpcUrl);
   if ((s.network === 'mainnet' || s.network === 'devnet') && url?.protocol === 'http:' && isLoopback(url)) s.network = 'localnet';
+  // Before the list existed, the custom RPC in use was the only one kept.
+  if (!Array.isArray(s.customRpcs)) s.customRpcs = [];
+  if (s.network === 'custom' && !s.customRpcs.some((r) => r.url === s.rpcUrl)) s.customRpcs = [...s.customRpcs, { url: s.rpcUrl, cluster: s.customCluster }];
   return s;
+}
+
+/** Valid, distinct by URL, the one in use kept (with the cluster it serves) and the list capped, oldest dropped first. */
+function cleanCustomRpcs(next: Settings): CustomRpc[] {
+  const list = next.customRpcs;
+  if (!Array.isArray(list) || list.length > MAX_CUSTOM_RPCS + 1) throw new Error('Invalid custom RPCs');
+  const seen = new Map<string, CustomRpc>();
+  for (const r of list) {
+    if (!r || typeof r !== 'object' || typeof r.url !== 'string' || !validRpcUrl('custom', r.url)) throw new Error('RPC URL must use https');
+    if (r.cluster !== 'mainnet' && r.cluster !== 'devnet') throw new Error('Unknown cluster');
+    seen.delete(r.url);
+    seen.set(r.url, { url: r.url, cluster: r.cluster });
+  }
+  if (next.network === 'custom') seen.set(next.rpcUrl, { url: next.rpcUrl, cluster: next.customCluster });
+  const out = [...seen.values()];
+  while (out.length > MAX_CUSTOM_RPCS) out.splice(out.findIndex((r) => !(next.network === 'custom' && r.url === next.rpcUrl)), 1);
+  return out;
 }
 
 function cleanApiKey(v: unknown): string | null {
@@ -112,6 +138,7 @@ export class SettingsStore {
     if (next.openIn !== 'popup' && next.openIn !== 'panel') throw new Error('Unknown openIn');
     for (const k of BOOLEANS) if (typeof next[k] !== 'boolean') throw new Error(`Invalid ${k}`);
     next.jupiterApiKey = cleanApiKey(next.jupiterApiKey);
+    next.customRpcs = cleanCustomRpcs(next);
     await this.store.set(KEY, next);
     return next;
   }

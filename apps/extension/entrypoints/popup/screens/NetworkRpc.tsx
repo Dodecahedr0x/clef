@@ -1,8 +1,9 @@
 import { DEFAULT_RPC, type Network, type Settings } from '@clef/wallet-core';
 import { useState } from 'react';
-import { Alert, Button, ListGroup, PopupScreen, Segmented, Spinner, TextField, Toggle } from '../../../components';
+import { Alert, Button, Icon, ListGroup, PopupScreen, Segmented, Spinner, TextField, Toggle } from '../../../components';
 import { useHealth, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
+import { customRpcLabels } from './NetworkPicker';
 import { NETWORK_LABEL, rpcHost, useDas, useSettingsPatch } from './Settings';
 
 type Cluster = Settings['customCluster'];
@@ -48,14 +49,16 @@ export function NetworkRpcScreen() {
     );
   }
   const s = state.settings;
-  const rows: { network: Network; url: string }[] = [
-    { network: 'mainnet', url: s.network === 'mainnet' ? s.rpcUrl : DEFAULT_RPC.mainnet },
-    { network: 'devnet', url: s.network === 'devnet' ? s.rpcUrl : DEFAULT_RPC.devnet },
-    { network: 'localnet', url: s.network === 'localnet' ? s.rpcUrl : DEFAULT_RPC.localnet },
+  const customs = s.customRpcs ?? [];
+  const labels = customRpcLabels(customs);
+  const rows: { network: Network; url: string; cluster?: Cluster; label: string }[] = [
+    { network: 'mainnet', url: s.network === 'mainnet' ? s.rpcUrl : DEFAULT_RPC.mainnet, label: NETWORK_LABEL.mainnet },
+    { network: 'devnet', url: s.network === 'devnet' ? s.rpcUrl : DEFAULT_RPC.devnet, label: NETWORK_LABEL.devnet },
+    { network: 'localnet', url: s.network === 'localnet' ? s.rpcUrl : DEFAULT_RPC.localnet, label: NETWORK_LABEL.localnet },
+    ...customs.map((c, i) => ({ network: 'custom' as const, url: c.url, cluster: c.cluster, label: labels[i]! })),
   ];
-  if (s.network === 'custom') rows.push({ network: 'custom', url: s.rpcUrl });
 
-  const draftUrl = url ?? (s.network === 'custom' ? s.rpcUrl : '');
+  const draftUrl = url ?? '';
   const draftCluster = cluster ?? s.customCluster;
 
   const saveCustom = async () => {
@@ -73,10 +76,10 @@ export function NetworkRpcScreen() {
       <fieldset className="mx-3 mt-3.5 flex flex-col gap-2 border-0 p-0">
         <legend className="px-1 pb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">Network</legend>
         {rows.map((r) => {
-          const active = s.network === r.network;
+          const active = s.network === r.network && (r.network !== 'custom' || s.rpcUrl === r.url);
           return (
             <label
-              key={r.network}
+              key={r.network === 'custom' ? r.url : r.network}
               className={`flex cursor-pointer items-center gap-2.5 rounded-2xl bg-surface px-3 py-2.5 ${active ? 'border-[1.5px] border-primary' : 'border border-line'}`}
             >
               <input
@@ -84,22 +87,35 @@ export function NetworkRpcScreen() {
                 name="net"
                 className="h-[18px] w-[18px] accent-primary"
                 checked={active}
-                onChange={() => void save(r.network === 'custom' ? { network: 'custom' } : { network: r.network, rpcUrl: DEFAULT_RPC[r.network] })}
+                aria-label={r.network === 'custom' ? `Custom RPC ${r.label}` : r.label}
+                onChange={() =>
+                  void save(r.network === 'custom' ? { network: 'custom', rpcUrl: r.url, customCluster: r.cluster } : { network: r.network, rpcUrl: DEFAULT_RPC[r.network] })
+                }
               />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-semibold">
-                  {NETWORK_LABEL[r.network]}
-                  {r.network === 'custom' && <span className="font-normal text-muted"> · {NETWORK_LABEL[s.customCluster]}</span>}
-                </span>
-                <span className="truncate font-mono text-xs text-muted">{rpcHost(r.url)}</span>
+                <span className="truncate text-sm font-semibold">{r.network === 'custom' ? 'Custom' : r.label}</span>
+                <span className="truncate font-mono text-xs text-muted">{r.network === 'custom' ? r.label : rpcHost(r.url)}</span>
               </span>
               {active && <Status latencyMs={latencyMs} das={das} />}
+              {r.network === 'custom' && !active && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${r.label}`}
+                  className="-my-1 -mr-1 flex size-9 flex-none items-center justify-center rounded-lg text-muted"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void save({ customRpcs: customs.filter((c) => c.url !== r.url) });
+                  }}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              )}
             </label>
           );
         })}
         {!customOpen ? (
           <button type="button" className="min-h-8 self-start px-1 text-xs text-info" onClick={() => setCustomOpen(true)}>
-            {s.network === 'custom' ? 'Edit custom RPC' : '+ Add custom RPC'}
+            + Add custom RPC
           </button>
         ) : (
           <section aria-label="Custom RPC" className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3">
@@ -152,10 +168,10 @@ export function NetworkRpcScreen() {
       <div className="mx-3 mb-3 mt-2.5">
         <ListGroup>
           <Toggle
-            label="Network switch in header"
+            label="Network picker on the home screen"
             description={
               <>
-                On by default in Expert · <span className="font-mono">⌥N</span> toggles
+                Pick the network from the home screen · <span className="font-mono">⌥N</span> toggles Mainnet and Devnet
               </>
             }
             checked={s.networkSwitchInHeader}

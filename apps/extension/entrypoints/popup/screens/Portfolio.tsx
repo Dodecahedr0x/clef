@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_RPC, type Settings } from '@clef/wallet-core';
 import type { Holding, Portfolio } from '@clef/portfolio';
-import { Avatar, ErrorNote, Icon, Logo, NetworkSwitch, Spinner, Tabs, tabPanelProps, type IconName, Pubkey } from '../../../components';
+import { Avatar, ErrorNote, Icon, Logo, Spinner, Tabs, tabPanelProps, type IconName, Pubkey } from '../../../components';
 import { call } from '../../../lib/api';
 import { loadErrorText } from '../../../lib/error-text';
 import { formatPct, formatUsd, shortAddress, timeAgo } from '../../../lib/format';
 import { showSpamForSession, useActiveAccount, useHealth, useHistory, usePortfolio, useWallet } from '../../../lib/hooks';
 import { useNav } from '../../../lib/nav';
 import { clusterOf, networkLabel } from '../../../lib/network';
+import { NetworkPicker } from './NetworkPicker';
 import { PanelButton, TabButton } from './PanelButton';
 import { RpcNotice } from './RpcNotice';
 import { actionGate, ViewOnlyHint } from './ViewOnly';
@@ -193,7 +194,7 @@ function SitesTab() {
 
 function useNetworkShortcut(settings: Settings | undefined) {
   useEffect(() => {
-    if (!settings || settings.detailLevel !== 'expert' || !settings.networkSwitchInHeader) return;
+    if (!settings || !settings.networkSwitchInHeader) return;
     const current = switchValue(settings);
     if (!current) return;
     const onKey = (e: KeyboardEvent) => {
@@ -269,7 +270,8 @@ function BasicPortfolio() {
       <section className="px-5 pt-[22px] pb-[18px] flex flex-col gap-1 shrink-0">
         <div className="flex items-center gap-2 text-xs text-muted">
           <span>Total balance</span>
-          {settings && (
+          {settings?.networkSwitchInHeader && <NetworkPicker settings={settings} />}
+          {settings && !settings.networkSwitchInHeader && (
             <span className="inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full bg-surface border border-line text-xs">
               <span className={`w-1.5 h-1.5 rounded-full ${clusterOf(settings) === 'mainnet' ? 'bg-ok' : 'bg-warn'}`} />
               {networkLabel(settings)}
@@ -340,7 +342,6 @@ function ExpertPortfolio() {
   const { data, error, refresh } = usePortfolio(account?.address ?? null);
   const spam = useSpam(data);
   const settings = state!.settings;
-  const sw = switchValue(settings);
   const sol = data?.holdings.find((h) => h.mint === 'SOL');
   const tokens = spam.visible.filter((h) => h.program !== 'native');
 
@@ -357,9 +358,7 @@ function ExpertPortfolio() {
           <span className="w-3.5 h-3.5 rounded-full bg-info-dot" />
           {account ? <Pubkey value={account.address} className="text-xs whitespace-nowrap" /> : <span className="font-mono text-xs">—</span>}
         </button>
-        <div className="ml-auto">
-          {settings.networkSwitchInHeader && sw && <NetworkSwitch compact value={sw} onChange={(v) => void switchNetwork(v)} />}
-        </div>
+        <div className="ml-auto flex flex-none justify-end">{settings.networkSwitchInHeader && <NetworkPicker compact settings={settings} />}</div>
         <TabButton />
         <PanelButton />
         <button type="button" aria-label="Settings" onClick={() => nav.go({ name: 'settings' })} className="w-10 h-11 flex items-center justify-center bg-transparent border-0 text-muted">

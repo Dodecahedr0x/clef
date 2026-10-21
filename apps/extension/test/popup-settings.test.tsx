@@ -479,7 +479,7 @@ describe('NetworkRpcScreen', () => {
   });
 
   it('probes health once for the whole screen, not once per network row', async () => {
-    api.state.settings = { ...api.state.settings, network: 'custom', rpcUrl: 'https://custom.example.com' };
+    api.state.settings = { ...api.state.settings, network: 'custom', rpcUrl: 'https://custom.example.com', customRpcs: [{ url: 'https://custom.example.com', cluster: 'mainnet' }] };
     renderScreen(<NetworkRpcScreen />);
     expect(await screen.findAllByRole('radio')).toHaveLength(4);
     expect(await screen.findByText('84 ms')).toBeInTheDocument();
@@ -518,15 +518,41 @@ describe('NetworkRpcScreen', () => {
     await user.click(within(form.getByRole('radiogroup', { name: 'Cluster served by the custom RPC' })).getByText('Devnet'));
     await user.click(form.getByRole('button', { name: 'Use this RPC' }));
     expect(patches()).toEqual([{ network: 'custom', rpcUrl: 'https://devnet.helius.example/?k=1', customCluster: 'devnet' }]);
-    const custom = await screen.findByRole('radio', { name: /Custom/ });
-    expect(custom).toBeChecked();
-    expect(within(custom.closest('label')!).getByText('devnet.helius.example')).toBeInTheDocument();
+  });
+
+  it('lists every saved custom RPC by host, switches to one, and removes one not in use', async () => {
+    const user = userEvent.setup();
+    const customRpcs = [
+      { url: 'https://a.helius.example/?api-key=secret', cluster: 'mainnet' },
+      { url: 'https://b.example/devnet', cluster: 'devnet' },
+    ];
+    api.state.settings = { ...api.state.settings, network: 'custom', rpcUrl: customRpcs[0]!.url, customRpcs };
+    renderScreen(<NetworkRpcScreen />);
+    const a = await screen.findByRole('radio', { name: 'Custom RPC a.helius.example · Mainnet' });
+    expect(a).toBeChecked();
+    expect(screen.queryByText(/secret/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove a.helius.example · Mainnet' })).toBeNull();
+    await user.click(screen.getByRole('radio', { name: 'Custom RPC b.example · Devnet' }));
+    expect(patches()).toEqual([{ network: 'custom', rpcUrl: 'https://b.example/devnet', customCluster: 'devnet' }]);
+  });
+
+  it('removes a saved custom RPC that is not in use', async () => {
+    const user = userEvent.setup();
+    const customRpcs = [
+      { url: 'https://a.example', cluster: 'mainnet' },
+      { url: 'https://b.example', cluster: 'devnet' },
+    ];
+    api.state.settings = { ...api.state.settings, network: 'custom', rpcUrl: customRpcs[0]!.url, customRpcs };
+    renderScreen(<NetworkRpcScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Remove b.example · Devnet' }));
+    expect(patches()).toEqual([{ customRpcs: [customRpcs[0]] }]);
+    expect(screen.getByRole('radio', { name: 'Custom RPC a.example · Mainnet' })).toBeChecked();
   });
 
   it('toggles the header network switch and the devnet tint', async () => {
     const user = userEvent.setup();
     renderScreen(<NetworkRpcScreen />);
-    await user.click(await screen.findByRole('switch', { name: /Network switch in header/ }));
+    await user.click(await screen.findByRole('switch', { name: /Network picker on the home screen/ }));
     await user.click(screen.getByRole('switch', { name: /Tint the wallet on test networks/ }));
     expect(patches()).toEqual([{ networkSwitchInHeader: false }, { devnetTint: false }]);
   });

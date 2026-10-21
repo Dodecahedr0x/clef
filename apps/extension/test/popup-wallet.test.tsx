@@ -205,7 +205,7 @@ describe('Portfolio', () => {
     render(<PortfolioScreen />);
     expect(screen.getByText('$1,284.52')).toBeTruthy();
     expect(screen.getByText(/\+\$18\.20 · 1\.4% today/)).toBeTruthy();
-    expect(screen.getByText('Mainnet')).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Network' }) as HTMLSelectElement).value).toBe('mainnet');
     expect(screen.getByText('Main')).toBeTruthy();
     expect(screen.getByText('7xKp…3fQa')).toBeTruthy();
     expect(screen.getByText('Solana')).toBeTruthy();
@@ -282,7 +282,7 @@ describe('Portfolio', () => {
     expect(m.go).toHaveBeenLastCalledWith({ name: 'settings' });
   });
 
-  it('expert variant: Main/Dev switch, RPC strip, token accounts, footer, ⌥N', async () => {
+  it('expert variant: network picker, RPC strip, token accounts, footer, ⌥N', async () => {
     m.state.settings = settings({ detailLevel: 'expert' });
     m.portfolio = portfolio({ holdings: [SOL, USDC_H, JUP, SPAM], hiddenSpam: 0 });
     render(<PortfolioScreen />);
@@ -303,8 +303,7 @@ describe('Portfolio', () => {
     expect(screen.getByText('Expert')).toBeTruthy();
     expect(screen.getByText('⌥N')).toBeTruthy();
 
-    const net = screen.getByRole('radiogroup', { name: /network/i });
-    fireEvent.click(within(net).getByText('Dev'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Network' }), { target: { value: 'devnet' } });
     await waitFor(() =>
       expect(m.call).toHaveBeenCalledWith({ type: 'settings:update', patch: { network: 'devnet', rpcUrl: 'https://api.devnet.solana.com' } }),
     );
@@ -316,10 +315,34 @@ describe('Portfolio', () => {
     );
   });
 
-  it('expert variant hides the network switch on a custom RPC', () => {
-    m.state.settings = settings({ detailLevel: 'expert', network: 'custom' });
+  it('the network picker lists every saved custom RPC by host only, and switches to one', async () => {
+    const customRpcs = [
+      { url: 'https://rpc.example/key', cluster: 'mainnet' },
+      { url: 'https://dev.helius.example/?api-key=secret', cluster: 'devnet' },
+    ];
+    for (const detailLevel of ['basic', 'expert']) {
+      m.call.mockClear();
+      m.state.settings = settings({ detailLevel, network: 'custom', customRpcs });
+      const { unmount } = render(<PortfolioScreen />);
+      const picker = screen.getByRole('combobox', { name: 'Network' }) as HTMLSelectElement;
+      expect(picker.value).toBe('custom:https://rpc.example/key');
+      expect([...picker.options].map((o) => o.textContent)).toEqual(['Mainnet', 'Devnet', 'Localnet', 'rpc.example · Mainnet', 'dev.helius.example · Devnet']);
+      fireEvent.change(picker, { target: { value: 'custom:https://dev.helius.example/?api-key=secret' } });
+      await waitFor(() =>
+        expect(m.call).toHaveBeenCalledWith({
+          type: 'settings:update',
+          patch: { network: 'custom', rpcUrl: 'https://dev.helius.example/?api-key=secret', customCluster: 'devnet' },
+        }),
+      );
+      unmount();
+    }
+  });
+
+  it('without the header picker, the network is a plain label', () => {
+    m.state.settings = settings({ networkSwitchInHeader: false });
     render(<PortfolioScreen />);
-    expect(screen.queryByRole('radiogroup', { name: /network/i })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Network' })).toBeNull();
+    expect(screen.getByText('Mainnet')).toBeTruthy();
   });
 });
 

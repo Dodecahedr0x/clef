@@ -1,6 +1,6 @@
 import { MemoryStore } from '@clef/vault';
 import { describe, expect, it } from 'vitest';
-import { chainFor, DEFAULT_RPC, DEFAULT_SETTINGS, SettingsStore } from '../src/settings';
+import { chainFor, DEFAULT_RPC, DEFAULT_SETTINGS, MAX_CUSTOM_RPCS, SettingsStore } from '../src/settings';
 
 describe('Settings v2', () => {
   it('has the pinned defaults', () => {
@@ -8,6 +8,7 @@ describe('Settings v2', () => {
       network: 'mainnet',
       rpcUrl: DEFAULT_RPC.mainnet,
       customCluster: 'mainnet',
+      customRpcs: [],
       autoLockMinutes: 15,
       detailLevel: 'intermediate',
       hideSpam: true,
@@ -81,5 +82,39 @@ describe('Settings v2', () => {
     await expect(s.update({ customCluster: 'testnet' as never })).rejects.toThrow();
     await expect(s.update({ jupiterApiKey: 'x'.repeat(200) })).rejects.toThrow();
     await expect(s.update({ jupiterApiKey: 'bad key!' })).rejects.toThrow();
+  });
+
+  it('keeps every custom RPC used, so switching back to one needs no retyping', async () => {
+    const s = new SettingsStore(new MemoryStore());
+    await s.update({ network: 'custom', rpcUrl: 'https://a.example/?key=1', customCluster: 'mainnet' });
+    await s.update({ network: 'custom', rpcUrl: 'https://b.example', customCluster: 'devnet' });
+    const on = await s.update({ network: 'devnet' });
+    expect(on.customRpcs).toEqual([
+      { url: 'https://a.example/?key=1', cluster: 'mainnet' },
+      { url: 'https://b.example', cluster: 'devnet' },
+    ]);
+    // Switching to a saved one keeps the list as it was.
+    expect((await s.update({ network: 'custom', rpcUrl: 'https://a.example/?key=1', customCluster: 'mainnet' })).customRpcs).toHaveLength(2);
+    // Removing one that isn't in use forgets it; the one in use stays.
+    expect((await s.update({ customRpcs: [] })).customRpcs).toEqual([{ url: 'https://a.example/?key=1', cluster: 'mainnet' }]);
+    await expect(s.update({ customRpcs: [{ url: 'http://c.example', cluster: 'mainnet' }] })).rejects.toThrow('https');
+    await expect(s.update({ customRpcs: [{ url: 'https://c.example', cluster: 'testnet' as never }] })).rejects.toThrow('cluster');
+    await expect(s.update({ customRpcs: 'x' as never })).rejects.toThrow();
+  });
+
+  it('caps the saved custom RPCs, forgetting the oldest one not in use', async () => {
+    const s = new SettingsStore(new MemoryStore());
+    await s.update({ network: 'custom', rpcUrl: 'https://keep.example', customCluster: 'mainnet' });
+    for (let i = 0; i < MAX_CUSTOM_RPCS; i++) await s.update({ customRpcs: [...(await s.get()).customRpcs, { url: `https://n${i}.example`, cluster: 'devnet' }] });
+    const { customRpcs } = await s.get();
+    expect(customRpcs).toHaveLength(MAX_CUSTOM_RPCS);
+    expect(customRpcs.map((r) => r.url)).toContain('https://keep.example');
+    expect(customRpcs.map((r) => r.url)).not.toContain('https://n0.example');
+  });
+
+  it('migrates a stored custom RPC into the saved list', async () => {
+    const store = new MemoryStore();
+    await store.set('settings', { network: 'custom', rpcUrl: 'https://old.example', customCluster: 'devnet' });
+    expect((await new SettingsStore(store).get()).customRpcs).toEqual([{ url: 'https://old.example', cluster: 'devnet' }]);
   });
 });
