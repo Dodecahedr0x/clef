@@ -73,9 +73,9 @@ async function approve(context: BrowserContext, dapp: Page, action: string) {
   const result = run(dapp, action);
   const approval = await nextApproval(context);
   await expect(approval.getByText(/Simulating/)).toHaveCount(0, { timeout: 30_000 });
-  // Surfpool predates v1: Clef still decodes all 55 transfers and says why it could not simulate.
+  // Surfpool can't simulate this (see below): Clef still decodes all 55 transfers and says the balance changes are unknown.
   await expect(approval.getByRole('heading', { name: '55 instructions' })).toBeVisible();
-  await expect(approval.getByText(/version 1 transactions, up to 4 KB, need an up-to-date RPC/)).toBeVisible();
+  await expect(approval.getByText(/balance changes are unknown/i).first()).toBeVisible();
   const ack = approval.getByLabel(/I understand/);
   if (await ack.count()) await ack.check();
   const closed = approval.waitForEvent('close');
@@ -84,8 +84,10 @@ async function approve(context: BrowserContext, dapp: Page, action: string) {
   return result;
 }
 
-// Surfpool 1.4 cannot parse v1 transactions, so this checks decoding, the approval and signing; simulation and sending
-// of large v1 transactions are covered against devnet by packages/explain/test/v1.live.test.ts.
+// Surfpool can't simulate this transaction: 1.4 can't parse v1 at all, and 1.6 runs a v1 transaction that leaves its
+// compute-unit and loaded-data limits to the defaults with both at zero. So this checks decoding, the approval and
+// signing; simulation and sending of large v1 transactions are covered against devnet by
+// packages/explain/test/v1.live.test.ts.
 test('a v1 transaction over the legacy size limit is decoded, approved and signed', async ({ context, popup, dapp, base, validator }) => {
   await setup(context, popup, dapp, base, validator);
   const wire = await bigV1(validator, 55);

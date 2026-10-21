@@ -1,6 +1,6 @@
 import type { ChainReader, RawAccount } from '@clef/rpc';
 import { getTokenDecoder } from '@solana-program/token';
-import type { Address } from '@solana/kit';
+import { isSolanaError, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_MIN_CONTEXT_SLOT_NOT_REACHED, type Address } from '@solana/kit';
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from './registry';
 
 const MINT_SIZE = 82;
@@ -14,13 +14,18 @@ const MINT_DECIMALS_OFFSET = 44;
 const MINT_INITIALIZED_OFFSET = 45;
 /** Token account `state`: 0 = uninitialized. */
 const TOKEN_STATE_OFFSET = 108;
+/** Waits for an RPC node that hasn't reached the slot asked for yet: about one slot each, for up to ~2 s. */
+const BEHIND_RETRY_MS = [400, 400, 400, 800];
 
 /** Memoized, batched account reads shared by all pipeline stages. */
 export class AccountCache {
   private readonly cache = new Map<string, RawAccount | null>();
   private maxSlot: bigint | undefined;
 
-  constructor(private readonly reader: ChainReader) {}
+  constructor(
+    private readonly reader: ChainReader,
+    private readonly wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+  ) {}
 
   /** The highest slot any read was served at, when the reader reports slots. */
   get slot(): bigint | undefined {
@@ -37,10 +42,20 @@ export class AccountCache {
   /** Reads `addresses` from the chain now (no older than `minContextSlot`), bypassing (and not updating) the cache. */
   async fetch(addresses: readonly Address[], minContextSlot?: bigint): Promise<(RawAccount | null)[]> {
     if (!this.reader.getAccountsWithSlot) return this.reader.getAccounts(addresses);
-    const { accounts, slot } = await this.reader.getAccountsWithSlot(
-      addresses,
-      ...(minContextSlot === undefined ? [] : [{ minContextSlot }]),
-    );
+    const read = () => this.reader.getAccountsWithSlot!(addresses, ...(minContextSlot === undefined ? [] : [{ minContextSlot }]));
+    let result: Awaited<ReturnType<typeof read>> | undefined;
+    // A node a slot or two behind the one the simulation ran at (a load-balanced RPC, or a validator whose simulate and
+    // reads use different commitments) refuses the read; that is lag, not a failure, so it is asked again.
+    for (let attempt = 0; result === undefined; attempt++) {
+      try {
+        result = await read();
+      } catch (e) {
+        const behind = isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_MIN_CONTEXT_SLOT_NOT_REACHED);
+        if (!behind || minContextSlot === undefined || attempt >= BEHIND_RETRY_MS.length) throw e;
+        await this.wait(BEHIND_RETRY_MS[attempt]!);
+      }
+    }
+    const { accounts, slot } = result;
     if (this.maxSlot === undefined || slot > this.maxSlot) this.maxSlot = slot;
     return accounts;
   }

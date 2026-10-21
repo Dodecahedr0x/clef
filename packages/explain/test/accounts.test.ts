@@ -1,7 +1,7 @@
 import type { RawAccount } from '@clef/rpc';
 import { MemoryChainReader } from '@clef/rpc';
 import { AccountState, getMintEncoder } from '@solana-program/token';
-import { address, none, type Address } from '@solana/kit';
+import { address, none, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_MIN_CONTEXT_SLOT_NOT_REACHED, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_NODE_UNHEALTHY, SolanaError, type Address } from '@solana/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountCache, decodeMintDecimals, decodeTokenAccount, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../src';
 import { ME, OTHER, USDC, tokenAccountData } from './helpers';
@@ -88,5 +88,42 @@ describe('account helpers', () => {
     expect(spy).toHaveBeenCalledWith([ME, OTHER]);
     expect(cache.get(ME)).toBeNull();
     expect(cache.get(USDC)).toBeUndefined();
+  });
+});
+
+describe('AccountCache reads at a slot', () => {
+  const behind = () => new SolanaError(SOLANA_ERROR__JSON_RPC__SERVER_ERROR_MIN_CONTEXT_SLOT_NOT_REACHED, { contextSlot: 30n });
+  const reader = (answers: (Error | { accounts: (RawAccount | null)[]; slot: bigint })[]) => {
+    const calls: unknown[][] = [];
+    const r = {
+      getAccounts: async () => [],
+      getAccountsWithSlot: async (...args: unknown[]) => {
+        calls.push(args);
+        const next = answers.shift()!;
+        if (next instanceof Error) throw next;
+        return next;
+      },
+    } as unknown as ConstructorParameters<typeof AccountCache>[0];
+    return { r, calls };
+  };
+
+  it('asks again while the node is behind the slot, then takes its answer', async () => {
+    const { r, calls } = reader([behind(), behind(), { accounts: [null], slot: 31n }]);
+    const waits: number[] = [];
+    const cache = new AccountCache(r, async (ms) => void waits.push(ms));
+    expect(await cache.fetch([ME], 31n)).toEqual([null]);
+    expect(calls).toHaveLength(3);
+    expect(calls[2]).toEqual([[ME], { minContextSlot: 31n }]);
+    expect(waits).toEqual([400, 400]);
+    expect(cache.slot).toBe(31n);
+  });
+
+  it('gives up after about two seconds, and never retries other errors', async () => {
+    const stuck = reader(Array.from({ length: 6 }, behind));
+    await expect(new AccountCache(stuck.r, async () => {}).fetch([ME], 31n)).rejects.toThrow(/Minimum context slot/);
+    expect(stuck.calls).toHaveLength(5);
+    const down = reader([new SolanaError(SOLANA_ERROR__JSON_RPC__SERVER_ERROR_NODE_UNHEALTHY, { numSlotsBehind: 3 })]);
+    await expect(new AccountCache(down.r, async () => {}).fetch([ME], 31n)).rejects.toThrow();
+    expect(down.calls).toHaveLength(1);
   });
 });
