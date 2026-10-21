@@ -12,6 +12,7 @@
     "test:local": "vitest run --project local",
     "test:live": "vitest run --project live",
     "zip:ext": "tsx scripts/zip-extension.ts",
+    "icons": "tsx scripts/icons.ts",
     "screenshots": "tsx scripts/screenshots.ts",
     "screenshots:store": "CLEF_SCREENSHOTS=1 playwright test e2e/store-screenshots.spec.ts"
   },
